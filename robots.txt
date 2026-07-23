@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://saraswatisecschool.edu.np/sitemap.xml

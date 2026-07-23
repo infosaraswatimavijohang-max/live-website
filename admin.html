@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Shree Saraswati Secondary School</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Noto+Serif:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-header">
+      <img id="loginLogo" src="assets/images/School%20circular%20logo.webp" alt="Logo" class="login-logo">
+      <h2>Admin Login</h2>
+      <p>Shree Saraswati Secondary School</p>
+    </div>
+    <form id="loginForm">
+      <div class="form-group"><label for="username">Username</label><input type="text" id="username" required></div>
+      <div class="form-group"><label for="password">Password</label><input type="password" id="password" required></div>
+      <button type="submit" class="btn-primary" style="width:100%">Sign In</button>
+      <div id="loginError" class="error-msg"></div>
+    </form>
+  </div>
+</div>
+
+<div class="dashboard hidden" id="adminDashboard">
+  <div class="top-bar">
+    <div class="top-left">
+      <button class="menu-toggle" id="sidebarToggle" aria-label="Toggle sidebar"><i class="fas fa-bars"></i></button>
+      <h1>School Admin</h1>
+    </div>
+    <div class="top-right">
+      <span id="adminUser"><i class="fas fa-user-circle"></i> Admin</span>
+      <button class="btn-logout" onclick="Admin.logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="admin-container">
+    <nav class="sidebar" id="sidebar">
+      <ul class="nav-menu">
+        <li class="nav-item active" data-section="dashboard"><a href="#dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+        <li class="nav-item" data-section="settings"><a href="#settings"><i class="fas fa-cog"></i> Settings</a></li>
+        <li class="nav-item" data-section="homepage"><a href="#homepage"><i class="fas fa-home"></i> Homepage CMS</a></li>
+        <li class="nav-item" data-section="slides"><a href="#slides"><i class="fas fa-images"></i> Hero Slides</a></li>
+        <li class="nav-item" data-section="about"><a href="#about"><i class="fas fa-info-circle"></i> About Section</a></li>
+        <li class="nav-item" data-section="stats"><a href="#stats"><i class="fas fa-chart-bar"></i> Stats</a></li>
+        <li class="nav-item" data-section="notices"><a href="#notices"><i class="fas fa-bullhorn"></i> Notices</a></li>
+        <li class="nav-item" data-section="programs"><a href="#programs"><i class="fas fa-book"></i> Programs</a></li>
+        <li class="nav-item" data-section="teachers"><a href="#teachers"><i class="fas fa-chalkboard-teacher"></i> Teachers</a></li>
+        <li class="nav-item" data-section="staff"><a href="#staff"><i class="fas fa-users"></i> Staff</a></li>
+        <li class="nav-item" data-section="gallery"><a href="#gallery"><i class="fas fa-camera"></i> Gallery</a></li>
+        <li class="nav-item" data-section="events"><a href="#events"><i class="fas fa-calendar-check"></i> Events</a></li>
+        <li class="nav-item" data-section="testimonials"><a href="#testimonials"><i class="fas fa-quote-right"></i> Testimonials</a></li>
+        <li class="nav-item" data-section="marquee"><a href="#marquee"><i class="fas fa-ticker"></i> Marquee</a></li>
+        <li class="nav-item" data-section="admissions"><a href="#admissions"><i class="fas fa-file-alt"></i> Admissions</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content" id="mainContent">
+
+      <!-- ===== DASHBOARD ===== -->
+      <section id="dashboard" class="admin-section active">
+        <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+        <div class="dashboard-cards" id="dashboardCards">
+          <div class="dash-card"><div class="dash-icon"><i class="fas fa-images"></i></div><div class="dash-info"><span class="dash-number" id="dashSlides">0</span><span class="dash-label">Hero Slides</span></div></div>
+          <div class="dash-card"><div class="dash-icon"><i class="fas fa-bullhorn"></i></div><div class="dash-info"><span class="dash-number" id="dashNotices">0</span><span class="dash-label">Notices</span></div></div>
+          <div class="dash-card"><div class="dash-icon"><i class="fas fa-book"></i></div><div class="dash-info"><span class="dash-number" id="dashPrograms">0</span><span class="dash-label">Programs</span></div></div>
+          <div class="dash-card"><div class="dash-icon"><i class="fas fa-chalkboard-teacher"></i></div><div class="dash-info"><span class="dash-number" id="dashTeachers">0</span><span class="dash-label">Teachers</span></div></div>
+          <div class="dash-card"><div class="dash-icon"><i class="fas fa-users"></i></div><div class="dash-info"><span class="dash-number" id="dashStaff">0</span><span class="dash-label">Staff</span></div></div>
+          <div class="dash-card"><div class="dash-icon"><i class="fas fa-camera"></i></div><div class="dash-info"><span class="dash-number" id="dashGallery">0</span><span class="dash-label">Gallery Images</span></div></div>
+          <div class="dash-card"><div class="dash-icon"><i class="fas fa-calendar-check"></i></div><div class="dash-info"><span class="dash-number" id="dashEvents">0</span><span class="dash-label">Events</span></div></div>
+          <div class="dash-card"><div class="dash-icon"><i class="fas fa-quote-right"></i></div><div class="dash-info"><span class="dash-number" id="dashTestimonials">0</span><span class="dash-label">Testimonials</span></div></div>
+          <div class="dash-card"><div class="dash-icon"><i class="fas fa-file-alt"></i></div><div class="dash-info"><span class="dash-number" id="dashAdmissions">0</span><span class="dash-label">Admissions</span></div></div>
+        </div>
+        <div class="dash-actions">
+          <h3>Quick Actions</h3>
+          <div class="quick-btns">
+            <button onclick="switchTab('homepage')" class="btn btn-primary"><i class="fas fa-home"></i> Edit Homepage</button>
+            <button onclick="switchTab('slides')" class="btn btn-primary"><i class="fas fa-images"></i> Manage Slides</button>
+            <button onclick="switchTab('notices')" class="btn btn-primary"><i class="fas fa-bullhorn"></i> Manage Notices</button>
+            <button onclick="switchTab('teachers')" class="btn btn-primary"><i class="fas fa-chalkboard-teacher"></i> Manage Teachers</button>
+            <button onclick="switchTab('admissions')" class="btn btn-primary"><i class="fas fa-file-alt"></i> View Admissions</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SETTINGS ===== -->
+      <section id="settings" class="admin-section">
+        <h2><i class="fas fa-cog"></i> School Settings</h2>
+        <div class="section-content">
+          <div class="form-grid">
+            <div class="form-group"><label>School Name</label><input type="text" id="settingSchoolName"></div>
+            <div class="form-group"><label>Tagline</label><input type="text" id="settingTagline"></div>
+            <div class="form-group"><label>Established Date</label><input type="text" id="settingEstablished"></div>
+            <div class="form-group"><label>Address</label><input type="text" id="settingAddress"></div>
+            <div class="form-group"><label>Phone</label><input type="text" id="settingPhone"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="settingEmail"></div>
+            <div class="form-group"><label>Facebook URL</label><input type="url" id="settingFacebook"></div>
+            <div class="form-group"><label>YouTube URL</label><input type="url" id="settingYoutube"></div>
+            <div class="form-group"><label>Map Embed URL</label><input type="url" id="settingMap"></div>
+            <div class="form-group"><label>Admin Password</label><input type="text" id="settingPassword" placeholder="Leave blank to keep current"></div>
+          </div>
+          <div class="form-group"><label>School Logo</label><input type="file" id="settingLogo" accept="image/*" onchange="previewImage(this,'logoPreview')"><div id="logoPreview" class="image-preview"></div></div>
+          <button class="btn-primary btn-save" onclick="Admin.saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
+        </div>
+      </section>
+
+      <!-- ===== HOMEPAGE CMS ===== -->
+      <section id="homepage" class="admin-section">
+        <h2><i class="fas fa-home"></i> Homepage CMS</h2>
+        <p class="hp-subtitle">Manage all sections of the index page. Each section can be toggled, edited, or reordered.</p>
+
+        <div class="hp-sections" id="hpSections">
+          <!-- Hero Section -->
+          <div class="hp-section-card" data-section="hero">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-image"></i><span>Hero Section</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpHeroToggle" checked onchange="Admin.toggleHomeSection('hero',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('slides')">Edit</button></div></div>
+            <p class="hp-desc">Slideshow background, tagline, hero buttons. Manage slides in the Hero Slides section.</p>
+          </div>
+          <!-- About Section -->
+          <div class="hp-section-card" data-section="about">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-info-circle"></i><span>About Section</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpAboutToggle" checked onchange="Admin.toggleHomeSection('about',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('about')">Edit</button></div></div>
+            <p class="hp-desc">School history, vision, mission, values, principal message, block details.</p>
+          </div>
+          <!-- Stats Section -->
+          <div class="hp-section-card" data-section="stats">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-chart-bar"></i><span>Stats Section</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpStatsToggle" checked onchange="Admin.toggleHomeSection('stats',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('stats')">Edit</button></div></div>
+            <p class="hp-desc">Students enrolled, teachers & staff, graduates, years running.</p>
+          </div>
+          <!-- Notices Section -->
+          <div class="hp-section-card" data-section="notices">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-bullhorn"></i><span>Notice Board</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpNoticesToggle" checked onchange="Admin.toggleHomeSection('notices',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('notices')">Edit</button></div></div>
+            <p class="hp-desc">Annual work plan calendar and Nepali calendar on the notice board.</p>
+          </div>
+          <!-- Programs Section -->
+          <div class="hp-section-card" data-section="programs">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-book"></i><span>Programs Section</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpProgramsToggle" checked onchange="Admin.toggleHomeSection('programs',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('programs')">Edit</button></div></div>
+            <p class="hp-desc">Academic programs (General & Technical) with subjects and descriptions.</p>
+          </div>
+          <!-- Teachers Section -->
+          <div class="hp-section-card" data-section="teachers">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-chalkboard-teacher"></i><span>Teachers Section</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpTeachersToggle" checked onchange="Admin.toggleHomeSection('teachers',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('teachers')">Edit</button></div></div>
+            <p class="hp-desc">Teacher profiles with photos, subjects, qualifications.</p>
+          </div>
+          <!-- Staff Section -->
+          <div class="hp-section-card" data-section="staff">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-users"></i><span>Staff Section</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpStaffToggle" checked onchange="Admin.toggleHomeSection('staff',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('staff')">Edit</button></div></div>
+            <p class="hp-desc">Non-teaching staff profiles.</p>
+          </div>
+          <!-- Gallery Section -->
+          <div class="hp-section-card" data-section="gallery">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-camera"></i><span>Gallery Section</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpGalleryToggle" checked onchange="Admin.toggleHomeSection('gallery',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('gallery')">Edit</button></div></div>
+            <p class="hp-desc">Photo collections with categories (Events, Graduation, Lab, Trip).</p>
+          </div>
+          <!-- Events Section -->
+          <div class="hp-section-card" data-section="events">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-calendar-check"></i><span>Events Section</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpEventsToggle" checked onchange="Admin.toggleHomeSection('events',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('events')">Edit</button></div></div>
+            <p class="hp-desc">Events timeline displayed on the homepage.</p>
+          </div>
+          <!-- Testimonials Section -->
+          <div class="hp-section-card" data-section="testimonials">
+            <div class="hp-header"><div class="hp-title"><i class="fas fa-quote-right"></i><span>Testimonials Section</span></div><div class="hp-actions"><label class="switch"><input type="checkbox" id="hpTestimonialsToggle" checked onchange="Admin.toggleHomeSection('testimonials',this.checked)"><span class="slider"></span></label><button class="btn-sm btn-primary" onclick="switchTab('testimonials')">Edit</button></div></div>
+            <p class="hp-desc">Student/parent testimonials slider.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SLIDES ===== -->
+      <section id="slides" class="admin-section">
+        <h2><i class="fas fa-images"></i> Hero Slides</h2>
+        <div class="section-header"><h3>Current Slides</h3><span class="item-count" id="slidesCount">0 slides</span></div>
+        <div class="slides-list" id="slidesList"></div>
+        <div class="add-form"><h3>Add New Slide</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Image *</label><input type="file" id="slideImage" accept="image/*" onchange="previewImage(this,'slidePreview')"><div id="slidePreview" class="image-preview"></div></div>
+            <div class="form-group"><label>Title</label><input type="text" id="slideTitle"></div>
+            <div class="form-group"><label>Subtitle</label><input type="text" id="slideSubtitle"></div>
+            <div class="form-group"><label>Button Text</label><input type="text" id="slideBtnText"></div>
+            <div class="form-group"><label>Button Link</label><input type="text" id="slideBtnLink"></div>
+            <div class="form-group"><label>Sort Order</label><input type="number" id="slideOrder" value="1"></div>
+          </div>
+          <button class="btn-primary" onclick="Admin.addSlide()"><i class="fas fa-plus"></i> Add Slide</button>
+        </div>
+      </section>
+
+      <!-- ===== ABOUT ===== -->
+      <section id="about" class="admin-section">
+        <h2><i class="fas fa-info-circle"></i> About Section</h2>
+        <div class="section-content">
+          <div class="form-grid">
+            <div class="form-group full-width"><label>School History</label><textarea id="aboutHistory" rows="3"></textarea></div>
+            <div class="form-group"><label>Vision</label><textarea id="aboutVision" rows="2"></textarea></div>
+            <div class="form-group"><label>Mission</label><textarea id="aboutMission" rows="2"></textarea></div>
+            <div class="form-group full-width"><label>Values</label><textarea id="aboutValues" rows="2"></textarea></div>
+            <div class="form-group"><label>Principal Name</label><input type="text" id="principalName"></div>
+            <div class="form-group full-width"><label>Principal Message</label><textarea id="principalMessage" rows="3"></textarea></div>
+            <div class="form-group"><label>Principal Photo</label><input type="file" id="principalPhoto" accept="image/*" onchange="previewImage(this,'principalPhotoPreview')"><div id="principalPhotoPreview" class="image-preview"></div></div>
+            <div class="form-group"><label>General Block Description</label><input type="text" id="generalBlockDesc"></div>
+            <div class="form-group"><label>Technical Block Description</label><input type="text" id="technicalBlockDesc"></div>
+          </div>
+          <button class="btn-primary btn-save" onclick="Admin.saveAbout()"><i class="fas fa-save"></i> Save About</button>
+        </div>
+      </section>
+
+      <!-- ===== STATS ===== -->
+      <section id="stats" class="admin-section">
+        <h2><i class="fas fa-chart-bar"></i> Statistics</h2>
+        <div class="section-content">
+          <div class="form-grid">
+            <div class="form-group"><label>Students Enrolled</label><input type="number" id="statStudents"></div>
+            <div class="form-group"><label>Teachers & Staff</label><input type="number" id="statTeachers"></div>
+            <div class="form-group"><label>Staff Count</label><input type="number" id="statStaff"></div>
+            <div class="form-group"><label>Graduates</label><input type="number" id="statGraduates"></div>
+            <div class="form-group"><label>Years Running</label><input type="number" id="statYears"></div>
+          </div>
+          <button class="btn-primary btn-save" onclick="Admin.saveStats()"><i class="fas fa-save"></i> Save Stats</button>
+        </div>
+      </section>
+
+      <!-- ===== NOTICES ===== -->
+      <section id="notices" class="admin-section">
+        <h2><i class="fas fa-bullhorn"></i> Notices</h2>
+        <div class="section-header"><h3>All Notices</h3><span class="item-count" id="noticesCount">0 notices</span></div>
+        <div class="notices-list" id="noticesList"></div>
+        <div class="add-form"><h3>Add Notice</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Title *</label><input type="text" id="noticeTitle"></div>
+            <div class="form-group"><label>Date</label><input type="date" id="noticeDate"></div>
+            <div class="form-group"><label>Priority</label><select id="noticePriority"><option value="normal">Normal</option><option value="urgent">Urgent</option></select></div>
+            <div class="form-group full-width"><label>Content</label><textarea id="noticeContent" rows="3"></textarea></div>
+            <div class="form-group"><label>Attachment URL</label><input type="url" id="noticeAttachment"></div>
+          </div>
+          <button class="btn-primary" onclick="Admin.addNotice()"><i class="fas fa-plus"></i> Add Notice</button>
+        </div>
+      </section>
+
+      <!-- ===== PROGRAMS ===== -->
+      <section id="programs" class="admin-section">
+        <h2><i class="fas fa-book"></i> Programs</h2>
+        <div class="section-header"><h3>Academic Programs</h3><span class="item-count" id="programsCount">0 programs</span></div>
+        <div class="programs-grid" id="programsGrid"></div>
+        <div class="add-form"><h3>Add Program</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Program Name *</label><input type="text" id="programName"></div>
+            <div class="form-group full-width"><label>Description</label><textarea id="programDescription" rows="2"></textarea></div>
+          </div>
+          <button class="btn-primary" onclick="Admin.addProgram()"><i class="fas fa-plus"></i> Add Program</button>
+        </div>
+      </section>
+
+      <!-- ===== TEACHERS ===== -->
+      <section id="teachers" class="admin-section">
+        <h2><i class="fas fa-chalkboard-teacher"></i> Teachers</h2>
+        <div class="section-header"><h3>All Teachers</h3><span class="item-count" id="teachersCount">0 teachers</span></div>
+        <div class="items-grid" id="teachersGrid"></div>
+        <div class="add-form"><h3>Add Teacher</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Name *</label><input type="text" id="teacherName"></div>
+            <div class="form-group"><label>Subject</label><input type="text" id="teacherSubject"></div>
+            <div class="form-group"><label>Qualification</label><input type="text" id="teacherQualification"></div>
+            <div class="form-group"><label>Block</label><select id="teacherBlock"><option value="General">General</option><option value="Technical">Technical</option></select></div>
+            <div class="form-group"><label>Designation</label><input type="text" id="teacherDesignation"></div>
+            <div class="form-group"><label>Photo</label><input type="file" id="teacherPhoto" accept="image/*" onchange="previewImage(this,'teacherPreview')"><div id="teacherPreview" class="image-preview"></div></div>
+          </div>
+          <button class="btn-primary" onclick="Admin.addTeacher()"><i class="fas fa-plus"></i> Add Teacher</button>
+        </div>
+      </section>
+
+      <!-- ===== STAFF ===== -->
+      <section id="staff" class="admin-section">
+        <h2><i class="fas fa-users"></i> Staff</h2>
+        <div class="section-header"><h3>All Staff</h3><span class="item-count" id="staffCount">0 staff</span></div>
+        <div class="items-grid" id="staffGrid"></div>
+        <div class="add-form"><h3>Add Staff Member</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Name *</label><input type="text" id="staffName"></div>
+            <div class="form-group"><label>Position</label><input type="text" id="staffPosition"></div>
+            <div class="form-group"><label>Contact</label><input type="text" id="staffContact"></div>
+            <div class="form-group"><label>Photo</label><input type="file" id="staffPhoto" accept="image/*" onchange="previewImage(this,'staffPreview')"><div id="staffPreview" class="image-preview"></div></div>
+          </div>
+          <button class="btn-primary" onclick="Admin.addStaff()"><i class="fas fa-plus"></i> Add Staff</button>
+        </div>
+      </section>
+
+      <!-- ===== GALLERY ===== -->
+      <section id="gallery" class="admin-section">
+        <h2><i class="fas fa-camera"></i> Gallery</h2>
+        <div class="section-header"><h3>Gallery Images</h3><span class="item-count" id="galleryCount">0 images</span></div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+        <div class="add-form"><h3>Add Image</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Image *</label><input type="file" id="galleryImage" accept="image/*"></div>
+            <div class="form-group"><label>Caption</label><input type="text" id="galleryCaption"></div>
+            <div class="form-group"><label>Category</label><select id="galleryCategory"><option value="events">Events</option><option value="graduation">Graduation</option><option value="lab">Lab</option><option value="trip">Trip</option></select></div>
+          </div>
+          <button class="btn-primary" onclick="Admin.addGallery()"><i class="fas fa-plus"></i> Add Image</button>
+        </div>
+      </section>
+
+      <!-- ===== EVENTS ===== -->
+      <section id="events" class="admin-section">
+        <h2><i class="fas fa-calendar-check"></i> Events</h2>
+        <div class="section-header"><h3>All Events</h3><span class="item-count" id="eventsCount">0 events</span></div>
+        <div class="events-list" id="eventsList"></div>
+        <div class="add-form"><h3>Add Event</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Title *</label><input type="text" id="eventTitle"></div>
+            <div class="form-group"><label>Date</label><input type="date" id="eventDate"></div>
+            <div class="form-group full-width"><label>Description</label><textarea id="eventDescription" rows="2"></textarea></div>
+            <div class="form-group"><label>Image</label><input type="file" id="eventImage" accept="image/*"></div>
+          </div>
+          <button class="btn-primary" onclick="Admin.addEvent()"><i class="fas fa-plus"></i> Add Event</button>
+        </div>
+      </section>
+
+      <!-- ===== TESTIMONIALS ===== -->
+      <section id="testimonials" class="admin-section">
+        <h2><i class="fas fa-quote-right"></i> Testimonials</h2>
+        <div class="section-header"><h3>All Testimonials</h3><span class="item-count" id="testimonialsCount">0 testimonials</span></div>
+        <div class="testimonials-grid" id="testimonialsGrid"></div>
+        <div class="add-form"><h3>Add Testimonial</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Name *</label><input type="text" id="testimonialName"></div>
+            <div class="form-group"><label>Designation</label><input type="text" id="testimonialDesignation"></div>
+            <div class="form-group full-width"><label>Message *</label><textarea id="testimonialMessage" rows="3"></textarea></div>
+            <div class="form-group"><label>Photo</label><input type="file" id="testimonialPhoto" accept="image/*"></div>
+          </div>
+          <button class="btn-primary" onclick="Admin.addTestimonial()"><i class="fas fa-plus"></i> Add Testimonial</button>
+        </div>
+      </section>
+
+      <!-- ===== MARQUEE ===== -->
+      <section id="marquee" class="admin-section">
+        <h2><i class="fas fa-ticker"></i> Marquee</h2>
+        <div class="section-content">
+          <div class="form-group" style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+            <label style="margin:0">Enable Marquee</label>
+            <label class="switch"><input type="checkbox" id="marqueeEnabled" onchange="Admin.saveMarqueeSettings()"><span class="slider"></span></label>
+          </div>
+          <div class="form-group"><label>Static Text (prefix)</label><input type="text" id="marqueeText"></div>
+          <div class="section-header"><h3>Marquee Items</h3><span id="marqueeCount">0 items</span></div>
+          <div class="marquee-list" id="marqueeList"></div>
+          <div class="add-form"><h3>Add Item</h3>
+            <div class="form-group"><label>Text</label><input type="text" id="marqueeItemText"></div>
+            <button class="btn-primary" onclick="Admin.addMarqueeItem()"><i class="fas fa-plus"></i> Add Item</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ADMISSIONS ===== -->
+      <section id="admissions" class="admin-section">
+        <h2><i class="fas fa-file-alt"></i> Admissions</h2>
+        <div class="admissions-header">
+          <div class="admissions-stats" id="admissionsStats">
+            <div class="stat-card"><span class="stat-number" id="admissionsTotal">0</span><span class="stat-label">Total</span></div>
+            <div class="stat-card"><span class="stat-number" id="admissionsPending">0</span><span class="stat-label">Pending</span></div>
+            <div class="stat-card"><span class="stat-number" id="admissionsReviewed">0</span><span class="stat-label">Reviewed</span></div>
+          </div>
+          <div class="admissions-actions">
+            <button class="btn-primary" onclick="exportAdmissions()"><i class="fas fa-download"></i> Export CSV</button>
+            <button class="btn-danger" onclick="clearAllAdmissions()"><i class="fas fa-trash"></i> Clear All</button>
+          </div>
+        </div>
+        <div class="admissions-list" id="admissionsList"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div class="modal hidden" id="editModal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal()">&times;</span>
+    <h3 id="modalTitle">Edit</h3>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button onclick="this.parentElement.classList.remove('show')">&times;</button></div>
+
+<script src="js/supabase.js"></script>
+<script src="js/data.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
