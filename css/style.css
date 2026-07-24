@@ -24,12 +24,26 @@
   --marquee-h:36px;
 }
 
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scroll-padding-top:var(--header-h)}
 body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-a{color:var(--teal);text-decoration:none}
+a{color:var(--teal);text-decoration:none;transition:color 0.25s}
 a:hover{color:var(--teal-dark)}
+a:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:2px}
 img{max-width:100%;height:auto;display:block}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:2px}
+::selection{background:var(--teal);color:#fff}
 .container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* Loading skeleton effect */
+.lazy-loading{background:var(--border);animation:skPulse 1.5s ease-in-out infinite}
+@keyframes skPulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* Skip link */
+.skip-link{position:absolute;top:-100%;left:8px;padding:12px 20px;background:var(--navy);color:#fff;z-index:9999;border-radius:var(--radius);font-weight:700}
+.skip-link:focus{top:8px}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important;scroll-behavior:auto !important}}
 
 .section{padding:clamp(40px,5vw,64px) 0}
 .section-header{margin-bottom:48px;text-align:center}
@@ -75,11 +89,28 @@ img{max-width:100%;height:auto;display:block}
 .hero-location{font-size:clamp(1rem,2vw,1.25rem);color:oklch(1 0 0 / 0.7);max-width:500px;margin-bottom:32px}
 .hero-rule{width:64px;height:2px;background:var(--gold);margin-bottom:28px;border-radius:1px}
 .hero-actions{display:flex;gap:14px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:var(--radius);font-family:var(--font-body);font-size:0.9375rem;font-weight:700;border:none;cursor:pointer;transition:all 0.3s var(--ease);text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:var(--radius);font-family:var(--font-body);font-size:0.9375rem;font-weight:700;border:none;cursor:pointer;position:relative;overflow:hidden;transition:all 0.3s var(--ease);text-decoration:none}
+.btn:active{transform:scale(0.97)}
 .btn-primary{background:var(--gold);color:var(--navy)}
 .btn-primary:hover{background:oklch(0.72 0.13 85 / 0.85);transform:translateY(-2px)}
 .btn-outline-light{background:transparent;border:1.5px solid oklch(1 0 0 / 0.3);color:#fff}
 .btn-outline-light:hover{border-color:#fff;background:oklch(1 0 0 / 0.08)}
+
+/* === HERO PARALLAX TRANSITION === */
+.hero-slide{will-change:opacity,transform}
+
+/* === SCROLL REVEAL ANIMATIONS === */
+[data-reveal]{opacity:0;transform:translateY(24px);transition:opacity 0.6s var(--ease),transform 0.6s var(--ease)}
+[data-reveal].in-view{opacity:1;transform:translateY(0)}
+[data-reveal][data-delay="1"]{transition-delay:0.1s}
+[data-reveal][data-delay="2"]{transition-delay:0.2s}
+[data-reveal][data-delay="3"]{transition-delay:0.3s}
+[data-reveal][data-delay="4"]{transition-delay:0.4s}
+[data-reveal][data-delay="5"]{transition-delay:0.5s}
+
+/* === CARD HOVER POLISH === */
+.stat-item,.staff-card,.hp-card-mini,.vp-card,.block-card,.collection-card,.gallery-item,.event-item,.testimonial-card,.teacher-card,.program-card{transition:transform 0.35s var(--ease),box-shadow 0.35s var(--ease),border-color 0.35s var(--ease)}
+.stat-item:hover,.staff-card:hover,.hp-card-mini:hover,.vp-card:hover,.teacher-card:hover,.program-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
 
 /* === ABOUT === */
 .about{background:var(--surface)}
@@ -132,6 +163,17 @@ img{max-width:100%;height:auto;display:block}
 
 /* === NOTICES === */
 .notices{background:var(--surface)}
+
+/* Notice row (used on notices.html and inline) */
+.notice-row{display:grid;grid-template-columns:100px 1fr auto;gap:12px;padding:14px 16px;background:var(--bg);border-radius:var(--radius);border-left:3px solid var(--teal);align-items:center;margin-bottom:8px;transition:transform 0.25s var(--ease),box-shadow 0.25s var(--ease)}
+.notice-row:hover{transform:translateX(4px);box-shadow:var(--shadow)}
+.notice-row .ndate{font-size:0.75rem;font-weight:700;color:var(--teal-dark);white-space:nowrap}
+.notice-row .ntitle{font-size:0.875rem;font-weight:600;color:var(--navy);line-height:1.4}
+.notice-row .nsnippet{font-weight:400;color:var(--text-muted);font-size:0.8125rem;display:block;margin-top:2px}
+.notice-row .nbadge{font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.nbadge.urgent{background:oklch(0.50 0.18 25 / 0.12);color:oklch(0.40 0.18 25)}
+.nbadge.normal{background:var(--teal-ghost);color:var(--teal-dark)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
 
 .nb-grid{display:grid;grid-template-columns:1.3fr 0.7fr;gap:32px;align-items:start}
 
@@ -271,6 +313,30 @@ img{max-width:100%;height:auto;display:block}
 .testimonial-card .tauthor span{font-size:0.75rem;color:var(--text-muted)}
 @keyframes tmarquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
+/* === TOAST NOTIFICATIONS === */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:14px 20px;border-radius:var(--radius);display:flex;align-items:center;gap:12px;font-size:0.9rem;font-weight:600;transform:translateY(120px);opacity:0;transition:all 0.4s var(--ease);max-width:400px;box-shadow:var(--shadow-lg)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast-success{background:oklch(0.58 0.15 145 / 0.12);color:oklch(0.35 0.12 145);border:1px solid oklch(0.58 0.15 145 / 0.25)}
+.toast-error{background:oklch(0.50 0.18 25 / 0.10);color:oklch(0.40 0.18 25);border:1px solid oklch(0.50 0.18 25 / 0.2)}
+.toast button{background:none;border:none;font-size:1.2rem;cursor:pointer;margin-left:auto;line-height:1;opacity:0.6;transition:opacity 0.2s;color:inherit}
+.toast button:hover{opacity:1}
+
+/* === FORM VALIDATION STATES === */
+.form-group.error input,.form-group.error select,.form-group.error textarea{border-color:oklch(0.50 0.18 25);background:oklch(0.50 0.18 25 / 0.03)}
+.form-group.success input,.form-group.success select,.form-group.success textarea{border-color:oklch(0.58 0.15 145)}
+.form-group .field-error{font-size:0.75rem;color:oklch(0.50 0.18 25);margin-top:4px;font-weight:600;display:none}
+.form-group.error .field-error{display:block}
+.form-group .field-success{font-size:0.75rem;color:oklch(0.58 0.15 145);margin-top:4px;font-weight:600;display:none}
+.form-group.success .field-success{display:block}
+
+/* === LOADING SPINNER === */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid oklch(1 0 0 / 0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle}
+.spinner-sm{width:14px;height:14px;border-width:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Submit button loading state */
+.submit-btn.loading{pointer-events:none;opacity:0.85}
+
 /* === ADMISSION FORM === */
 .admission{background:var(--surface)}
 .admission-form{max-width:800px;margin:0 auto}
@@ -308,11 +374,16 @@ img{max-width:100%;height:auto;display:block}
 .file-upload input[type=file]{padding:8px 0;border:none;background:none}
 .file-hint{font-size:0.75rem;color:var(--text-muted);margin-top:4px}
 .form-submit{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px;justify-content:flex-end}
-.submit-btn{padding:12px 32px;background:var(--teal);color:#fff;border:none;border-radius:var(--radius);font-family:var(--font-body);font-size:0.9375rem;font-weight:700;cursor:pointer;transition:background 0.25s,transform 0.25s}
+.submit-btn{padding:12px 32px;background:var(--teal);color:#fff;border:none;border-radius:var(--radius);font-family:var(--font-body);font-size:0.9375rem;font-weight:700;cursor:pointer;transition:background 0.25s,transform 0.25s,opacity 0.25s;display:inline-flex;align-items:center;gap:8px}
 .submit-btn:hover{background:var(--teal-dark);transform:translateY(-2px)}
 .submit-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none}
-.reset-btn{padding:12px 28px;background:none;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:0.9375rem;font-weight:600;color:var(--text-muted);cursor:pointer}
+.submit-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.reset-btn{padding:12px 28px;background:none;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:0.9375rem;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.25s}
 .reset-btn:hover{border-color:var(--text);color:var(--text)}
+.reset-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* Admission status */
+.admission-status{padding:14px 18px;border-radius:var(--radius);font-size:0.9rem;line-height:1.5;margin-top:16px;display:none;animation:fadeStep 0.3s var(--ease)}
 
 /* === FOOTER === */
 .footer{background:var(--navy);color:oklch(1 0 0 / 0.8);padding:clamp(48px,6vw,80px) 0 0}
@@ -330,6 +401,8 @@ img{max-width:100%;height:auto;display:block}
 /* === SUB-PAGE HERO === */
 .page-hero{position:relative;min-height:45vh;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-top:var(--header-h);background:var(--navy)}
 .page-hero .hero-slide.active{opacity:0.35}
+.page-hero .hero-bg{position:absolute;inset:0}
+.page-hero .hero-bg img{width:100%;height:100%;object-fit:cover;opacity:0.35}
 .page-hero-content{position:relative;z-index:2;text-align:center;padding:48px 24px}
 .page-hero-content h1{font-family:var(--font-display);font-size:clamp(2rem,5vw,3.5rem);font-weight:700;color:#fff;margin-bottom:12px}
 .page-hero-content .gold-rule{margin:12px auto 16px}
@@ -356,6 +429,12 @@ img{max-width:100%;height:auto;display:block}
 .lightbox-close:hover{opacity:1}
 .lightbox-img{max-width:90vw;max-height:85vh;object-fit:contain;border-radius:4px}
 .lightbox-caption{position:absolute;bottom:20px;color:#fff;font-size:0.875rem;text-align:center;left:0;right:0}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--teal-ghost);border-radius:4px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--teal)}
 
 /* === RESPONSIVE === */
 @media(max-width:992px){

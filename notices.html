@@ -34,6 +34,7 @@
   </script>
 </head>
 <body>
+<a href="#notices-content" class="skip-link">Skip to main content</a>
 
 <header class="header" id="header">
   <div class="header-container">
@@ -59,7 +60,7 @@
   </div>
 </header>
 
-<section class="page-hero">
+<section class="page-hero" id="notices-content">
   <div class="hero-bg"><img src="assets/images/General%20Block.webp" alt="School campus of Shree Saraswati Secondary School" loading="lazy"></div>
   <div class="hero-overlay"></div>
   <div class="page-hero-content">
@@ -107,26 +108,25 @@
 <script src="js/data.js"></script>
 <script src="js/main.js"></script>
 <script>
-(function(){
-  var notices = (function(){
-    try{var d=JSON.parse(localStorage.getItem('sss_notices'));return Array.isArray(d)&&d.length?d:null}
-    catch(e){return null}
-  })();
+(async function(){
+  var notices;
+  try { notices = await DataStore.get('NOTICES'); } catch(e) {}
+  if (!notices || !notices.length) {
+    try { var d=JSON.parse(localStorage.getItem('sss_notices')); if (Array.isArray(d)&&d.length) notices=d; } catch(e) {}
+  }
+  var c=document.getElementById('noticesFullList');
+  if(!c) return;
   if(notices&&notices.length){
-    var c=document.getElementById('noticesFullList');
-    if(c){
-      c.innerHTML=notices.map(function(n){
-        var snippet = (n.content || '').length > 100 ? n.content.substring(0, 100) + '...' : (n.content || '');
-        return '<div class="notice-row">'+
-          '<span class="ndate">'+n.date+'</span>'+
-          '<span class="ntitle">'+n.title+' <span class="nsnippet">'+snippet+'</span></span>'+
-          '<span class="nbadge '+(n.priority||'normal')+'">'+(n.priority||'normal')+'</span>'+
-          '</div>';
-      }).join('');
-    }
+    c.innerHTML=notices.map(function(n){
+      var snippet = (n.content || '').length > 100 ? n.content.substring(0, 100) + '...' : (n.content || '');
+      return '<div class="notice-row">'+
+        '<span class="ndate">'+n.date+'</span>'+
+        '<span class="ntitle">'+n.title+' <span class="nsnippet">'+snippet+'</span></span>'+
+        '<span class="nbadge '+(n.priority||'normal')+'">'+(n.priority||'normal')+'</span>'+
+        '</div>';
+    }).join('');
   } else {
-    var c=document.getElementById('noticesFullList');
-    if(c) c.innerHTML='<div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--text-muted)"><i class="fas fa-bullhorn" style="font-size:2rem;margin-bottom:12px;display:block"></i><p>No notices posted yet. Check back later.</p></div>';
+    c.innerHTML='<div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--text-muted)"><i class="fas fa-bullhorn" style="font-size:2rem;margin-bottom:12px;display:block"></i><p>No notices posted yet. Check back later.</p></div>';
   }
 })();
 </script>

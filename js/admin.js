@@ -197,10 +197,17 @@ const Admin = {
       image_url: image,
       sort_order: parseInt(document.getElementById('slideOrder').value) || 1
     };
-    await DataStore.push('SLIDES', slide);
-    showToast('Slide added to Supabase!');
+    if (this._editingSlideId) {
+      await DataStore.update('SLIDES', this._editingSlideId, slide);
+      showToast('Slide updated in Supabase!');
+      this._editingSlideId = null;
+    } else {
+      await DataStore.push('SLIDES', slide);
+      showToast('Slide added to Supabase!');
+    }
     this.loadSlides();
     clearForm(['slideTitle', 'slideSubtitle', 'slideBtnText', 'slideBtnLink', 'slideImage']);
+    document.getElementById('slideImage').value = '';
   },
 
   async deleteSlide(id) {
@@ -211,24 +218,27 @@ const Admin = {
   },
 
   editSlide(id) {
+    var self = this;
     DataStore.get('SLIDES').then(function (slides) {
       var slide = (slides || []).find(function (s) { return String(s.id) === String(id); });
       if (!slide) return;
+      self._editingSlideId = id;
       setVal('slideTitle', slide.title);
       setVal('slideSubtitle', slide.subtitle);
       setVal('slideBtnText', slide.btn_text || slide.btnText || '');
       setVal('slideBtnLink', slide.btn_link || slide.btnLink || '');
       setVal('slideOrder', slide.sort_order || slide.order || 1);
+      showToast('Editing slide — click "Add Slide" to save changes');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   },
 
   async loadAbout() {
     var about = await DataStore.get('ABOUT') || {};
-    setVal('aboutHistory', about.history || about.history);
-    setVal('aboutVision', about.vision || about.vision);
-    setVal('aboutMission', about.mission || about.mission);
-    setVal('aboutValues', about.values || about.values);
+    setVal('aboutHistory', about.history || '');
+    setVal('aboutVision', about.vision || '');
+    setVal('aboutMission', about.mission || '');
+    setVal('aboutValues', about.values || '');
     setVal('principalName', about.principal_name || about.principalName || '');
     setVal('principalMessage', about.principal_message || about.principalMessage || '');
     setVal('generalBlockDesc', about.general_block || about.generalBlock || '');
@@ -303,8 +313,14 @@ const Admin = {
       priority: document.getElementById('noticePriority').value,
       attachment_url: document.getElementById('noticeAttachment').value
     };
-    await DataStore.push('NOTICES', notice);
-    showToast('Notice added to Supabase!');
+    if (this._editingNoticeId) {
+      await DataStore.update('NOTICES', this._editingNoticeId, notice);
+      showToast('Notice updated in Supabase!');
+      this._editingNoticeId = null;
+    } else {
+      await DataStore.push('NOTICES', notice);
+      showToast('Notice added to Supabase!');
+    }
     this.loadNotices();
     clearForm(['noticeTitle', 'noticeDate', 'noticeContent', 'noticeAttachment']);
   },
@@ -317,14 +333,17 @@ const Admin = {
   },
 
   editNotice(id) {
+    var self = this;
     DataStore.get('NOTICES').then(function (notices) {
       var n = (notices || []).find(function (x) { return String(x.id) === String(id); });
       if (!n) return;
+      self._editingNoticeId = id;
       setVal('noticeTitle', n.title);
       setVal('noticeDate', n.date);
       setVal('noticeContent', n.content);
       setVal('noticePriority', n.priority || 'normal');
       setVal('noticeAttachment', n.attachment_url || n.attachment || '');
+      showToast('Editing notice — click "Add Notice" to save changes');
     });
   },
 
@@ -428,8 +447,14 @@ const Admin = {
     var teacher = { name: name, subject: document.getElementById('teacherSubject').value, qualification: document.getElementById('teacherQualification').value, designation: document.getElementById('teacherDesignation').value, block: document.getElementById('teacherBlock').value };
     var fileInput = document.getElementById('teacherPhoto');
     if (fileInput.files[0]) teacher.photo_url = await compressImage(fileInput.files[0]);
-    await DataStore.push('TEACHERS', teacher);
-    showToast('Teacher added to Supabase!');
+    if (this._editingTeacherId) {
+      await DataStore.update('TEACHERS', this._editingTeacherId, teacher);
+      showToast('Teacher updated in Supabase!');
+      this._editingTeacherId = null;
+    } else {
+      await DataStore.push('TEACHERS', teacher);
+      showToast('Teacher added to Supabase!');
+    }
     this.loadTeachers();
     clearForm(['teacherName', 'teacherSubject', 'teacherQualification', 'teacherDesignation', 'teacherPhoto']);
   },
@@ -442,14 +467,17 @@ const Admin = {
   },
 
   editTeacher(id) {
+    var self = this;
     DataStore.get('TEACHERS').then(function (teachers) {
       var t = (teachers || []).find(function (x) { return String(x.id) === String(id); });
       if (!t) return;
+      self._editingTeacherId = id;
       setVal('teacherName', t.name);
       setVal('teacherSubject', t.subject);
       setVal('teacherQualification', t.qualification);
       setVal('teacherDesignation', t.designation || '');
       setVal('teacherBlock', t.block || 'General');
+      showToast('Editing teacher — click "Add Teacher" to save changes');
     });
   },
 

@@ -77,6 +77,7 @@
   </script>
 </head>
 <body>
+<a href="#home" class="skip-link">Skip to main content</a>
 
 <header class="header" id="header">
   <div class="header-container">
@@ -204,6 +205,8 @@
     </div>
   </div>
 </section>
+
+<section class="section stats" id="stats">
   <div class="container">
     <div class="section-header" data-reveal>
       <h2>By the Numbers</h2>
@@ -374,10 +377,10 @@
         <div class="form-section">
           <h3>Personal Information</h3>
           <div class="form-grid">
-            <div class="form-group"><label for="studentName">Full Name *</label><input type="text" id="studentName" name="studentName" required></div>
-            <div class="form-group"><label for="dob">Date of Birth *</label><input type="date" id="dob" name="dob" required></div>
-            <div class="form-group"><label for="gender">Gender *</label><select id="gender" name="gender" required><option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
-            <div class="form-group"><label for="nationality">Nationality *</label><input type="text" id="nationality" name="nationality" required></div>
+            <div class="form-group"><label for="studentName">Full Name *</label><input type="text" id="studentName" name="studentName" required><span class="field-error"></span></div>
+            <div class="form-group"><label for="dob">Date of Birth *</label><input type="date" id="dob" name="dob" required><span class="field-error"></span></div>
+            <div class="form-group"><label for="gender">Gender *</label><select id="gender" name="gender" required><option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select><span class="field-error"></span></div>
+            <div class="form-group"><label for="nationality">Nationality *</label><input type="text" id="nationality" name="nationality" required><span class="field-error"></span></div>
             <div class="form-group"><label for="religion">Religion</label><input type="text" id="religion" name="religion"></div>
             <div class="form-group"><label for="bloodGroup">Blood Group</label><select id="bloodGroup" name="bloodGroup"><option value="">Select</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="O+">O+</option><option value="O-">O-</option><option value="AB+">AB+</option><option value="AB-">AB-</option></select></div>
           </div>
@@ -389,10 +392,10 @@
         <div class="form-section">
           <h3>Parent / Guardian Information</h3>
           <div class="form-grid">
-            <div class="form-group"><label for="fatherName">Father's Name *</label><input type="text" id="fatherName" name="fatherName" required></div>
-            <div class="form-group"><label for="fatherPhone">Father's Phone *</label><input type="tel" id="fatherPhone" name="fatherPhone" required></div>
+            <div class="form-group"><label for="fatherName">Father's Name *</label><input type="text" id="fatherName" name="fatherName" required><span class="field-error"></span></div>
+            <div class="form-group"><label for="fatherPhone">Father's Phone *</label><input type="tel" id="fatherPhone" name="fatherPhone" required><span class="field-error"></span></div>
             <div class="form-group"><label for="fatherOccupation">Father's Occupation</label><input type="text" id="fatherOccupation" name="fatherOccupation"></div>
-            <div class="form-group"><label for="motherName">Mother's Name *</label><input type="text" id="motherName" name="motherName" required></div>
+            <div class="form-group"><label for="motherName">Mother's Name *</label><input type="text" id="motherName" name="motherName" required><span class="field-error"></span></div>
             <div class="form-group"><label for="motherPhone">Mother's Phone</label><input type="tel" id="motherPhone" name="motherPhone"></div>
             <div class="form-group"><label for="motherOccupation">Mother's Occupation</label><input type="text" id="motherOccupation" name="motherOccupation"></div>
           </div>
@@ -404,10 +407,10 @@
         <div class="form-section">
           <h3>Address</h3>
           <div class="form-grid">
-            <div class="form-group"><label for="province">Province *</label><select id="province" name="province" required><option value="">Select Province</option><option value="1">Province 1</option><option value="2">Madesh Province</option><option value="3">Bagmati Province</option><option value="4">Gandaki Province</option><option value="5">Lumbini Province</option><option value="6">Karnali Province</option><option value="7">Sudurpashchim Province</option></select></div>
-            <div class="form-group"><label for="district">District *</label><input type="text" id="district" name="district" required></div>
-            <div class="form-group"><label for="municipality">Municipality / Rural Municipality *</label><input type="text" id="municipality" name="municipality" required></div>
-            <div class="form-group"><label for="ward">Ward No. *</label><input type="number" id="ward" name="ward" required></div>
+            <div class="form-group"><label for="province">Province *</label><select id="province" name="province" required><option value="">Select Province</option><option value="1">Province 1</option><option value="2">Madesh Province</option><option value="3">Bagmati Province</option><option value="4">Gandaki Province</option><option value="5">Lumbini Province</option><option value="6">Karnali Province</option><option value="7">Sudurpashchim Province</option></select><span class="field-error"></span></div>
+            <div class="form-group"><label for="district">District *</label><input type="text" id="district" name="district" required><span class="field-error"></span></div>
+            <div class="form-group"><label for="municipality">Municipality / Rural Municipality *</label><input type="text" id="municipality" name="municipality" required><span class="field-error"></span></div>
+            <div class="form-group"><label for="ward">Ward No. *</label><input type="number" id="ward" name="ward" required><span class="field-error"></span></div>
             <div class="form-group full-width"><label for="address">Full Address</label><textarea id="address" name="address" rows="2"></textarea></div>
           </div>
         </div>
@@ -418,7 +421,7 @@
         <div class="form-section">
           <h3>Academic Information</h3>
           <div class="form-grid">
-            <div class="form-group"><label for="applyClass">Apply for Class *</label><select id="applyClass" name="applyClass" required><option value="">Select Class</option><option value="nursery">Nursery</option><option value="lkg">LKG</option><option value="ukg">UKG</option><option value="1">Class 1</option><option value="2">Class 2</option><option value="3">Class 3</option><option value="4">Class 4</option><option value="5">Class 5</option><option value="6">Class 6</option><option value="7">Class 7</option><option value="8">Class 8</option><option value="9">Class 9</option><option value="10">Class 10</option><option value="11">Class 11 (Science)</option><option value="11-management">Class 11 (Management)</option></select></div>
+            <div class="form-group"><label for="applyClass">Apply for Class *</label><select id="applyClass" name="applyClass" required><option value="">Select Class</option><option value="nursery">Nursery</option><option value="lkg">LKG</option><option value="ukg">UKG</option><option value="1">Class 1</option><option value="2">Class 2</option><option value="3">Class 3</option><option value="4">Class 4</option><option value="5">Class 5</option><option value="6">Class 6</option><option value="7">Class 7</option><option value="8">Class 8</option><option value="9">Class 9</option><option value="10">Class 10</option><option value="11">Class 11 (Science)</option><option value="11-management">Class 11 (Management)</option></select><span class="field-error"></span></div>
             <div class="form-group"><label for="previousSchool">Previous School Name</label><input type="text" id="previousSchool" name="previousSchool"></div>
             <div class="form-group"><label for="previousClass">Previous Class</label><input type="text" id="previousClass" name="previousClass"></div>
             <div class="form-group"><label for="board">Board (SEE / ECE)</label><select id="board" name="board"><option value="">Select Board</option><option value="nepali">NEB (Nepal)</option><option value="cbse">CBSE (India)</option><option value="icse">ICSE (India)</option><option value="other">Other</option></select></div>

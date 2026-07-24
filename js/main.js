@@ -147,8 +147,13 @@ var App = {
           io.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
     document.querySelectorAll('[data-reveal]').forEach(function (el) { io.observe(el); });
+    // Also reveal gallery items, teacher cards, staff cards on scroll
+    document.querySelectorAll('.gallery-item, .teacher-card, .staff-card, .program-card').forEach(function (el) {
+      el.setAttribute('data-reveal', '');
+      io.observe(el);
+    });
   },
 
   setupParallax() {
@@ -159,11 +164,16 @@ var App = {
     var currentIndex = 0;
 
     function cycleSlides() {
-      slides.forEach(function(s) { s.classList.remove('active'); });
-      currentIndex = (currentIndex + 1) % slides.length;
-      slides[currentIndex].classList.add('active');
+      var next = (currentIndex + 1) % slides.length;
+      slides[next].classList.add('active');
+      var prev = slides[currentIndex];
+      setTimeout(function () { prev.classList.remove('active'); }, 100);
+      currentIndex = next;
     }
-    setInterval(cycleSlides, 4000);
+    setInterval(cycleSlides, 5000);
+
+    var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
 
     window.addEventListener('scroll', function () {
       var rect = hero.getBoundingClientRect();
@@ -571,11 +581,22 @@ var App = {
           document.querySelectorAll('.nav-link').forEach(function (l) { l.classList.remove('active'); });
           this.classList.add('active');
         }
+        document.getElementById('navMenu').classList.remove('open');
       });
     });
     var menuToggle = document.getElementById('menuToggle');
+    var navMenu = document.getElementById('navMenu');
     if (menuToggle) menuToggle.addEventListener('click', function () {
-      document.getElementById('navMenu').classList.toggle('open');
+      navMenu.classList.toggle('open');
+    });
+    if (navMenu) navMenu.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') navMenu.classList.remove('open');
+    });
+    // Close mobile menu on click outside
+    document.addEventListener('click', function (e) {
+      if (navMenu && navMenu.classList.contains('open') && !e.target.closest('.header-container')) {
+        navMenu.classList.remove('open');
+      }
     });
   },
 
@@ -588,7 +609,6 @@ var App = {
     if (!statusEl) {
       statusEl = document.createElement('div');
       statusEl.className = 'admission-status';
-      statusEl.style.cssText = 'margin-top:16px;padding:12px 16px;border-radius:6px;font-size:14px;display:none;';
       form.appendChild(statusEl);
     }
     var showStatus = function (message, isError) {
@@ -598,6 +618,32 @@ var App = {
       statusEl.style.color = isError ? '#a33' : '#1f7a3d';
       statusEl.style.border = '1px solid ' + (isError ? '#f0c2bd' : '#bfe6cb');
       statusEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+    var clearFieldError = function (el) {
+      var group = el.closest('.form-group');
+      if (group) { group.classList.remove('error'); group.classList.remove('success'); }
+    };
+    var showFieldError = function (el, msg) {
+      var group = el.closest('.form-group');
+      if (!group) return;
+      group.classList.add('error');
+      group.classList.remove('success');
+      var errEl = group.querySelector('.field-error');
+      if (errEl && msg) errEl.textContent = msg;
+    };
+    var showFieldSuccess = function (el) {
+      var group = el.closest('.form-group');
+      if (group) { group.classList.remove('error'); group.classList.add('success'); }
+    };
+    var validateField = function (el) {
+      clearFieldError(el);
+      if (!el.hasAttribute('required') && !el.value.trim()) return true;
+      if (el.hasAttribute('required') && !el.value.trim()) { showFieldError(el, 'This field is required'); return false; }
+      if (el.type === 'tel' && el.value.trim() && !/^[\d\+\-\s\(\)]{7,15}$/.test(el.value.trim())) { showFieldError(el, 'Enter a valid phone number'); return false; }
+      if (el.type === 'email' && el.value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim())) { showFieldError(el, 'Enter a valid email address'); return false; }
+      if (el.name === 'studentName' && el.value.trim().length < 2) { showFieldError(el, 'Name must be at least 2 characters'); return false; }
+      showFieldSuccess(el);
+      return true;
     };
 
     function goToStep(step) {
@@ -610,26 +656,29 @@ var App = {
       if (dot) dot.classList.add('active');
       var label = document.querySelector('.step-label[data-step="' + step + '"]');
       if (label) label.classList.add('active');
+      statusEl.style.display = 'none';
       window.scrollTo({ top: form.offsetTop - 80, behavior: 'smooth' });
     }
+
+    // Inline validation on blur
+    form.querySelectorAll('input, select, textarea').forEach(function (el) {
+      el.addEventListener('blur', function () { validateField(el); });
+      el.addEventListener('input', function () { clearFieldError(el); });
+    });
 
     form.addEventListener('click', function(e) {
       var btn = e.target.closest('.btn-next, .btn-prev');
       if (!btn) return;
       var to = parseInt(btn.getAttribute('data-to'), 10);
       var currentStep = document.querySelector('.form-step.active');
-      var currentNum = parseInt(currentStep.getAttribute('data-step'), 10);
+      if (!currentStep) return;
       if (btn.classList.contains('btn-next')) {
         var required = currentStep.querySelectorAll('[required]');
+        var valid = true;
         for (var i = 0; i < required.length; i++) {
-          if (!required[i].value.trim()) {
-            required[i].focus();
-            required[i].style.borderColor = '#d33';
-            required[i].addEventListener('input', function() { this.style.borderColor = ''; }, { once: true });
-            showStatus('Please fill out all required fields before proceeding.', true);
-            return;
-          }
+          if (!validateField(required[i])) valid = false;
         }
+        if (!valid) { showStatus('Please fill out all required fields correctly before proceeding.', true); return; }
       }
       goToStep(to);
     });
@@ -637,15 +686,18 @@ var App = {
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       statusEl.style.display = 'none';
-      if (!form.checkValidity()) { form.reportValidity(); return; }
+      var allValid = true;
+      form.querySelectorAll('[required]').forEach(function (el) { if (!validateField(el)) allValid = false; });
+      if (!allValid) { showStatus('Please fill out all required fields correctly.', true); return; }
       var photoInput = document.getElementById('studentPhoto');
       var photoFile = photoInput && photoInput.files[0];
       if (photoFile && photoFile.size > MAX_PHOTO_BYTES) { showStatus('Student photo must be under 500KB. Please choose a smaller file.', true); return; }
       var submitBtn = form.querySelector('.submit-btn');
-      var originalLabel = submitBtn ? submitBtn.textContent : '';
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+      var originalLabel = submitBtn ? submitBtn.innerHTML : '';
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.classList.add('loading'); submitBtn.innerHTML = '<span class="spinner"></span> Submitting...'; }
       try {
-        var data = Object.fromEntries(new FormData(form).entries());
+        var formData = new FormData(form);
+        var data = Object.fromEntries(formData.entries());
         delete data.studentPhoto; delete data.birthCertificate; delete data.bleCertificate;
         var files = await Promise.all([
           photoFile ? fileToDataUrl(photoFile) : null,
@@ -668,12 +720,13 @@ var App = {
         }
         showStatus('Thank you! Your admission application has been submitted. The school office will contact you soon.', false);
         form.reset();
+        form.querySelectorAll('.form-group').forEach(function (g) { g.classList.remove('success', 'error'); });
         goToStep(1);
       } catch (err) {
         console.error('Admission submission failed:', err);
         showStatus('Something went wrong while submitting your application. Please try again or contact the school office.', true);
       } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.classList.remove('loading'); submitBtn.innerHTML = originalLabel; }
       }
     });
   }
