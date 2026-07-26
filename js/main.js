@@ -300,26 +300,51 @@ var App = {
     var enDays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     var monthName = bsMonthsFull[monthIdx];
     var planItems = ANNUAL_PLAN[monthName] || [];
-    var holidays = {};
-    var events = {};
+    function typeClass(activity) {
+      if (/vacation|holiday/i.test(activity)) return 'cal-holiday';
+      if (/exam|test|terminal|pre-board|examination/i.test(activity)) return 'cal-exam';
+      if (/meeting|staff/i.test(activity)) return 'cal-meeting';
+      if (/sports|athletics|shield/i.test(activity)) return 'cal-sports';
+      if (/competition|contest|speech|quiz|dance|spelling|race|drawing|handwriting|essay|debate/i.test(activity)) return 'cal-competition';
+      if (/celebration|felicitation|prize|assembly|school.?day|result|closing|farewell|graduation/i.test(activity)) return 'cal-celebration';
+      if (/tour|trip|visit/i.test(activity)) return 'cal-tour';
+      if (/admission|registration|record|iemis|audit/i.test(activity)) return 'cal-admin';
+      return 'cal-regular';
+    }
+    var typeLabels = {
+      'cal-holiday': { abbr: 'HL', icon: '🏖', label: 'Holiday', cls: 'cal-badge-holiday' },
+      'cal-exam': { abbr: 'EX', icon: '📝', label: 'Exam', cls: 'cal-badge-exam' },
+      'cal-meeting': { abbr: 'MT', icon: '📋', label: 'Meeting', cls: 'cal-badge-meeting' },
+      'cal-competition': { abbr: 'EV', icon: '🏆', label: 'Event', cls: 'cal-badge-competition' },
+      'cal-celebration': { abbr: 'CL', icon: '🎉', label: 'Celebration', cls: 'cal-badge-celebration' },
+      'cal-sports': { abbr: 'SP', icon: '⚽', label: 'Sports', cls: 'cal-badge-sports' },
+      'cal-tour': { abbr: 'TR', icon: '🚌', label: 'Tour', cls: 'cal-badge-tour' },
+      'cal-admin': { abbr: 'AD', icon: '📁', label: 'Admin', cls: 'cal-badge-admin' },
+      'cal-regular': { abbr: '', icon: '', label: '', cls: '' }
+    };
+    var dayTypes = {};
     planItems.forEach(function (a) {
-      var isHoliday = /vacation|holiday/i.test(a.activity);
-      var parts = a.date.match(/(\d+)/g);
-      if (!parts) return;
-      if (a.date.indexOf('\u2013') > -1) {
-        var from = parseInt(parts[0]), to = parseInt(parts[1] || parts[0]);
-        for (var d = from; d <= to; d++) {
-          if (isHoliday) holidays[d] = true;
-          else events[d] = true;
-        }
-      } else if (a.date.indexOf('Last') === -1 && a.date.indexOf('From') === -1 && a.date.indexOf('As per') === -1) {
-        var day = parseInt(parts[0]);
-        if (isHoliday) holidays[day] = true;
-        else events[day] = true;
+      var dateStr = a.date;
+      var tc = typeClass(a.activity);
+      var isRange = dateStr.indexOf('-') > -1 || dateStr.indexOf('\u2013') > -1;
+      var isLast = dateStr.indexOf('Last') > -1;
+      function mark(d, pos) { if (d >= 1 && d <= BS_MONTH_DAYS[monthIdx]) { if (!dayTypes[d]) dayTypes[d] = []; dayTypes[d].push({ type: tc, label: a.activity, pos: pos || '' }); } }
+      if (isLast) {
+        var last = {};
+        for (var w = grid.length - 1; w >= 0; w--)
+          for (var d = grid[w].length - 1; d >= 0; d--)
+            if (grid[w][d].bs && !last[grid[w][d].dow]) last[grid[w][d].dow] = grid[w][d].bs;
+        if (last[3]) mark(last[3]); if (last[4]) mark(last[4]);
+        return;
       }
+      if (dateStr.indexOf('From') > -1) { var p = dateStr.match(/(\d+)/g); if (p) mark(parseInt(p[0])); return; }
+      if (dateStr.indexOf('As per') > -1) return;
+      if (isRange) { var pts = dateStr.match(/(\d+)/g); if (pts) { var f = parseInt(pts[0]), t = parseInt(pts[1]||pts[0]); for (var d = f; d <= t; d++) mark(d, d === f ? 'start' : (d === t ? 'end' : 'mid')); } return; }
+      var pts = dateStr.match(/(\d+)/g);
+      if (pts) mark(parseInt(pts[0]));
     });
     container.innerHTML =
-      '<div class="cal-head"><span class="cal-month">' + monthName + ' ' + BS_YEAR + '</span></div>' +
+      '<div class="cal-head"><span class="cal-month">' + monthName + ' ' + BS_YEAR + '</span><span class="cal-head-sub">' + planItems.length + ' activities</span></div>' +
       '<div class="cal-dows">' + enDays.map(function (d) { return '<span class="cal-dow">' + d + '</span>'; }).join('') + '</div>' +
       '<div class="cal-grid">' + grid.map(function (week) {
         return week.map(function (c) {
@@ -328,12 +353,28 @@ var App = {
           if (c.bs === highlightDay) cls += ' cal-today';
           if (c.dow === 0) cls += ' cal-sun';
           if (c.dow === 6) cls += ' cal-sat';
-          if (holidays[c.bs]) cls += ' cal-holiday';
-          else if (events[c.bs]) cls += ' cal-event';
-          return '<span class="' + cls + '"><span class="cal-bs">' + c.bs + '</span><span class="cal-ad">' + c.ad.split('/')[0] + ' ' + adMonths[parseInt(c.ad.split('/')[1])-1] + '</span></span>';
+          var dt = dayTypes[c.bs];
+          var hasHoliday = dt && dt.some(function(x){ return x.type === 'cal-holiday'; });
+          var topType = 'cal-regular';
+          if (dt) {
+            if (hasHoliday) topType = 'cal-holiday';
+            else {
+              var rank = ['cal-exam','cal-meeting','cal-competition','cal-celebration','cal-sports','cal-tour','cal-admin','cal-regular'];
+              for (var r = 0; r < rank.length; r++) { if (dt.some(function(x){ return x.type === rank[r]; })) { topType = rank[r]; break; } }
+            }
+            cls += ' ' + topType;
+            var isStart = dt.some(function(x){ return x.pos === 'start'; });
+            var isEnd = dt.some(function(x){ return x.pos === 'end'; });
+            if (isStart) cls += ' cal-range-start';
+            if (isEnd) cls += ' cal-range-end';
+          }
+          var tip = dt ? dt.map(function(x){ return x.label; }).join('; ') : '';
+          var tl = typeLabels[topType] || { abbr: '', icon: '', label: '', cls: '' };
+          var badgeHtml = dt && tl.abbr ? '<span class="cal-badge ' + tl.cls + '">' + tl.icon + ' ' + tl.label + '</span>' : '';
+          return '<span class="' + cls + '"' + (tip ? ' title="' + tip + '"' : '') + '>' + badgeHtml + '<span class="cal-bs">' + c.bs + '</span><span class="cal-ad">' + c.ad.split('/')[0] + ' ' + adMonths[parseInt(c.ad.split('/')[1])-1] + '</span></span>';
         }).join('');
       }).join('') + '</div>' +
-      '<div class="cal-legend"><span><span class="leg-dot leg-holiday"></span>Holiday</span><span><span class="leg-dot leg-event"></span>Event</span></div>';
+      '<div class="cal-legend"><span><span class="leg-dot leg-holiday"></span>Holiday</span><span><span class="leg-dot leg-exam"></span>Exam</span><span><span class="leg-dot leg-meeting"></span>Meeting</span><span><span class="leg-dot leg-competition"></span>Event</span><span><span class="leg-dot leg-celebration"></span>Celebration</span><span><span class="leg-dot leg-sports"></span>Sports</span></div>';
   },
 
   showMonthActivities(month) {

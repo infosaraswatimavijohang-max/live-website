@@ -1,4 +1,4 @@
-/* OPTIMIZED DATASTORE
+﻿/* OPTIMIZED DATASTORE
    - Minimal column selection for all queries
    - Client-side cache with CacheManager
    - Batch API for dashboard (single round-trip)
@@ -516,8 +516,102 @@ function seedLocalGallery() {
   localStorage.setItem('sss_gallery', JSON.stringify(galleryData));
 }
 
-var ANNUAL_PLAN = {"Baisakh":[{"date":"15th–20th","activity":"Student admission and textbook distribution program","responsible":"Admission Committee / Class Teachers","remarks":"New session intake"},{"date":"From 21st","activity":"Commencement of regular classes","responsible":"All Teachers","remarks":""},{"date":"From 15th","activity":"Student registration and record updating","responsible":"Class Teachers","remarks":""},{"date":"25th","activity":"Formation/Reorganization of Nepal Junior Red Cross, Child Club, Scout, Eco Club and House Division","responsible":"ECA Coordinator","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}],"Jestha":[{"date":"1st","activity":"Felicitation for SEE graduates and teachers of Grades 5, 8, 10","responsible":"Principal / Teachers","remarks":""},{"date":"Within 7th","activity":"Update IEMIS","responsible":"IEMIS Focal Teacher","remarks":""},{"date":"8th","activity":"Speech Competition (Grades 6–8 and 9–12)","responsible":"ECA Coordinator","remarks":""},{"date":"From 18th","activity":"Remedial classes in English, Mathematics and Science for Grades 8 and 10","responsible":"Subject Teachers","remarks":""},{"date":"22nd","activity":"Drawing (Grades 1–3) and Inter-house Quiz (Grades 4–12)","responsible":"ECA Coordinator","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"—","activity":"Preparation of School Improvement Plan (SIP)","responsible":"Principal / SMC","remarks":""},{"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}],"Ashadh":[{"date":"From 1st","activity":"Grade 11 admission and classes","responsible":"Admission Committee","remarks":""},{"date":"5th","activity":"Copy Writing (1–3), Nepali Dictation (4–5), English Dictation (6–8)","responsible":"ECA Coordinator / Respective Teachers","remarks":""},{"date":"10th","activity":"Issue of report cards","responsible":"Class Teachers","remarks":""},{"date":"15th","activity":"Guardians' Meeting","responsible":"Principal / Class Teachers","remarks":""},{"date":"25th","activity":"District-Level Sports Competition","responsible":"Physical Education Teacher","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}],"Shrawan":[{"date":"1st","activity":"Deusi-Bhailo, Cultural and Classical Dance Competition","responsible":"ECA Coordinator","remarks":""},{"date":"5th","activity":"Teachers’ Day","responsible":"Principal","remarks":""},{"date":"10th","activity":"Handwriting Competition (1–3), Essay Competition (4–10)","responsible":"ECA Coordinator","remarks":""},{"date":"15th","activity":"Quiz Contest","responsible":"ECA Coordinator","remarks":""},{"date":"25th","activity":"Classroom decoration competition","responsible":"Class Teachers","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}],"Bhadra":[{"date":"1st","activity":"School Level Sports","responsible":"Physical Education Teacher","remarks":""},{"date":"5th","activity":"Constitution Day Celebration","responsible":"Principal","remarks":""},{"date":"10th","activity":"Spelling Competition (1–3)","responsible":"ECA Coordinator","remarks":""},{"date":"From 15th","activity":"Dance, Song and Music Competition","responsible":"ECA Coordinator","remarks":""},{"date":"25th","activity":"Mathematics Festival / Math Competition","responsible":"Mathematics Teacher","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers","remarks":""}],"Ashwin":[{"date":"1st–7th","activity":"Dashai Vacation","responsible":"","remarks":"School closed"},{"date":"8th","activity":"Post-Dashai Class Operation","responsible":"All Teachers","remarks":""},{"date":"10th","activity":"Rhyme Competition (Pre-primary)","responsible":"Pre-primary Teachers","remarks":""},{"date":"15th","activity":"Science Exhibition","responsible":"Science Teachers","remarks":""},{"date":"25th","activity":"Inter-school Quiz","responsible":"ECA Coordinator","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers","remarks":""}],"Kartik":[{"date":"1st–10th","activity":"Tihar Vacation / Deepawali","responsible":"","remarks":"School closed"},{"date":"11th","activity":"Post-Tihar Class Operation","responsible":"All Teachers","remarks":""},{"date":"15th","activity":"Self-Employment Program / Skill Exhibition","responsible":"Technical Teachers","remarks":""},{"date":"20th","activity":"Inter-school English Speech, Essay and Extempore","responsible":"English Teachers","remarks":""},{"date":"25th","activity":"First Terminal Exam (Grades 1–12) / Grade 11 Exam","responsible":"Exam Committee","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"—","activity":"Issue of report cards and guardians' meeting","responsible":"Class Teachers","remarks":""}],"Mangsir":[{"date":"1st–15th","activity":"First Terminal Exam continues","responsible":"Exam Committee","remarks":""},{"date":"15th","activity":"Education Tour / Field Visit / Exposure Visit","responsible":"Tour Committee","remarks":""},{"date":"22nd","activity":"Debate Competition (Local level)","responsible":"ECA Coordinator","remarks":""},{"date":"25th","activity":"Health Checkup","responsible":"Health Teacher","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}],"Poush":[{"date":"1st–15th","activity":"Preparation for National Events","responsible":"All Teachers","remarks":""},{"date":"10th","activity":"Children's Day / Child Club Program","responsible":"Child Club Coordinator","remarks":""},{"date":"15th","activity":"Grade 10/12 Pre-Board Exam (First)","responsible":"Exam Committee","remarks":""},{"date":"20th","activity":"IEMIS Update","responsible":"IEMIS Focal Teacher","remarks":""},{"date":"25th","activity":"Program on discipline, career, counseling and talent","responsible":"Counselor","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers","remarks":""}],"Magh":[{"date":"1st","activity":"General Assembly / School Day","responsible":"Principal","remarks":""},{"date":"10th","activity":"Second Terminal Exam","responsible":"Exam Committee","remarks":""},{"date":"25th","activity":"Public Speaking Competition","responsible":"ECA Coordinator","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},{"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers","remarks":""}],"Falgun":[{"date":"1st–10th","activity":"Second Terminal Exam continues","responsible":"Exam Committee","remarks":""},{"date":"15th","activity":"Guardians' Meeting","responsible":"Principal","remarks":""},{"date":"20th","activity":"Grade 10/12 Pre-Board Exam (Second)","responsible":"Exam Committee","remarks":""},{"date":"25th","activity":"Career Counseling Program","responsible":"Counselor","remarks":""},{"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""}],"Chaitra":[{"date":"1st","activity":"Grade 10/12 Pre-Board Exam (Second) continues","responsible":"Exam Committee","remarks":""},{"date":"10th","activity":"Sports Day","responsible":"Physical Education Teacher","remarks":""},{"date":"15th","activity":"Farewell / Graduation Program","responsible":"ECA Coordinator","remarks":""},{"date":"20th","activity":"Annual Exam / SEE Preparation","responsible":"Exam Committee","remarks":""},{"date":"25th","activity":"Evaluation of teachers, staff and students","responsible":"Principal","remarks":""},{"date":"31st","activity":"Closing Day / Annual Result Publication","responsible":"Principal","remarks":""}]};
-
+var ANNUAL_PLAN = {
+  "Baisakh": [
+    {"date":"15th-20th","activity":"Student admission and textbook distribution program","responsible":"Admission Committee / Class Teachers","remarks":"New session intake"},
+    {"date":"From 21st","activity":"Commencement of regular classes","responsible":"All Teachers","remarks":""},
+    {"date":"From 15th","activity":"Student registration and record updating","responsible":"Class Teachers","remarks":""},
+    {"date":"25th","activity":"Formation/Reorganization of Nepal Junior Red Cross, Child Club, Scout, Eco Club and House Division","responsible":"ECA Coordinator","remarks":""},
+    {"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},
+    {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}
+  ],
+  "Jestha": [
+    {"date":"1st","activity":"Felicitation for SEE graduates and teachers of Grades 5, 8, 10","responsible":"Principal / Teachers","remarks":""},
+    {"date":"Within 7th","activity":"Update IEMIS","responsible":"IEMIS Focal Teacher","remarks":""},
+    {"date":"8th","activity":"Speech Competition (Grades 6-8 and 9-12)","responsible":"ECA Coordinator","remarks":""},
+    {"date":"From 18th","activity":"Remedial classes in English, Mathematics and Science for Grades 8 and 10","responsible":"Subject Teachers","remarks":""},
+    {"date":"22nd","activity":"Drawing (Grades 1-3) and Inter-house Quiz (Grades 4-12)","responsible":"ECA Coordinator","remarks":""},
+    {"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},
+    {"date":"-","activity":"Preparation of School Improvement Plan (SIP)","responsible":"Principal / SMC","remarks":""},
+    {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}
+  ],
+  "Ashadh": [
+    {"date":"From 1st","activity":"Grade 11 admission and classes","responsible":"Admission Committee","remarks":""},
+    {"date":"5th","activity":"Copy Writing (1-3), Nepali Dictation (4-5), English Dictation (6-12)","responsible":"Class Teachers","remarks":""},
+    {"date":"12th","activity":"Open Dance Competition","responsible":"ECA Coordinator","remarks":""},
+    {"date":"19th","activity":"Disaster Risk Reduction Awareness","responsible":"Class Teachers / Eco Club","remarks":""},
+    {"date":"22nd-26th","activity":"First Terminal Examination","responsible":"Exam Committee","remarks":""},
+    {"date":"32nd","activity":"Tree plantation, flower garden and cleanliness program","responsible":"Eco Club","remarks":""}
+  ],
+  "Shrawan": [
+    {"date":"1st","activity":"Results, prize distribution, analysis and staff meeting","responsible":"Exam Committee / Principal","remarks":""},
+    {"date":"4th-20th","activity":"Annual vacation","responsible":"-","remarks":""},
+    {"date":"21st-22nd","activity":"Local holiday","responsible":"-","remarks":""},
+    {"date":"29th","activity":"Nepali Handwriting (1-3), English Handwriting (4-8), English Essay (9-12)","responsible":"ECA Coordinator","remarks":""},
+    {"date":"31st","activity":"Staff meeting","responsible":"Principal","remarks":""},
+    {"date":"-","activity":"Submission of property details","responsible":"Accountant / Admin Section","remarks":""}
+  ],
+  "Bhadra": [
+    {"date":"5th","activity":"Garden maintenance and sanitation","responsible":"Eco Club","remarks":""},
+    {"date":"11th-17th","activity":"Annual celebration","responsible":"Program Committee","remarks":""},
+    {"date":"23rd","activity":"Literacy Day and Essay Competition","responsible":"ECA Coordinator","remarks":""},
+    {"date":"25th","activity":"Social Audit","responsible":"SMC / Accountant","remarks":""},
+    {"date":"29th","activity":"Children's Day and Child Rights program","responsible":"Child Club","remarks":""},
+    {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""},
+    {"date":"31st","activity":"Staff meeting","responsible":"Principal","remarks":""}
+  ],
+  "Ashwin": [
+    {"date":"2nd","activity":"National Education Day","responsible":"Principal","remarks":""},
+    {"date":"9th","activity":"English Spelling Contest","responsible":"English Subject Teacher","remarks":""},
+    {"date":"16th","activity":"Mathematical Race/Musical Chair","responsible":"Math Teacher / ECA Coordinator","remarks":""},
+    {"date":"23rd","activity":"Compost Pit (Eco Club)","responsible":"Eco Club","remarks":""},
+    {"date":"23rd","activity":"Staff meeting and Dashain greetings","responsible":"Principal","remarks":""},
+    {"date":"25th-31st","activity":"Dashain vacation","responsible":"-","remarks":""}
+  ],
+  "Kartik": [
+    {"date":"1st-8th","activity":"Dashain vacation","responsible":"-","remarks":""},
+    {"date":"9th-20th","activity":"Annual vacation","responsible":"-","remarks":""},
+    {"date":"11th-15th","activity":"Teacher educational tour","responsible":"Tour Committee","remarks":""},
+    {"date":"23rd-26th","activity":"Tihar vacation","responsible":"-","remarks":""},
+    {"date":"27th","activity":"Public holiday","responsible":"-","remarks":""},
+    {"date":"30th","activity":"Staff meeting","responsible":"Principal","remarks":""}
+  ],
+  "Mangsir": [
+    {"date":"4th","activity":"Inter-house athletics","responsible":"Sports Committee","remarks":""},
+    {"date":"11th-23rd","activity":"Second Terminal (4-10), First Terminal (11-12)","responsible":"Exam Committee","remarks":""},
+    {"date":"25th","activity":"Results and prize distribution","responsible":"Exam Committee / Principal","remarks":""},
+    {"date":"26th-29th","activity":"Sports Week","responsible":"Sports Committee","remarks":""},
+    {"date":"29th","activity":"Staff meeting","responsible":"Principal","remarks":""}
+  ],
+  "Poush": [
+    {"date":"1st-2nd","activity":"Sports Week","responsible":"Sports Committee","remarks":""},
+    {"date":"3rd-5th","activity":"President Running Shield","responsible":"Sports Committee","remarks":""},
+    {"date":"9th-12th","activity":"Student educational tour","responsible":"Tour Committee","remarks":""},
+    {"date":"17th","activity":"Book-Free Day","responsible":"ECA Coordinator","remarks":""},
+    {"date":"28th-30th","activity":"Local holiday","responsible":"-","remarks":""},
+    {"date":"30th","activity":"Inter-Basic School Speech Competition","responsible":"ECA Coordinator","remarks":""},
+    {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}
+  ],
+  "Magh": [
+    {"date":"8th","activity":"Inter-Secondary School Quiz","responsible":"ECA Coordinator","remarks":""},
+    {"date":"11th-21st","activity":"Pre-board (5, 8, 10) and Second Terminal (11-12)","responsible":"Exam Committee","remarks":""},
+    {"date":"22nd","activity":"Results and parent interaction","responsible":"Class Teachers / Principal","remarks":""},
+    {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""},
+    {"date":"29th","activity":"Textbook Quiz and staff meeting","responsible":"Subject Teachers / Principal","remarks":""}
+  ],
+  "Falgun": [
+    {"date":"4th","activity":"Inter-Basic School Solo Dance","responsible":"ECA Coordinator","remarks":""},
+    {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""},
+    {"date":"30th","activity":"Staff meeting","responsible":"Principal","remarks":""}
+  ],
+  "Chaitra": [
+    {"date":"1st-11th","activity":"Pre-board (11-12)","responsible":"Exam Committee","remarks":""},
+    {"date":"As per NEB schedule","activity":"SEE Examination","responsible":"NEB / Exam Committee","remarks":""},
+    {"date":"15th-23rd","activity":"Annual Examination","responsible":"Exam Committee","remarks":""},
+    {"date":"30th","activity":"Results, prize distribution and analysis","responsible":"Exam Committee / Principal","remarks":""},
+    {"date":"-","activity":"Preparation of next Annual Work Plan, Academic Calendar, Improvement and Training Plans","responsible":"Principal / SMC","remarks":""}
+  ]
+};
 var MONTH_ORDER = ['Baisakh','Jestha','Ashadh','Shrawan','Bhadra','Ashwin','Kartik','Mangsir','Poush','Magh','Falgun','Chaitra'];
 
 var BS_YEAR = 2083;

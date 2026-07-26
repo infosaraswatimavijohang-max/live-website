@@ -20,6 +20,14 @@ Static HTML/CSS/JS site - no build process.
 | `css/style.css` | Public styles |
 | `css/admin.css` | Admin styles |
 
+## Annual Work Plan & Calendar
+- **Source**: `Details/Annual_Work_Plan_2083.xlsx` — 12 sheets (Baisakh→Chaitra)
+- **Calendar**: Nepali BS 2083 calendar on home page notice board section
+- **Color coding**: 9 types — Holiday (red), Exam (purple), Meeting (blue), Event (gold), Celebration (orange), Sports (green), Tour (teal), Admin (muted), Regular (teal)
+- **Key dates**: `From X` marks day X; ranges `X-Y` mark all days X-Y; `Last Wed & Thu` calculated dynamically
+- **Badges**: Each calendar cell shows a type badge (emoji + label) on event days
+- **Range connectors**: First/last day of multi-day events get rounded-start/end visual
+
 ## Design
 - Primary: `#1a3a5c` | Accent: `#f5a623`
 - Fonts: Playfair Display (headings), Noto Serif (body, Devanagari support)
@@ -33,3 +41,4 @@ Static HTML/CSS/JS site - no build process.
 - Google Maps iframes fail with `file://` - serve via localhost
 - Teacher photo filenames in seed must match `assets/images/Teachers/*` exactly
 - Admin image uploads convert to base64 (localStorage size limits apply)
+- ANNUAL_PLAN Excel uses regular hyphens in date ranges, not en-dashes (handled in `main.js:isRange`)
