@@ -9,6 +9,8 @@ const EXAM_COLUMNS = {
   exams: 'id,name,start_date,end_date,result_date,subject_marks,created_at',
   marks: 'id,exam_id,student_id,subject_id,theory,practical',
   images: 'id,owner_type,owner_id,public_url',
+  assignments: 'id,title,description,class_id,subject_id,teacher_id,due_date,file_url,file_name,created_at',
+  notes: 'id,title,content,class_id,subject_id,teacher_id,file_url,file_name,created_at',
 };
 
 function examCols(table) {

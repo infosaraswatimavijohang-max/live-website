@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shree Saraswati Secondary School — Exam System</title>
+<title>Shree Saraswati Secondary School — School Portal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/exam_helper.js"></script>
 <style>
@@ -43,81 +43,112 @@ input,select{font-family:var(--font-body);}
   position:absolute;inset:0;pointer-events:none;
 }
 
-/* ---------- LOGIN ---------- */
+/* ---------- LOGIN / WELCOME SCREEN ---------- */
 #login-screen{
   min-height:100vh;
   display:flex;align-items:center;justify-content:center;
   background:
-    radial-gradient(circle at 50% 0%, #223066 0%, var(--navy-deep) 55%, #0c1330 100%);
+    radial-gradient(ellipse at 50% 0%, #1e2d5a 0%, var(--navy-deep) 50%, #0a1128 100%);
   padding:24px;
+  position:relative;
+}
+#login-screen::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,.06) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,.04) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 10%, rgba(255,255,255,.05) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,.03) 0%, transparent 100%);
+  pointer-events:none;
 }
 .login-shell{
-  width:100%;max-width:820px;
+  width:100%;max-width:860px;
   display:flex;
   background:var(--paper-card);
-  border-radius:10px;
+  border-radius:14px;
   overflow:hidden;
-  box-shadow:0 40px 90px rgba(0,0,0,.5);
+  box-shadow:0 50px 120px rgba(0,0,0,.55);
+  position:relative;z-index:2;
+  animation:loginFadeIn .5s ease-out;
 }
+@keyframes loginFadeIn{0%{opacity:0;transform:translateY(16px);}100%{opacity:1;transform:translateY(0);}}
 .login-visual{
-  flex:1 1 42%;
+  flex:1 1 44%;
   position:relative;
   background:
-    radial-gradient(circle at 30% 20%, #2a3f7c 0%, var(--navy-deep) 60%, #0c1330 100%);
-  padding:48px 36px;
+    radial-gradient(ellipse at 40% 30%, #2f4680 0%, var(--navy-deep) 55%, #0a1128 100%);
+  padding:56px 32px 48px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   color:#fff;
   overflow:hidden;
 }
-.login-visual .corner-star{position:absolute;width:34px;height:34px;opacity:.35;}
+.login-visual::after{
+  content:'';position:absolute;inset:0;
+  background:
+    repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(255,255,255,.015) 60px, rgba(255,255,255,.015) 61px),
+    repeating-linear-gradient(-45deg, transparent, transparent 60px, rgba(255,255,255,.015) 60px, rgba(255,255,255,.015) 61px);
+  pointer-events:none;
+}
+.login-visual .corner-star{position:absolute;width:34px;height:34px;opacity:.3;}
 .login-visual .corner-star path{stroke:var(--gold-light);stroke-width:1.4;fill:none;}
 .login-visual .corner-star.tl{top:20px;left:20px;}
 .login-visual .corner-star.br{bottom:20px;right:20px;transform:rotate(30deg);}
-/* logo-badge centers the seal exactly on the hexstar's crossing point */
 .login-visual .logo-badge{
   position:relative;
-  width:190px;height:190px;
-  margin:0 auto 18px;
+  width:180px;height:180px;
+  margin:0 auto 14px;
   display:flex;align-items:center;justify-content:center;
+  animation:logoFloat 4s ease-in-out infinite;
 }
+@keyframes logoFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
 .login-visual .logo-badge .hexstar{
-  position:absolute;top:50%;left:50%;width:190px;height:190px;
+  position:absolute;top:50%;left:50%;width:180px;height:180px;
   transform:translate(-50%,-50%);
-  opacity:.28;
+  opacity:.2;
   pointer-events:none;
 }
 .login-visual .logo-badge .hexstar path{stroke:var(--gold-light);stroke-width:1.2;fill:none;}
 .login-visual .logo-badge img.seal{
-  width:112px;height:112px;position:relative;z-index:2;
+  width:106px;height:106px;position:relative;z-index:2;
   filter:drop-shadow(0 4px 14px rgba(0,0,0,.35));
 }
-.login-visual h1{position:relative;z-index:2;font-size:20px;line-height:1.35;font-weight:600;letter-spacing:.01em;}
-.login-visual .est{position:relative;z-index:2;font-size:10.5px;color:var(--gold-light);letter-spacing:.09em;text-transform:uppercase;margin-top:12px;line-height:1.7;max-width:230px;}
-.login-visual .rule{position:relative;z-index:2;width:36px;height:2px;background:var(--gold);margin:16px 0;}
+.login-visual h1{position:relative;z-index:2;font-size:21px;line-height:1.35;font-weight:600;letter-spacing:.01em;}
+.login-visual .est{position:relative;z-index:2;font-size:10.5px;color:var(--gold-light);letter-spacing:.09em;text-transform:uppercase;margin-top:10px;line-height:1.7;max-width:220px;}
+.login-visual .rule{position:relative;z-index:2;width:36px;height:2px;background:var(--gold);margin:14px 0;}
+.login-visual .welcome-tagline{
+  position:relative;z-index:2;font-size:13px;color:rgba(255,255,255,.75);line-height:1.5;margin-top:4px;max-width:200px;
+  font-family:var(--font-body);font-weight:400;font-style:italic;
+}
 
 .login-form-panel{
-  flex:1 1 58%;
-  padding:52px 46px;
+  flex:1 1 56%;
+  padding:56px 48px 48px;
   text-align:left;
+  display:flex;flex-direction:column;justify-content:center;
 }
 .login-form-panel .eyebrow{
   letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--gold);font-weight:700;margin-bottom:8px;
 }
-.login-form-panel h2{font-size:24px;color:var(--navy-deep);margin-bottom:6px;}
-.login-form-panel .sub{font-size:13px;color:var(--ink-soft);margin-bottom:30px;}
-.field{text-align:left;margin-bottom:16px;}
+.login-form-panel h2{font-size:26px;color:var(--navy-deep);margin-bottom:4px;}
+.login-form-panel .sub{font-size:13.5px;color:var(--ink-soft);margin-bottom:28px;line-height:1.5;}
+.field{text-align:left;margin-bottom:18px;}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:5px;letter-spacing:.02em;}
 .field input, .field select{
-  width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:4px;font-size:14px;background:#fbfbfd;
-  transition:border-color .15s;
+  width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:6px;font-size:14px;background:#fbfbfd;
+  transition:border-color .15s,box-shadow .15s;
 }
-.field input:focus, .field select:focus{outline:none;border-color:var(--navy-mid);background:#fff;}
+.field input:focus, .field select:focus{outline:none;border-color:var(--navy-mid);background:#fff;box-shadow:0 0 0 3px rgba(42,63,124,.12);}
+.field input:hover, .field select:hover{border-color:#c8ccd8;}
 .btn-primary{
-  width:100%;padding:12px;background:var(--navy-deep);color:#fff;border:none;border-radius:4px;
-  font-size:14px;font-weight:600;letter-spacing:.02em;margin-top:6px;transition:background .15s;
+  width:100%;padding:13px;background:var(--navy-deep);color:#fff;border:none;border-radius:6px;
+  font-size:14px;font-weight:600;letter-spacing:.03em;margin-top:4px;
+  transition:background .15s,transform .1s;
+  cursor:pointer;
 }
-.btn-primary:hover{background:var(--navy);}
+.btn-primary:hover{background:var(--navy);transform:translateY(-1px);}
+.btn-primary:active{transform:translateY(0);}
 .login-error{color:var(--red);font-size:12.5px;margin-top:10px;min-height:16px;}
+.login-footnote{margin-top:28px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-soft);line-height:1.6;}
 
 /* ---------- loading slider (progress bar + elapsed timer) ---------- */
 .loader-slider{display:none;margin-top:12px;}
@@ -130,7 +161,6 @@ input,select{font-family:var(--font-body);}
 .loader-slider-label{display:flex;justify-content:space-between;align-items:center;margin-top:6px;
   font-size:11px;color:var(--ink-soft);font-family:var(--font-mono);letter-spacing:.02em;}
 .loader-slider-timer{color:var(--navy);font-weight:600;}
-.login-footnote{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-soft);}
 
 /* ---------- global sync slider + timer (shown for every Supabase push/pull) ---------- */
 #global-loader{
@@ -822,11 +852,12 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
       <h1>Shree Saraswati<br>Secondary School</h1>
       <div class="rule"></div>
       <div class="est">Estd. 2016<br>Satyawati Rural Municipality-6, Johang, Gulmi</div>
+      <div class="welcome-tagline">"Education is the key to unlock the golden door of freedom"</div>
     </div>
     <div class="login-form-panel">
-      <div class="eyebrow">Exam &amp; Gradesheet Management</div>
-      <h2>Welcome back</h2>
-      <div class="sub">Sign in with your school account to continue.</div>
+      <div class="eyebrow">School Portal</div>
+      <h2>Welcome to the Portal</h2>
+      <div class="sub">Sign in with your school account to access exams, assignments, notes/notices and more.</div>
 
       <div class="field">
         <label>Username</label>
@@ -857,7 +888,7 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
         <img src="LOGO_PLACEHOLDER" alt="Seal">
         <div>
           <div class="name">Shree Saraswati<br>Secondary School</div>
-          <div class="tag">Exam System</div>
+          <div class="tag">School Portal</div>
         </div>
       </div>
       <div class="nav" id="nav-menu"></div>
@@ -894,8 +925,9 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 
 <script>
 /* =========================================================================
-   SHREE SARASWATI SECONDARY SCHOOL — EXAM & GRADESHEET MANAGEMENT SYSTEM
-   Data is now stored in Supabase (a shared cloud database), not in the
+   SHREE SARASWATI SECONDARY SCHOOL — LOGIN PORTAL
+   Exam management, assignments, notes, and gradesheet system.
+   Data is stored in Supabase (a shared cloud database), not in the
    browser. This means every computer that opens this file, anywhere,
    sees the same classes, students, teacher accounts, exams and marks --
    the admin can add a teacher on one PC and that teacher can log in
@@ -914,9 +946,56 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
    The `designation` text column (Head Teacher, Accountant, Cook,
    Sweeper, Coordinator, Incharge, etc.) already existed and needs no
    migration — it's informational only and doesn't itself grant access.
+
+    ⚠ REQUIRED ONE-TIME DATABASE SETUP for Assignments & Notes/Notices:
+    The Assignments and Notes/Notices tabs need dedicated tables. Run these once
+    in the Supabase SQL editor before using those tabs:
+
+     CREATE TABLE IF NOT EXISTS assignments (
+       id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+       title text NOT NULL,
+       description text DEFAULT '',
+       class_id uuid REFERENCES classes(id) ON DELETE CASCADE,
+       subject_id uuid REFERENCES subjects(id) ON DELETE CASCADE,
+       teacher_id uuid REFERENCES teachers(id),
+       due_date date,
+       file_url text DEFAULT '',
+       file_name text DEFAULT '',
+       created_at timestamptz DEFAULT now()
+     );
+
+     CREATE TABLE IF NOT EXISTS notes (
+       id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+       title text NOT NULL,
+       content text DEFAULT '',
+       class_id uuid REFERENCES classes(id) ON DELETE CASCADE,
+       subject_id uuid REFERENCES subjects(id) ON DELETE CASCADE,
+       teacher_id uuid REFERENCES teachers(id),
+       file_url text DEFAULT '',
+       file_name text DEFAULT '',
+       created_at timestamptz DEFAULT now()
+     );
+
+     ALTER TABLE assignments ADD COLUMN IF NOT EXISTS file_name text DEFAULT '';
+     ALTER TABLE notes ADD COLUMN IF NOT EXISTS file_name text DEFAULT '';
+     ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
+     ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+     CREATE POLICY anon_all_assignments ON assignments FOR ALL TO anon USING (true) WITH CHECK (true);
+     CREATE POLICY anon_all_notes ON notes FOR ALL TO anon USING (true) WITH CHECK (true);
+     -- Rename file_data → file_url if the column was created with the old name
+     DO $$ BEGIN
+       IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='assignments' AND column_name='file_data')
+          AND NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='assignments' AND column_name='file_url') THEN
+         ALTER TABLE assignments RENAME COLUMN file_data TO file_url;
+       END IF;
+       IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='notes' AND column_name='file_data')
+          AND NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='notes' AND column_name='file_url') THEN
+         ALTER TABLE notes RENAME COLUMN file_data TO file_url;
+       END IF;
+     END $$;
    ========================================================================= */
-const SUPABASE_URL = "https://nkkfuxgiztxamubwgdgd.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ra2Z1eGdpenR4YW11YndnZGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MTAwNDUsImV4cCI6MjA5OTI4NjA0NX0.WJfWyGO9gXLfli9XiyeA-EdX4a6rdCNHdo3HxlSdvb0";
+const SUPABASE_URL = "https://amqffyhlutiqarwdzcir.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtcWZmeWhsdXRpcWFyd2R6Y2lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NzY1OTMsImV4cCI6MjEwMDA1MjU5M30.lXEfA_k6me8BMZ6jggjQVnU--UzqJLmzoiDgWOazRRQ";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ---------------- global sync slider + timer ----------------
@@ -1376,6 +1455,71 @@ async function dbUpsertMarks(examId, subjectId, rows){
   return true;
 }
 
+/* ---------------- assignments ---------------- */
+async function loadAssignments(){
+  const { data, error } = await supabaseClient.from('assignments').select('*').order('created_at', { ascending: false });
+  if(error){ console.error('load assignments failed', error); ASSIGNMENTS = ASSIGNMENTS || []; return; }
+  ASSIGNMENTS = (data || []).map(r => ({
+    id: r.id, title: r.title, description: r.description || '',
+    classId: r.class_id, subjectId: r.subject_id, teacherId: r.teacher_id,
+    dueDate: r.due_date, fileUrl: r.file_url || '', fileName: r.file_name || '', createdAt: r.created_at,
+  }));
+}
+async function dbInsertAssignment({title, description, classId, subjectId, dueDate, fileUrl, fileName}){
+  let lastError = null;
+  for(const col of ['file_url','file_data']){
+    const payload = {
+      title, description: description || '', class_id: classId, subject_id: subjectId,
+      teacher_id: SESSION.role === 'teacher' ? SESSION.teacherId : null,
+      due_date: dueDate || null,
+    };
+    payload[col] = fileUrl || '';
+    if(fileName) payload.file_name = fileName;
+    const { data, error } = await supabaseClient.from('assignments').insert(payload).select('id').single();
+    if(!error) return data.id;
+    lastError = error;
+    if(!error.message || !error.message.match(/column|does not exist/i)) break;
+  }
+  console.error('insert assignment failed', lastError); toast('Could not save assignment: ' + (lastError.message || lastError.details || JSON.stringify(lastError))); return null;
+}
+async function dbDeleteAssignment(id){
+  const { error } = await supabaseClient.from('assignments').delete().eq('id', id);
+  if(error){ console.error('delete assignment failed', error); toast('Could not delete assignment.'); return false; }
+  return true;
+}
+
+/* ---------------- notes ---------------- */
+async function loadNotes(){
+  const { data, error } = await supabaseClient.from('notes').select('*').order('created_at', { ascending: false });
+  if(error){ console.error('load notes failed', error); NOTES = NOTES || []; return; }
+  NOTES = (data || []).map(r => ({
+    id: r.id, title: r.title, content: r.content || '',
+    classId: r.class_id, subjectId: r.subject_id, teacherId: r.teacher_id,
+    fileUrl: r.file_url || '', fileName: r.file_name || '', createdAt: r.created_at,
+  }));
+}
+async function dbInsertNote({title, content, classId, subjectId, fileUrl, fileName}){
+  let lastError = null;
+  for(const col of ['file_url','file_data']){
+    const payload = {
+      title, content: content || '', class_id: classId, subject_id: subjectId,
+      teacher_id: SESSION.role === 'teacher' ? SESSION.teacherId : null,
+    };
+    payload[col] = fileUrl || '';
+    if(fileName) payload.file_name = fileName;
+    const { data, error } = await supabaseClient.from('notes').insert(payload).select('id').single();
+    if(!error) return data.id;
+    lastError = error;
+    if(!error.message || !error.message.match(/column|does not exist/i)) break;
+  }
+  console.error('insert note failed', lastError); toast('Could not save note: ' + (lastError.message || lastError.details || JSON.stringify(lastError))); return null;
+}
+async function dbDeleteNote(id){
+  const { error } = await supabaseClient.from('notes').delete().eq('id', id);
+  if(error){ console.error('delete note failed', error); toast('Could not delete note.'); return false; }
+  return true;
+}
+
 /* ---------------- sync FROM the real relational tables INTO exam_portal_kv ----------------
    Your Supabase project keeps the actual class / subject / teacher / student records in
    normal tables (classes, subjects, teachers, students, images) rather than in the
@@ -1702,6 +1846,8 @@ let AUTH = null;        // { admin:{username,password}, teachers:[{id,username,p
 let STRUCT = null;      // { classes:[], subjects:[], students:[] }
 let PERMS = null;       // [{teacherId, classId, subjectId}]
 let EXAMS = null;       // [{id,name,classIds:[],subjectMarks:{subjectId:{theoryFull,practFull,theoryPass,practPass}}}]
+let ASSIGNMENTS = null; // [{id,title,description,classId,subjectId,teacherId,dueDate,fileUrl,createdAt}]
+let NOTES = null;       // [{id,title,content,classId,subjectId,teacherId,fileUrl,createdAt}]
 /* Generic collapse/expand for exam blocks, teacher cards etc — uses localStorage */
 function toggleCollapse(id){
   const body = document.getElementById('collapse-body-'+id);
@@ -1756,6 +1902,8 @@ async function loadAll(){
   // tables — is deliberately NOT awaited here. See backgroundSync() below.
   await Promise.all([
     loadExams(),
+    loadAssignments(),
+    loadNotes(),
     loadGsSettings(),
     loadClSettings(),
   ]);
@@ -2049,10 +2197,14 @@ const ADMIN_NAV = [
   {id:'marks-overview', label:'Marks Overview'},
   {id:'gradesheets', label:'Gradesheets'},
   {id:'class-ledger', label:'Class Ledger'},
-];
+  {id:'assignments', label:'Assignments'},
+   {id:'notes', label:'Notes/Notices'},
+ ];
 const TEACHER_NAV_BASE = [
   {id:'my-subjects', label:'My Subjects'},
   {id:'enter-marks', label:'Enter Marks'},
+  {id:'assignments', label:'Assignments'},
+  {id:'notes', label:'Notes/Notices'},
 ];
 // Class teachers additionally get Gradesheets/Class Ledger, scoped to just
 // the class(es) they're assigned as class teacher of (see renderGradesheets
@@ -2067,6 +2219,8 @@ function getTeacherNav(){
 }
 const STUDENT_NAV = [
   {id:'my-result', label:'My Result'},
+  {id:'assignments', label:'Assignments'},
+  {id:'notes', label:'Notes/Notices'},
 ];
 function renderNav(){
   const nav = SESSION.role === 'admin' ? ADMIN_NAV : SESSION.role === 'teacher' ? getTeacherNav() : STUDENT_NAV;
@@ -2122,6 +2276,8 @@ async function renderTab(){
     'my-subjects':['Assigned to you','My Subjects'],
     'enter-marks':['Assessment','Enter Marks'],
     'my-result':['Examination','My Result'],
+    'assignments':['Academics','Assignments'],
+    'notes':['Resources','Notes/Notices'],
   };
   document.getElementById('topbar-crumb').textContent = titles[currentTab][0];
   document.getElementById('topbar-title').textContent = titles[currentTab][1];
@@ -2146,6 +2302,8 @@ async function renderTab(){
   if(currentTab==='my-subjects') return renderMySubjects();
   if(currentTab==='enter-marks') return renderEnterMarks();
   if(currentTab==='my-result') return renderMyResult();
+  if(currentTab==='assignments') return renderAssignments();
+  if(currentTab==='notes') return renderNotes();
 }
 
 /* ================= ADMIN: OVERVIEW ================= */
@@ -2761,6 +2919,37 @@ function compressImageFile(file, maxDim = 320, quality = 0.82){
       }
     };
     img.onerror = () => { URL.revokeObjectURL(objectUrl); finishWithOriginal(); };
+    img.src = objectUrl;
+  });
+}
+/* Compress any file for upload: images → WebP (smaller than JPEG at same
+   quality), everything else → raw base64 data URL. */
+function compressFileForUpload(file, maxDim = 1600, quality = 0.8){
+  return new Promise((resolve)=>{
+    if(!file || !file.type.startsWith('image/')){
+      readFileAsDataURL(file).then(resolve).catch(()=>resolve(''));
+      return;
+    }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      try{
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/webp', quality);
+        URL.revokeObjectURL(objectUrl);
+        resolve(dataUrl);
+      } catch(e){
+        URL.revokeObjectURL(objectUrl);
+        readFileAsDataURL(file).then(resolve).catch(()=>resolve(''));
+      }
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); readFileAsDataURL(file).then(resolve).catch(()=>resolve('')); };
     img.src = objectUrl;
   });
 }
@@ -3640,6 +3829,13 @@ function formatDateLong(isoDate){
   if(isNaN(d)) return isoDate;
   return d.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
 }
+function formatDateShort(isoDate){
+  if(!isoDate) return '';
+  const raw = String(isoDate).replace(/T.*/, '');
+  const d = new Date(raw + 'T00:00:00');
+  if(isNaN(d)) return isoDate;
+  return d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+}
 function formatTime12(hhmm){
   if(!hhmm) return '';
   const [h, m] = hhmm.split(':').map(Number);
@@ -3647,6 +3843,19 @@ function formatTime12(hhmm){
   const period = h >= 12 ? 'PM' : 'AM';
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+}
+function formatDateTime(isoDate){
+  if(!isoDate) return '';
+  const d = new Date(isoDate);
+  if(isNaN(d)) return isoDate;
+  const date = d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+  return date + ' ' + time;
+}
+function teacherNameById(id){
+  if(!id) return '';
+  const t = AUTH.teachers.find(t=>t.id===id);
+  return t ? t.name : '';
 }
 async function removeExam(id){
   if(!confirm('Delete this exam and all its recorded marks?')) return;
@@ -5210,6 +5419,242 @@ async function loadMyResult(){
   wrap.innerHTML = html;
   const gsWrap = wrap.querySelector('.gradesheet-wrap');
   if(gsWrap) gsFitZoomToWidth(gsWrap.id);
+}
+
+/* ================= ASSIGNMENTS ================= */
+async function renderAssignments(){
+  const c = document.getElementById('content-area');
+  const isStudent = SESSION.role === 'student';
+  const isTeacher = SESSION.role === 'teacher';
+  const isAdmin = SESSION.role === 'admin';
+
+  if(isAdmin || isTeacher){
+    const permClassIds = isTeacher
+      ? [...new Set(PERMS.filter(p=>p.teacherId===SESSION.teacherId).map(p=>p.classId))]
+      : STRUCT.classes.map(cl=>cl.id);
+    const permSubjectIds = isTeacher
+      ? PERMS.filter(p=>p.teacherId===SESSION.teacherId).map(p=>p.subjectId)
+      : STRUCT.subjects.map(s=>s.id);
+    const visibleClasses = STRUCT.classes.filter(cl => permClassIds.includes(cl.id));
+    const visibleSubjects = STRUCT.subjects.filter(s => permSubjectIds.includes(s.id));
+
+    let html = `<div class="card">
+      <h3>Create Assignment</h3>
+      <div class="row-form">
+        <div class="field"><label>Title</label><input id="as-title" placeholder="Assignment title"></div>
+        <div class="field"><label>Class</label><select id="as-class">${visibleClasses.map(cl=>`<option value="${cl.id}">${cl.name}</option>`).join('')}</select></div>
+        <div class="field"><label>Subject</label><select id="as-subject">${visibleSubjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+      </div>
+      <div class="row-form">
+        <div class="field"><label>Description</label><textarea id="as-desc" rows="3" placeholder="Describe the assignment…"></textarea></div>
+        <div class="field"><label>Due date</label><input id="as-duedate" type="date"></div>
+        <div class="field"><label>Attachment (optional)</label><input id="as-file" type="file" onchange="document.getElementById('as-file-name').textContent=this.files[0]?.name||''"><span id="as-file-name" style="font-size:12px;color:var(--ink-soft);display:block;margin-top:4px;"></span></div>
+      </div>
+      <button class="btn btn-navy" onclick="addAssignment()">Add Assignment</button>
+      <div class="loader-slider" id="as-loader"></div>
+    </div>`;
+
+    const list = ASSIGNMENTS.filter(a =>
+      isAdmin
+        ? permClassIds.includes(a.classId)
+        : a.teacherId === SESSION.teacherId && permClassIds.includes(a.classId)
+    );
+    html += `<h3 style="margin:20px 0 10px;">All Assignments (${list.length})</h3>`;
+    if(list.length){
+      html += `<table><thead><tr><th>Title</th><th>Teacher</th><th>Class</th><th>Subject</th><th>Due Date</th><th>Posted</th><th></th></tr></thead><tbody>`;
+      list.forEach(a => {
+        const cl = STRUCT.classes.find(c=>c.id===a.classId);
+        const sb = STRUCT.subjects.find(s=>s.id===a.subjectId);
+        const tn = teacherNameById(a.teacherId);
+        const fileHtml = a.fileUrl ? `<a href="${esc(a.fileUrl)}" download="${esc(a.fileName)}" style="font-size:12px;">📎 ${esc(a.fileName)}</a>` : '';
+        html += `<tr>
+          <td><strong>${esc(a.title)}</strong>${fileHtml ? '<br>'+fileHtml : ''}</td>
+          <td>${tn || '—'}</td>
+          <td>${cl ? cl.name : '—'}</td>
+          <td>${sb ? sb.name : '—'}</td>
+          <td>${a.dueDate ? formatDateShort(a.dueDate) : '—'}</td>
+          <td style="font-size:12px;white-space:nowrap;">${a.createdAt ? formatDateTime(a.createdAt) : '—'}</td>
+          <td><button class="btn-danger-outline btn-sm" onclick="deleteAssignment('${a.id}')">Delete</button></td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+    } else {
+      html += `<div class="empty">No assignments yet.</div>`;
+    }
+    c.innerHTML = html;
+  } else {
+    const student = STRUCT.students.find(s=>s.id===SESSION.studentId);
+    if(!student){
+      c.innerHTML = '<div class="empty"><b>Student record not found</b></div>';
+      return;
+    }
+    const list = ASSIGNMENTS.filter(a => a.classId === student.classId);
+    c.innerHTML = `<h3 style="margin-bottom:14px;">My Assignments (${list.length})</h3>`;
+    if(list.length){
+      let html = `<table><thead><tr><th>Title</th><th>Teacher</th><th>Subject</th><th>Due Date</th><th>Posted</th><th>File</th></tr></thead><tbody>`;
+      list.forEach(a => {
+        const sb = STRUCT.subjects.find(s=>s.id===a.subjectId);
+        const tn = teacherNameById(a.teacherId);
+        const fileHtml = a.fileUrl ? `<a href="${esc(a.fileUrl)}" download="${esc(a.fileName)}">Download ${esc(a.fileName)}</a>` : '—';
+        html += `<tr>
+          <td><strong>${esc(a.title)}</strong></td>
+          <td>${tn || '—'}</td>
+          <td>${sb ? sb.name : '—'}</td>
+          <td>${a.dueDate ? formatDateShort(a.dueDate) : '—'}</td>
+          <td style="font-size:12px;white-space:nowrap;">${a.createdAt ? formatDateTime(a.createdAt) : '—'}</td>
+          <td>${fileHtml}</td>
+        </tr>`;
+        if(a.description) html += `<tr><td colspan="6" style="padding-top:0;color:var(--ink-soft);font-size:13px;">${esc(a.description)}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      c.innerHTML = html;
+    } else {
+      c.innerHTML += '<div class="empty">No assignments posted for your class yet.</div>';
+    }
+  }
+}
+async function addAssignment(){
+  const title = document.getElementById('as-title').value.trim();
+  if(!title){ toast('Please enter a title.'); return; }
+  const classId = document.getElementById('as-class').value;
+  const subjectId = document.getElementById('as-subject').value;
+  const description = document.getElementById('as-desc').value.trim();
+  const dueDate = document.getElementById('as-duedate').value;
+  const fileInput = document.getElementById('as-file');
+  let fileUrl = '', fileName = '';
+  if(fileInput && fileInput.files && fileInput.files[0]){
+    fileUrl = await compressFileForUpload(fileInput.files[0]);
+    fileName = fileInput.files[0].name;
+  }
+  const btn = document.getElementById('as-title').closest('.card')?.querySelector('.btn-navy');
+  setBtnBusy(btn, true, 'Saving…');
+  showLoaderBar('as-loader', 'Saving assignment…');
+  const id = await dbInsertAssignment({title, description, classId, subjectId, dueDate, fileUrl, fileName});
+  setBtnBusy(btn, false);
+  hideLoaderBar('as-loader');
+  if(!id) return;
+  toast('Assignment added.');
+  await loadAssignments();
+  renderAssignments();
+}
+async function deleteAssignment(id){
+  if(!confirm('Delete this assignment?')) return;
+  await dbDeleteAssignment(id);
+  toast('Assignment deleted.');
+  ASSIGNMENTS = ASSIGNMENTS.filter(a => a.id !== id);
+  renderAssignments();
+}
+
+/* ================= NOTES / NOTICES ================= */
+async function renderNotes(){
+  const c = document.getElementById('content-area');
+  const isStudent = SESSION.role === 'student';
+  const isTeacher = SESSION.role === 'teacher';
+  const isAdmin = SESSION.role === 'admin';
+
+  if(isAdmin || isTeacher){
+    const permClassIds = isTeacher
+      ? [...new Set(PERMS.filter(p=>p.teacherId===SESSION.teacherId).map(p=>p.classId))]
+      : STRUCT.classes.map(cl=>cl.id);
+    const permSubjectIds = isTeacher
+      ? PERMS.filter(p=>p.teacherId===SESSION.teacherId).map(p=>p.subjectId)
+      : STRUCT.subjects.map(s=>s.id);
+    const visibleClasses = STRUCT.classes.filter(cl => permClassIds.includes(cl.id));
+    const visibleSubjects = STRUCT.subjects.filter(s => permSubjectIds.includes(s.id));
+
+    let html = `<div class="card">
+      <h3>Share a Note / Notice</h3>
+      <div class="row-form">
+        <div class="field"><label>Title</label><input id="nt-title" placeholder="Note title"></div>
+        <div class="field"><label>Class</label><select id="nt-class">${visibleClasses.map(cl=>`<option value="${cl.id}">${cl.name}</option>`).join('')}</select></div>
+        <div class="field"><label>Subject</label><select id="nt-subject">${visibleSubjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+      </div>
+      <div class="row-form">
+        <div class="field" style="flex:2;"><label>Content / Description</label><textarea id="nt-content" rows="4" placeholder="Write your note here…"></textarea></div>
+        <div class="field"><label>Attachment (optional)</label><input id="nt-file" type="file" onchange="document.getElementById('nt-file-name').textContent=this.files[0]?.name||''"><span id="nt-file-name" style="font-size:12px;color:var(--ink-soft);display:block;margin-top:4px;"></span></div>
+      </div>
+      <button class="btn btn-navy" onclick="addNote()">Share Note</button>
+      <div class="loader-slider" id="nt-loader"></div>
+    </div>`;
+
+    const list = NOTES.filter(n =>
+      isAdmin
+        ? permClassIds.includes(n.classId)
+        : n.teacherId === SESSION.teacherId && permClassIds.includes(n.classId)
+    );
+    html += `<h3 style="margin:20px 0 10px;">All Shared Notes/Notices (${list.length})</h3>`;
+    if(list.length){
+      list.forEach(n => {
+        const cl = STRUCT.classes.find(c=>c.id===n.classId);
+        const sb = STRUCT.subjects.find(s=>s.id===n.subjectId);
+        const tn = teacherNameById(n.teacherId);
+        html += `<div class="card" style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div><strong>${esc(n.title)}</strong> <span style="color:var(--ink-soft);font-size:12px;">— ${tn ? tn+' · ' : ''}${cl ? cl.name : '—'} · ${sb ? sb.name : '—'} · ${n.createdAt ? formatDateTime(n.createdAt) : ''}</span></div>
+            <button class="btn-danger-outline btn-sm" onclick="deleteNote('${n.id}')">Delete</button>
+          </div>
+          ${n.content ? `<div style="margin-top:8px;color:var(--ink-soft);font-size:13px;line-height:1.6;">${esc(n.content)}</div>` : ''}
+          ${n.fileUrl ? `<div style="margin-top:6px;"><a href="${esc(n.fileUrl)}" download="${esc(n.fileName)}" style="font-size:13px;">📎 ${esc(n.fileName)}</a></div>` : ''}
+        </div>`;
+      });
+    } else {
+      html += `<div class="empty">No notes/notices shared yet.</div>`;
+    }
+    c.innerHTML = html;
+  } else {
+    const student = STRUCT.students.find(s=>s.id===SESSION.studentId);
+    if(!student){
+      c.innerHTML = '<div class="empty"><b>Student record not found</b></div>';
+      return;
+    }
+    const list = NOTES.filter(n => n.classId === student.classId);
+    c.innerHTML = `<h3 style="margin-bottom:14px;">Notes/Notices for My Class (${list.length})</h3>`;
+    if(list.length){
+      let html = '';
+      list.forEach(n => {
+        const sb = STRUCT.subjects.find(s=>s.id===n.subjectId);
+        const tn = teacherNameById(n.teacherId);
+        html += `<div class="card" style="margin-bottom:10px;">
+          <div><strong>${esc(n.title)}</strong> <span style="color:var(--ink-soft);font-size:12px;">— ${tn ? tn+' · ' : ''}${sb ? sb.name : '—'} · ${n.createdAt ? formatDateTime(n.createdAt) : ''}</span></div>
+          ${n.content ? `<div style="margin-top:8px;color:var(--ink-soft);font-size:13px;line-height:1.6;">${esc(n.content)}</div>` : ''}
+          ${n.fileUrl ? `<div style="margin-top:6px;"><a href="${esc(n.fileUrl)}" download="${esc(n.fileName)}" style="font-size:13px;">📎 ${esc(n.fileName)}</a></div>` : ''}
+        </div>`;
+      });
+      c.innerHTML = html;
+    } else {
+      c.innerHTML += '<div class="empty">No notes/notices shared with your class yet.</div>';
+    }
+  }
+}
+async function addNote(){
+  const title = document.getElementById('nt-title').value.trim();
+  if(!title){ toast('Please enter a title.'); return; }
+  const classId = document.getElementById('nt-class').value;
+  const subjectId = document.getElementById('nt-subject').value;
+  const content = document.getElementById('nt-content').value.trim();
+  const fileInput = document.getElementById('nt-file');
+  let fileUrl = '', fileName = '';
+  if(fileInput && fileInput.files && fileInput.files[0]){
+    fileUrl = await compressFileForUpload(fileInput.files[0]);
+    fileName = fileInput.files[0].name;
+  }
+  const ntBtn = document.querySelector('#nt-title')?.closest('.card')?.querySelector('.btn-navy');
+  setBtnBusy(ntBtn, true, 'Saving…');
+  showLoaderBar('nt-loader', 'Saving note/notice…');
+  const id = await dbInsertNote({title, content, classId, subjectId, fileUrl, fileName});
+  setBtnBusy(ntBtn, false);
+  hideLoaderBar('nt-loader');
+  if(!id) return;
+  toast('Note/Notice shared.');
+  await loadNotes();
+  renderNotes();
+}
+async function deleteNote(id){
+  if(!confirm('Delete this note/notice?')) return;
+  await dbDeleteNote(id);
+  toast('Note/Notice deleted.');
+  NOTES = NOTES.filter(n => n.id !== id);
+  renderNotes();
 }
 
 /* ---------------- init ---------------- */

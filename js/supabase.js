@@ -6,8 +6,8 @@
    - Caching layer integration
    - Request deduplication in flight */
 
-const SUPABASE_URL = 'https://hryhtimgiatwwdtgbtph.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeWh0aW1naWF0d3dkdGdidHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTU4NjEsImV4cCI6MjEwMDM5MTg2MX0.NG848r1SBGTos4wBN2n7fwKSypX7GeP2BbvBEiQGyks';
+const SUPABASE_URL = 'https://amqffyhlutiqarwdzcir.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtcWZmeWhsdXRpcWFyd2R6Y2lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NzY1OTMsImV4cCI6MjEwMDA1MjU5M30.lXEfA_k6me8BMZ6jggjQVnU--UzqJLmzoiDgWOazRRQ';
 
 const SPB_MONITOR = {
   requests: 0,

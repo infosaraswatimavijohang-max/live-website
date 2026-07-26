@@ -1,6 +1,14 @@
 -- PERFORMANCE INDEXES for Shree Saraswati Exam Portal
 -- Run once in Supabase SQL Editor after tables exist.
 
+-- Ensure the images table exists before creating indexes on it
+CREATE TABLE IF NOT EXISTS images (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  owner_type text NOT NULL,
+  owner_id text NOT NULL,
+  public_url text DEFAULT ''
+);
+
 -- Students: login lookup + class roster queries
 CREATE INDEX IF NOT EXISTS idx_students_username ON students(username);
 CREATE INDEX IF NOT EXISTS idx_students_class_id ON students(class_id);
