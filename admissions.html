@@ -8,8 +8,12 @@
   <meta name="keywords" content="admission Shree Saraswati School, school admission Gulmi, Johang school admission, enrollment Nepal, Computer Engineering Gulmi">
   <meta name="robots" content="index, follow">
   <meta name="author" content="Shree Saraswati Secondary School">
+  <meta name="theme-color" content="#1a3a5c">
   <link rel="canonical" href="https://saraswatisecschool.edu.np/admissions.html">
   <link rel="icon" type="image/webp" href="assets/images/School%20circular%20logo.webp">
+  <link rel="apple-touch-icon" href="assets/images/School%20circular%20logo.webp">
+  <link rel="alternate" hreflang="en" href="https://saraswatisecschool.edu.np/admissions.html">
+  <link rel="alternate" hreflang="ne" href="https://saraswatisecschool.edu.np/admissions.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Shree Saraswati Secondary School">
   <meta property="og:title" content="Admissions | Shree Saraswati Secondary School, Gulmi">
@@ -17,6 +21,7 @@
   <meta property="og:image" content="https://saraswatisecschool.edu.np/assets/images/General%20Block.webp">
   <meta property="og:image:width" content="800">
   <meta property="og:image:height" content="600">
+  <meta property="og:image:alt" content="General Block building of Shree Saraswati Secondary School">
   <meta property="og:url" content="https://saraswatisecschool.edu.np/admissions.html">
   <meta property="og:locale" content="ne_NP">
   <meta name="twitter:card" content="summary_large_image">
@@ -45,7 +50,7 @@
         <p>शिक्षा नै सशक्तिकरण</p>
       </div>
     </div>
-    <nav class="nav-menu" id="navMenu">
+    <nav class="nav-menu" id="navMenu" aria-label="Main navigation">
       <a href="index.html" class="nav-link">Home</a>
       <a href="about.html" class="nav-link">About</a>
       <a href="notices.html" class="nav-link">Notices</a>
@@ -56,7 +61,7 @@
       <a href="exam_portal.html" class="nav-link" target="_blank" rel="noopener">Exam Portal</a>
       <a href="contact.html" class="nav-link">Contact</a>
     </nav>
-    <div class="nav-right"><button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation menu"><i class="fas fa-bars"></i></button></div>
+    <div class="nav-right"><button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation menu" aria-controls="navMenu" aria-expanded="false"><i class="fas fa-bars"></i></button></div>
   </div>
 </header>
 
@@ -125,6 +130,7 @@
 </footer>
 <script>document.getElementById('currentYear').textContent=new Date().getFullYear()</script>
 <script src="js/supabase.js"></script>
+<script src="js/cache.js"></script>
 <script src="js/data.js"></script>
 <script src="js/main.js"></script>
 </body>

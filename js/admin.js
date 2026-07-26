@@ -1,5 +1,6 @@
 const Admin = {
   isLoggedIn: false,
+  _settings: null,
 
   async init() {
     await this.checkLogin();
@@ -7,7 +8,7 @@ const Admin = {
   },
 
   async checkLogin() {
-    if (typeof seedData === 'function') seedData();
+    try { if (typeof seedData === 'function') await seedData(); } catch(e) { console.warn('seedData error:', e); }
     const auth = sessionStorage.getItem('sss_admin_auth');
     if (auth === 'true') {
       this.isLoggedIn = true;
@@ -19,7 +20,7 @@ const Admin = {
 
   async login(username, password) {
     try {
-      const { data } = await supabase.select('site_settings', { limit: 1 });
+      const { data } = await supabase.select('site_settings', { limit: 1, select: 'adminUsername,adminPassword' });
       const settings = data && data.length ? data[0] : {};
       const storedUser = settings.adminUsername || 'amitrazbanc';
       const storedPass = settings.adminPassword || 'school1122@';
@@ -79,8 +80,8 @@ const Admin = {
   },
 
   async loadAllData() {
+    this._settings = await DataStore.get('SETTINGS') || {};
     await Promise.all([
-      this.loadSettings(),
       this.loadSlides(),
       this.loadAbout(),
       this.loadStats(),
@@ -97,23 +98,18 @@ const Admin = {
   },
 
   async loadDashboard() {
-    var slides = await DataStore.get('SLIDES') || [];
-    var notices = await DataStore.get('NOTICES') || [];
-    var programs = await DataStore.get('PROGRAMS') || [];
-    var teachers = await DataStore.get('TEACHERS') || [];
-    var staff = await DataStore.get('STAFF') || [];
-    var gallery = await DataStore.get('GALLERY') || [];
-    var events = await DataStore.get('EVENTS') || [];
-    var testimonials = await DataStore.get('TESTIMONIALS') || [];
+    try {
+      var stats = await DataStore.getDashboardStats();
+      document.getElementById('dashSlides').textContent = stats.slides || 0;
+      document.getElementById('dashNotices').textContent = stats.notices || 0;
+      document.getElementById('dashPrograms').textContent = stats.programs || 0;
+      document.getElementById('dashTeachers').textContent = stats.teachers || 0;
+      document.getElementById('dashStaff').textContent = stats.staff || 0;
+      document.getElementById('dashGallery').textContent = stats.gallery || 0;
+      document.getElementById('dashEvents').textContent = stats.events || 0;
+      document.getElementById('dashTestimonials').textContent = stats.testimonials || 0;
+    } catch(e) { console.warn('Dashboard load error:', e); }
     var admissions = JSON.parse(localStorage.getItem('sss_admissions') || '[]');
-    document.getElementById('dashSlides').textContent = slides.length;
-    document.getElementById('dashNotices').textContent = notices.length;
-    document.getElementById('dashPrograms').textContent = programs.length;
-    document.getElementById('dashTeachers').textContent = teachers.length;
-    document.getElementById('dashStaff').textContent = staff.length;
-    document.getElementById('dashGallery').textContent = gallery.length;
-    document.getElementById('dashEvents').textContent = events.length;
-    document.getElementById('dashTestimonials').textContent = testimonials.length;
     document.getElementById('dashAdmissions').textContent = admissions.length;
   },
 
@@ -128,7 +124,7 @@ const Admin = {
   },
 
   async loadSettings() {
-    var settings = await DataStore.get('SETTINGS') || {};
+    var settings = this._settings || await DataStore.get('SETTINGS') || {};
     setVal('settingSchoolName', settings.schoolName);
     setVal('settingTagline', settings.tagline);
     setVal('settingEstablished', settings.established);
@@ -173,6 +169,7 @@ const Admin = {
     }
     await DataStore.set('SETTINGS', settings);
     showToast('Settings saved to Supabase!');
+    this._settings = settings;
     this.loadSettings();
   },
 
@@ -658,7 +655,7 @@ const Admin = {
 
   async loadAdmissions() {
     try {
-      var { data } = await supabase.select('admissions', { order: 'submitted_at.desc' });
+      var { data } = await supabase.select('admissions', { order: 'submitted_at.desc', select: 'id,studentName,applyClass,fatherName,status,submitted_at,district' });
       var admissions = data || [];
     } catch(e) {
       var admissions = JSON.parse(localStorage.getItem('sss_admissions') || '[]');
@@ -743,10 +740,9 @@ function switchTab(section) {
   if (navItem) navItem.classList.add('active');
   if (section === 'dashboard') Admin.loadDashboard();
   else if (section === 'admissions') Admin.loadAdmissions();
+  else if (section === 'settings') Admin.loadSettings();
   if (window.innerWidth < 769) {
     var sidebar = document.getElementById('sidebar');
     if (sidebar) sidebar.classList.remove('show');
   }
 }
-
-console.log('Admin Supabase CMS initialized');

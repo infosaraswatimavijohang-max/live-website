@@ -8,8 +8,12 @@
   <meta name="keywords" content="school notices Gulmi, Shree Saraswati School announcements, school news Johang, notice board Nepal">
   <meta name="robots" content="index, follow">
   <meta name="author" content="Shree Saraswati Secondary School">
+  <meta name="theme-color" content="#1a3a5c">
   <link rel="canonical" href="https://saraswatisecschool.edu.np/notices.html">
   <link rel="icon" type="image/webp" href="assets/images/School%20circular%20logo.webp">
+  <link rel="apple-touch-icon" href="assets/images/School%20circular%20logo.webp">
+  <link rel="alternate" hreflang="en" href="https://saraswatisecschool.edu.np/notices.html">
+  <link rel="alternate" hreflang="ne" href="https://saraswatisecschool.edu.np/notices.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Shree Saraswati Secondary School">
   <meta property="og:title" content="Notices & News | Shree Saraswati Secondary School, Gulmi">
@@ -17,6 +21,7 @@
   <meta property="og:image" content="https://saraswatisecschool.edu.np/assets/images/General%20Block.webp">
   <meta property="og:image:width" content="800">
   <meta property="og:image:height" content="600">
+  <meta property="og:image:alt" content="School campus of Shree Saraswati Secondary School">
   <meta property="og:url" content="https://saraswatisecschool.edu.np/notices.html">
   <meta property="og:locale" content="ne_NP">
   <meta name="twitter:card" content="summary_large_image">
@@ -45,7 +50,7 @@
         <p>शिक्षा नै सशक्तिकरण</p>
       </div>
     </div>
-    <nav class="nav-menu" id="navMenu">
+    <nav class="nav-menu" id="navMenu" aria-label="Main navigation">
       <a href="index.html" class="nav-link">Home</a>
       <a href="about.html" class="nav-link">About</a>
       <a href="notices.html" class="nav-link active">Notices</a>
@@ -56,7 +61,7 @@
       <a href="exam_portal.html" class="nav-link" target="_blank" rel="noopener">Exam Portal</a>
       <a href="contact.html" class="nav-link">Contact</a>
     </nav>
-    <div class="nav-right"><button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation menu"><i class="fas fa-bars"></i></button></div>
+    <div class="nav-right"><button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation menu" aria-controls="navMenu" aria-expanded="false"><i class="fas fa-bars"></i></button></div>
   </div>
 </header>
 
@@ -105,19 +110,31 @@
 </footer>
 <script>document.getElementById('currentYear').textContent=new Date().getFullYear()</script>
 <script src="js/supabase.js"></script>
+<script src="js/cache.js"></script>
 <script src="js/data.js"></script>
-<script src="js/main.js"></script>
 <script>
 (async function(){
+  var c=document.getElementById('noticesFullList');
+  if(!c) return;
+  var html = '';
+  var bs = bsDateFromAd(new Date());
+  var monthName = MONTH_ORDER[bs.month];
+  var monthEvents = ANNUAL_PLAN[monthName] || [];
+  var displayEvents = monthEvents.filter(function(a){ return !/vacation|holiday/i.test(a.activity); });
+  if (displayEvents.length) {
+    html += '<div class="notice-month-label">' + monthName + ' Events</div>';
+    html += displayEvents.map(function(a){
+      return '<div class="notice-row"><span class="ndate">'+a.date+'</span><span class="ntitle">'+a.activity+' <span class="nsnippet">'+(a.responsible||'')+'</span></span><span class="nbadge event">Event</span></div>';
+    }).join('');
+  }
   var notices;
   try { notices = await DataStore.get('NOTICES'); } catch(e) {}
   if (!notices || !notices.length) {
     try { var d=JSON.parse(localStorage.getItem('sss_notices')); if (Array.isArray(d)&&d.length) notices=d; } catch(e) {}
   }
-  var c=document.getElementById('noticesFullList');
-  if(!c) return;
   if(notices&&notices.length){
-    c.innerHTML=notices.map(function(n){
+    html += '<div class="notice-month-label">Notices</div>';
+    html += notices.map(function(n){
       var snippet = (n.content || '').length > 100 ? n.content.substring(0, 100) + '...' : (n.content || '');
       return '<div class="notice-row">'+
         '<span class="ndate">'+n.date+'</span>'+
@@ -125,9 +142,8 @@
         '<span class="nbadge '+(n.priority||'normal')+'">'+(n.priority||'normal')+'</span>'+
         '</div>';
     }).join('');
-  } else {
-    c.innerHTML='<div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--text-muted)"><i class="fas fa-bullhorn" style="font-size:2rem;margin-bottom:12px;display:block"></i><p>No notices posted yet. Check back later.</p></div>';
   }
+  c.innerHTML = html || '<div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--text-muted)"><i class="fas fa-bullhorn" style="font-size:2rem;margin-bottom:12px;display:block"></i><p>No notices posted yet. Check back later.</p></div>';
 })();
 </script>
 </body>

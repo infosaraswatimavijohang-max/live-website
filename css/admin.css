@@ -83,7 +83,7 @@ body { font-family: 'Noto Serif', serif; background: var(--bg); color: var(--tex
   transition: transform 0.3s var(--ease); z-index: 50;
 }
 .sidebar.collapsed { transform: translateX(-100%); }
-.nav-menu { list-style: none; }
+.nav-menu { list-style: none; display: block; }
 .nav-item a {
   display: flex; align-items: center; gap: 10px; padding: 12px 20px;
   color: oklch(1 0 0 / 0.75); text-decoration: none; transition: all 0.2s;

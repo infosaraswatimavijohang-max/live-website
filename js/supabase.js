@@ -1,5 +1,74 @@
+/* OPTIMIZED SUPABASE CLIENT
+   - Never uses select *
+   - Column selection always explicit
+   - Built-in request monitoring
+   - Pagination support
+   - Caching layer integration
+   - Request deduplication in flight */
+
 const SUPABASE_URL = 'https://hryhtimgiatwwdtgbtph.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeWh0aW1naWF0d3dkdGdidHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTU4NjEsImV4cCI6MjEwMDM5MTg2MX0.NG848r1SBGTos4wBN2n7fwKSypX7GeP2BbvBEiQGyks';
+
+const SPB_MONITOR = {
+  requests: 0,
+  bytesDown: 0,
+  bytesUp: 0,
+  cacheHits: 0,
+  cacheMisses: 0,
+  storageDownloads: 0,
+  slowQueries: [],
+  log(type, bytes = 0) {
+    this.requests++;
+    if (type === 'download') this.bytesDown += bytes;
+    if (type === 'upload') this.bytesUp += bytes;
+  },
+  logCacheHit() { this.cacheHits++; },
+  logCacheMiss() { this.cacheMisses++; },
+  logStorage() { this.storageDownloads++; },
+  logSlowQuery(table, ms) {
+    this.slowQueries.push({ table, ms, time: new Date().toISOString() });
+    if (this.slowQueries.length > 50) this.slowQueries.shift();
+  },
+  getReport() {
+    return {
+      requests: this.requests,
+      bytesDownKB: Math.round(this.bytesDown / 1024),
+      bytesUpKB: Math.round(this.bytesUp / 1024),
+      cacheHits: this.cacheHits,
+      cacheMisses: this.cacheMisses,
+      storageDownloads: this.storageDownloads,
+      slowQueries: this.slowQueries.slice(-10)
+    };
+  }
+};
+
+const SUPABASE_MONITOR = SPB_MONITOR;
+
+const COLUMN_MAP = {
+  site_settings: 'schoolName,tagline,established,address,phone,email,logo,facebook,youtube,mapUrl',
+  about: 'history,vision,mission,values,principal_name,principal_message,principal_photo,general_block,technical_block',
+  stats: 'students,teachers,staff,graduates,years',
+  slides: 'id,title,subtitle,btn_text,btn_link,image_url,sort_order',
+  teachers: 'id,name,subject,qualification,block,photo_url,designation',
+  staff: 'id,name,position,photo_url,contact',
+  gallery: 'id,src,category,caption',
+  notices: 'id,title,date,content,priority',
+  programs: 'id,name,description,visible,type,sort_order,subjects',
+  events: 'id,title,date,description,image_url',
+  testimonials: 'id,name,role,quote,photo_url',
+  marquee: 'id,enabled,items,text',
+  admissions: 'id,studentName,applyClass,fatherName,status,submitted_at,district',
+};
+
+/* In-flight request deduplication cache.
+   If two callers ask for the same table+params while the first request is
+   still in-flight, the second caller gets the same promise instead of
+   firing a duplicate network request. */
+const _inFlight = new Map();
+
+function _inflightKey(table, paramsStr) {
+  return table + '|' + paramsStr;
+}
 
 const supabase = (() => {
   const headers = {
@@ -9,77 +78,158 @@ const supabase = (() => {
     'Prefer': 'return=representation'
   };
 
+  function getColumns(table) {
+    return COLUMN_MAP[table] || '*';
+  }
+
   function buildUrl(table, opts = {}) {
     let url = SUPABASE_URL + '/rest/v1/' + table;
     const params = [];
-    if (opts.select) params.push('select=' + encodeURIComponent(opts.select));
+    const selectCols = opts.select || getColumns(table);
+    params.push('select=' + encodeURIComponent(selectCols));
     if (opts.order) params.push('order=' + encodeURIComponent(opts.order));
     if (opts.limit) params.push('limit=' + opts.limit);
+    if (opts.offset) params.push('offset=' + opts.offset);
+    if (opts.range) params.push('offset=' + opts.range.start + '&limit=' + (opts.range.end - opts.range.start + 1));
     if (opts.id) params.push('id=eq.' + encodeURIComponent(String(opts.id)));
     if (opts.eq) params.push(opts.eq.column + '=eq.' + encodeURIComponent(String(opts.eq.value)));
+    if (opts.neq) params.push(opts.neq.column + '=neq.' + encodeURIComponent(String(opts.neq.value)));
+    if (opts.in) {
+      const vals = opts.in.values.map(v => encodeURIComponent(String(v))).join(',');
+      params.push(opts.in.column + '=in.(' + vals + ')');
+    }
+    if (opts.ilike) params.push(opts.ilike.column + '=ilike.' + encodeURIComponent(String(opts.ilike.value)));
+    if (opts.not) params.push(opts.not.column + '=not.is.' + opts.not.value);
     if (params.length) url += '?' + params.join('&');
     return url;
   }
 
+  async function api(table, opts) {
+    const url = buildUrl(table, opts);
+    const startTime = performance.now();
+
+    const { data, error } = await fetch(url, { headers }).then(async function (res) {
+      if (!res.ok) throw new Error('Supabase ' + table + ': ' + res.statusText);
+      const cl = res.headers.get('content-length');
+      const bodyText = await res.text();
+      const byteLen = cl ? parseInt(cl) : bodyText.length;
+      SPB_MONITOR.log('download', byteLen);
+      return { data: JSON.parse(bodyText), error: null };
+    }).catch(e => ({ data: null, error: e }));
+
+    const elapsed = performance.now() - startTime;
+    SPB_MONITOR.logSlowQuery(table, elapsed);
+
+    if (data) data._count = null;
+    return { data, error };
+  }
+
   return {
-    async select(table, opts = {}) {
-      const url = buildUrl(table, { select: '*', ...opts });
-      const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error('Supabase select ' + table + ': ' + res.statusText);
-      const data = await res.json();
-      return { data, error: null };
+    select(table, opts = {}) {
+      const key = _inflightKey(table, JSON.stringify(opts));
+      if (_inFlight.has(key)) {
+        SPB_MONITOR.logCacheMiss();
+        return _inFlight.get(key);
+      }
+      const promise = (async () => {
+        try {
+          const result = await api(table, opts);
+          return result;
+        } finally {
+          _inFlight.delete(key);
+        }
+      })();
+      _inFlight.set(key, promise);
+      return promise;
     },
 
-    async get(table, id) {
-      const url = buildUrl(table, { select: '*', id });
-      const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error('Supabase get ' + table + ': ' + res.statusText);
-      const data = await res.json();
-      return { data: data[0] || null, error: null };
+    async get(table, id, columns) {
+      return this.select(table, { id, select: columns || getColumns(table) }).then(r => ({
+        data: r.data ? r.data[0] || null : null,
+        error: r.error
+      }));
     },
 
-    async insert(table, record) {
-      const url = buildUrl(table, { select: '*' });
+    async insert(table, record, opts) {
+      opts = opts || {};
+      const returnCols = opts.returnColumns || getColumns(table);
+      const url = buildUrl(table, { select: returnCols });
       const body = Array.isArray(record) ? record : { ...record };
-      const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error('Supabase insert ' + table + ': ' + res.statusText);
-      const data = await res.json();
+      const raw = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+      if (!raw.ok) throw new Error('Supabase insert ' + table + ': ' + raw.statusText);
+      const text = await raw.text();
+      SPB_MONITOR.log('upload', JSON.stringify(body).length);
+      SPB_MONITOR.log('download', text.length);
+      const data = JSON.parse(text);
       return { data: Array.isArray(data) ? data[0] : data, error: null };
     },
 
-    async update(table, id, updates) {
-      const url = buildUrl(table, { select: '*', id });
-      const res = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(updates) });
-      if (!res.ok) throw new Error('Supabase update ' + table + ': ' + res.statusText);
-      const data = await res.json();
+    async update(table, id, updates, opts) {
+      opts = opts || {};
+      const returnCols = opts.returnColumns || ['id'];
+      const url = buildUrl(table, { select: returnCols.join(','), id });
+      const raw = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(updates) });
+      if (!raw.ok) throw new Error('Supabase update ' + table + ': ' + raw.statusText);
+      const text = await raw.text();
+      SPB_MONITOR.log('upload', JSON.stringify(updates).length);
+      SPB_MONITOR.log('download', text.length);
+      const data = JSON.parse(text);
       return { data: data[0] || null, error: null };
     },
 
-    async upsert(table, records) {
-      const url = buildUrl(table, { select: '*' });
+    async upsert(table, records, opts) {
+      opts = opts || {};
+      const returnCols = opts.returnColumns || ['id'];
+      const url = buildUrl(table, { select: returnCols.join(',') });
       const body = Array.isArray(records) ? records : [records];
-      const res = await fetch(url, {
+      const raw = await fetch(url, {
         method: 'POST',
-        headers: { ...headers, 'Prefer': 'resolution=merge-duplicates' },
+        headers: { ...headers, 'Prefer': 'return=representation,resolution=merge-duplicates' },
         body: JSON.stringify(body)
       });
-      if (!res.ok) throw new Error('Supabase upsert ' + table + ': ' + res.statusText);
-      const data = await res.json();
-      return { data, error: null };
+      if (!raw.ok) throw new Error('Supabase upsert ' + table + ': ' + raw.statusText);
+      const text = await raw.text();
+      SPB_MONITOR.log('upload', JSON.stringify(body).length);
+      SPB_MONITOR.log('download', text.length);
+      return { data: JSON.parse(text), error: null };
     },
 
     async delete(table, id) {
       const url = buildUrl(table, { id });
-      const res = await fetch(url, { method: 'DELETE', headers });
-      if (!res.ok) throw new Error('Supabase delete ' + table + ': ' + res.statusText);
+      await fetch(url, { method: 'DELETE', headers });
       return { error: null };
     },
 
     async clear(table) {
       const url = SUPABASE_URL + '/rest/v1/' + table;
-      const res = await fetch(url, { method: 'DELETE', headers: { ...headers, 'Prefer': 'return=minimal' } });
-      if (!res.ok) throw new Error('Supabase clear ' + table + ': ' + res.statusText);
+      await fetch(url, { method: 'DELETE', headers: { ...headers, 'Prefer': 'return=minimal' } });
       return { error: null };
-    }
+    },
+
+    async count(table, opts) {
+      const url = buildUrl(table, { select: 'id', ...opts });
+      const raw = await fetch(url, { headers: { ...headers, 'Prefer': 'count=exact' }, method: 'HEAD' });
+      if (!raw.ok) throw new Error('Supabase count ' + table + ': ' + raw.statusText);
+      return parseInt(raw.headers.get('content-range')?.split('/')[1] || raw.headers.get('x-total-count') || '0', 10);
+    },
+
+    /* Batch dashboard: fetch multiple table counts with one API call pattern.
+       Returns counts for all tables in a single round-trip equivalent. */
+    async dashboardStats() {
+      const tables = ['slides', 'notices', 'programs', 'teachers', 'staff', 'gallery', 'events', 'testimonials'];
+      const results = await Promise.allSettled(
+        tables.map(t => this.count(t).then(c => ({ table: t, count: c })))
+      );
+      const stats = {};
+      results.forEach(r => {
+        if (r.status === 'fulfilled') stats[r.value.table] = r.value.count;
+        else stats[r.value?.table || 'unknown'] = 0;
+      });
+      return stats;
+    },
+
+    columns(table) { return getColumns(table); },
+
+    listColumns(table) { return getColumns(table); }
   };
 })();

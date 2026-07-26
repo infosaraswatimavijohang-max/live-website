@@ -10,8 +10,18 @@
   <meta name="author" content="Shree Saraswati Secondary School">
   <meta name="geo.region" content="NP-LU">
   <meta name="geo.placename" content="Johang, Gulmi">
+  <meta name="geo.position" content="28.1185;83.2852">
+  <meta name="ICBM" content="28.1185, 83.2852">
+  <meta name="theme-color" content="#1a3a5c">
+  <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE">
   <link rel="canonical" href="https://saraswatisecschool.edu.np/">
   <link rel="icon" type="image/webp" href="assets/images/School%20circular%20logo.webp">
+  <link rel="apple-touch-icon" href="assets/images/School%20circular%20logo.webp">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Saraswati School">
+  <link rel="alternate" hreflang="en" href="https://saraswatisecschool.edu.np/">
+  <link rel="alternate" hreflang="ne" href="https://saraswatisecschool.edu.np/">
+  <link rel="alternate" hreflang="x-default" href="https://saraswatisecschool.edu.np/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Shree Saraswati Secondary School">
   <meta property="og:title" content="Shree Saraswati Secondary School | Top School in Gulmi, Nepal">
@@ -19,6 +29,7 @@
   <meta property="og:image" content="https://saraswatisecschool.edu.np/assets/images/General%20Block.webp">
   <meta property="og:image:width" content="800">
   <meta property="og:image:height" content="600">
+  <meta property="og:image:alt" content="General Block building of Shree Saraswati Secondary School, Gulmi">
   <meta property="og:url" content="https://saraswatisecschool.edu.np/">
   <meta property="og:locale" content="ne_NP">
   <meta name="twitter:card" content="summary_large_image">
@@ -26,14 +37,20 @@
   <meta name="twitter:title" content="Shree Saraswati Secondary School | Top School in Gulmi">
   <meta name="twitter:description" content="ECD to Grade 12, SEE Board & Computer Engineering in Johang, Gulmi. 66+ years of excellence.">
   <meta name="twitter:image" content="https://saraswatisecschool.edu.np/assets/images/General%20Block.webp">
+  <meta name="twitter:image:alt" content="General Block building of Shree Saraswati Secondary School, Gulmi">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link rel="dns-prefetch" href="https://fonts.googleapis.com">
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+  <link rel="preload" href="assets/images/Hero%20session/1.General%20Block.webp" as="image" fetchpriority="high">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Noto+Serif:wght@400;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="stylesheet" href="css/style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Noto+Serif:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Noto+Serif:wght@400;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Noto+Serif:wght@400;700&display=swap"></noscript>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -77,7 +94,7 @@
   </script>
 </head>
 <body>
-<a href="#home" class="skip-link">Skip to main content</a>
+<a href="#mainContent" class="skip-link">Skip to main content</a>
 
 <header class="header" id="header">
   <div class="header-container">
@@ -88,7 +105,7 @@
         <p id="schoolTagline">शिक्षा नै सशक्तिकरण</p>
       </div>
     </div>
-    <nav class="nav-menu" id="navMenu">
+    <nav class="nav-menu" id="navMenu" aria-label="Main navigation">
       <a href="#home" class="nav-link active">Home</a>
       <a href="about.html" class="nav-link">About</a>
       <a href="notices.html" class="nav-link">Notices</a>
@@ -100,14 +117,14 @@
       <a href="contact.html" class="nav-link">Contact</a>
     </nav>
     <div class="nav-right">
-      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu"><i class="fas fa-bars"></i></button>
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-controls="navMenu" aria-expanded="false"><i class="fas fa-bars"></i></button>
     </div>
   </div>
 </header>
 
-<section id="home" class="hero">
+<main id="mainContent" tabindex="-1"><section id="home" class="hero">
   <div class="hero-slides" id="heroSlides">
-    <img src="assets/images/Hero%20session/1.General%20Block.webp" alt="Shree Saraswati School General Block building" class="hero-slide active" loading="eager">
+    <img src="assets/images/Hero%20session/1.General%20Block.webp" alt="Shree Saraswati School General Block building" class="hero-slide active" loading="eager" fetchpriority="high">
     <img src="assets/images/Hero%20session/2.Technical%20Block.webp" alt="Technical Block building of Saraswati School Gulmi" class="hero-slide" loading="lazy">
     <img src="assets/images/Hero%20session/3.cultural%20program.webp" alt="Students performing cultural program at school event" class="hero-slide" loading="lazy">
     <img src="assets/images/Hero%20session/4.Dance.webp" alt="Dance performance by students at Saraswati School" class="hero-slide" loading="lazy">
@@ -250,8 +267,11 @@
     <div class="nb-grid">
       <div class="nb-left" id="nbLeft">
         <div id="noticesList" class="notices-list"></div>
+        <div id="annualPlan"></div>
       </div>
-      <div class="nb-right" id="nbRight"></div>
+      <div class="nb-right" id="nbRight">
+        <div class="nepali-cal" id="nepaliCal"></div>
+      </div>
     </div>
   </div>
 </section>
@@ -496,8 +516,10 @@
   <div class="lightbox-caption" id="lightboxCaption"></div>
 </div>
 
-<script src="js/supabase.js"></script>
-<script src="js/data.js"></script>
-<script src="js/main.js"></script>
+</main>
+<script src="js/supabase.js" defer></script>
+<script src="js/cache.js" defer></script>
+<script src="js/data.js" defer></script>
+<script src="js/main.js" defer></script>
 </body>
 </html>

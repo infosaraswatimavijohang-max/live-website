@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shree Saraswati Secondary School — Exam System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/exam_helper.js"></script>
 <style>
 @font-face { font-family: 'system'; }
 :root{
@@ -282,6 +283,11 @@ td input, td select{padding:6px 8px;border:1px solid var(--line);border-radius:3
 .publish-note .pill{flex-shrink:0;}
 .empty{padding:36px 20px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
 .empty b{display:block;color:var(--navy);font-size:14.5px;margin-bottom:6px;font-family:var(--font-display);}
+.collapse-body{display:none;}
+.collapse-body.open{display:block;}
+.collapse-head{cursor:pointer;user-select:none;}
+.collapse-head:hover{opacity:.8;}
+.collapse-chevron{font-size:14px;color:var(--ink-soft);transition:transform .15s;}
 .hint{font-size:12px;color:var(--ink-soft);margin-top:8px;line-height:1.5;}
 .tag-list{display:flex;flex-wrap:wrap;gap:6px;}
 .subj-tag{background:var(--paper);border:1px solid var(--line);padding:3px 9px;border-radius:4px;font-size:11.5px;color:var(--navy);}
@@ -1117,7 +1123,7 @@ async function dbInsertStudent({name, roll, classId, dob, gender, fatherName, mo
   const { data, error } = await supabaseClient
     .from('students')
     .insert(payload)
-    .select()
+    .select('id')
     .single();
   if(error){ console.error('insert student failed', error); toast('Could not save the student to the database.'); return null; }
   return data.id;
@@ -1161,7 +1167,7 @@ async function dbInsertTeacher({name, phone, email, qualification, designation, 
   const { data, error } = await supabaseClient
     .from('teachers')
     .insert(payload)
-    .select()
+    .select('id')
     .single();
   if(error){ console.error('insert teacher failed', error); toast('Could not save the teacher to the database.'); return null; }
   return data.id;
@@ -1218,7 +1224,7 @@ async function dbInsertClass({name}){
   const { data, error } = await supabaseClient
     .from('classes')
     .insert({ class_label: name })
-    .select()
+    .select('id')
     .single();
   if(error){ console.error('insert class failed', error); toast('Could not save the class to the database.'); return null; }
   return data.id;
@@ -1241,7 +1247,7 @@ async function dbInsertSubject({name, classId, code, serialNo, showInGradesheet}
   const { data, error } = await supabaseClient
     .from('subjects')
     .insert({ subject_name: name, class_id: classId, subject_code: code || null, display_order: serialNo, show_in_gradesheet: showInGradesheet })
-    .select()
+    .select('id')
     .single();
   if(error){ console.error('insert subject failed', error); toast('Could not save the subject to the database.'); return null; }
   return data.id;
@@ -1276,10 +1282,13 @@ function mapExamRow(e){
     startDate: e.start_date || '',
     endDate: e.end_date || '',
     resultDate: e.result_date || '',
-    // The exams table has no dedicated time column, so the publish TIME
-    // rides along inside the existing subject_marks jsonb blob under a
-    // reserved key that can never collide with a real subject id.
     resultTime: subjectMarks._resultTime || '',
+    publishFrom: subjectMarks._publishFrom || '',
+    publishFromTime: subjectMarks._publishFromTime || '',
+    publishUntil: subjectMarks._publishUntil || '',
+    publishUntilTime: subjectMarks._publishUntilTime || '',
+    published: subjectMarks._published !== false,
+    publishClasses: subjectMarks._publishClasses || [],
     subjectMarks,
   };
 }
@@ -1288,12 +1297,19 @@ async function loadExams(){
   if(error){ console.error('load exams failed', error); toast('Could not load exams from the database.'); EXAMS = EXAMS || []; return; }
   EXAMS = (data || []).map(mapExamRow);
 }
-async function dbInsertExam({name, startDate, endDate, resultDate, resultTime}){
-  const subjectMarks = resultTime ? { _resultTime: resultTime } : {};
+async function dbInsertExam({name, startDate, endDate, resultDate, resultTime, publishFrom, publishFromTime, publishUntil, publishUntilTime, published, publishClasses}){
+  const subjectMarks = {};
+  if(resultTime) subjectMarks._resultTime = resultTime;
+  if(publishFrom) subjectMarks._publishFrom = publishFrom;
+  if(publishFromTime) subjectMarks._publishFromTime = publishFromTime;
+  if(publishUntil) subjectMarks._publishUntil = publishUntil;
+  if(publishUntilTime) subjectMarks._publishUntilTime = publishUntilTime;
+  subjectMarks._published = published !== false;
+  if(publishClasses && publishClasses.length) subjectMarks._publishClasses = publishClasses;
   const { data, error } = await supabaseClient
     .from('exams')
-    .insert({ name, start_date: startDate || null, end_date: endDate || null, result_date: resultDate || null, subject_marks: subjectMarks })
-    .select()
+    .insert({ name, start_date: startDate || null, end_date: endDate || null, result_date: publishFrom || resultDate || null, subject_marks: subjectMarks })
+    .select('id,name,start_date,end_date,result_date,subject_marks')
     .single();
   if(error){ console.error('insert exam failed', error); toast('Could not save the exam to the database.'); return null; }
   return mapExamRow(data);
@@ -1304,6 +1320,7 @@ async function dbUpdateExam(id, fields){
   if('startDate' in fields) payload.start_date = fields.startDate || null;
   if('endDate' in fields) payload.end_date = fields.endDate || null;
   if('resultDate' in fields) payload.result_date = fields.resultDate || null;
+  if('publishFrom' in fields) payload.result_date = fields.publishFrom || null;
   if('subjectMarks' in fields) payload.subject_marks = fields.subjectMarks;
   const { error } = await supabaseClient.from('exams').update(payload).eq('id', id);
   if(error){ console.error('update exam failed', error); toast('Could not save exam changes to the database.'); return false; }
@@ -1325,7 +1342,7 @@ async function dbDeleteExam(id){
    rows and one returning many thousands. Pass an array of student ids to
    scope it; omit it only when you genuinely need every student's marks. */
 async function dbFetchMarksMap(examId, studentIds){
-  let query = supabaseClient.from('marks').select('*').eq('exam_id', examId);
+  let query = supabaseClient.from('marks').select('id,exam_id,student_id,subject_id,theory,practical').eq('exam_id', examId);
   if(studentIds){
     if(!studentIds.length) return {}; // nothing to fetch — skip the round-trip entirely
     query = query.in('student_id', studentIds);
@@ -1383,8 +1400,8 @@ async function fetchAllFromTables(){
   // are fetched separately by hydratePhotoUrls() below, and only for
   // records that don't already have one cached.
   const [cls, subs, teachers, students] = await Promise.all([
-    supabaseClient.from('classes').select('*').order('academic_year', {ascending:false}).order('grade'),
-    supabaseClient.from('subjects').select('*').order('display_order'),
+    supabaseClient.from('classes').select('id,class_label,grade,stream,academic_year').order('academic_year', {ascending:false}).order('grade'),
+    supabaseClient.from('subjects').select('id,subject_name,class_id,subject_code,display_order,show_in_gradesheet').order('display_order'),
     supabaseClient.from('teachers')
       .select('id, full_name, phone, email, qualification, designation, joining_date, address, username, password, class_teacher_of')
       .order('full_name'),
@@ -1685,6 +1702,18 @@ let AUTH = null;        // { admin:{username,password}, teachers:[{id,username,p
 let STRUCT = null;      // { classes:[], subjects:[], students:[] }
 let PERMS = null;       // [{teacherId, classId, subjectId}]
 let EXAMS = null;       // [{id,name,classIds:[],subjectMarks:{subjectId:{theoryFull,practFull,theoryPass,practPass}}}]
+/* Generic collapse/expand for exam blocks, teacher cards etc — uses localStorage */
+function toggleCollapse(id){
+  const body = document.getElementById('collapse-body-'+id);
+  const chevron = document.getElementById('collapse-chevron-'+id);
+  if(!body) return;
+  const isOpen = body.classList.toggle('open');
+  try { localStorage.setItem('sss_collapse_'+id, isOpen ? '0' : '1'); } catch(e){}
+  if(chevron) chevron.textContent = isOpen ? '▼' : '▶';
+}
+function isCollapsed(id){
+  try { return localStorage.getItem('sss_collapse_'+id) === '1'; } catch(e){ return false; }
+}
 let SESSION = null;     // { role:'admin'|'teacher', teacherId?, name, username }
 let currentTab = 'overview';
 let myResultCountdownTimer = null; // interval id for the "My Result" publish countdown, cleared on tab switch / logout
@@ -1748,9 +1777,12 @@ async function loadAll(){
   }
 }
 
+/* ---- HTML escaper — use for every user-supplied value in innerHTML ---- */
+function esc(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 /* ---------------- toast ---------------- */
 function toast(msg){
   const t = document.getElementById('toast');
+  if(!t) return;
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2200);
@@ -1902,7 +1934,7 @@ function closeChangePasswordModal(){
 async function submitChangePassword(){
   const current = document.getElementById('cp-current').value;
   const next = document.getElementById('cp-new').value;
-  const confirm = document.getElementById('cp-confirm').value;
+  const confirmPwd = document.getElementById('cp-confirm').value;
   const errEl = document.getElementById('cp-error');
   errEl.textContent = '';
 
@@ -1917,7 +1949,7 @@ async function submitChangePassword(){
   if(!current || !next || !confirm){ errEl.textContent = 'Please fill in all fields.'; return; }
   if(current !== actualCurrent){ errEl.textContent = 'Current password is incorrect.'; return; }
   if(next.length < 4){ errEl.textContent = 'New password should be at least 4 characters.'; return; }
-  if(next !== confirm){ errEl.textContent = 'New password and confirmation do not match.'; return; }
+  if(next !== confirmPwd){ errEl.textContent = 'New password and confirmation do not match.'; return; }
   // The old password can never be reused: block re-entering the password
   // you're changing away from, or the one you most recently changed away
   // from before that.
@@ -2119,6 +2151,7 @@ async function renderTab(){
 /* ================= ADMIN: OVERVIEW ================= */
 function renderOverview(){
   const c = document.getElementById('content-area');
+  const mon = window.examMonitor ? examMonitor.getReport() : null;
   c.innerHTML = `
     <div class="card no-print" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div style="font-size:13px;color:var(--ink-soft);">Classes, subjects, teachers and students are pulled live from your Supabase database tables. If you've added or changed records directly in the database, sync to refresh this portal.</div>
@@ -2132,6 +2165,15 @@ function renderOverview(){
       <div class="stat"><div class="num">${EXAMS.length}</div><div class="lbl">Exams Created</div></div>
       <div class="stat"><div class="num">${PERMS.length}</div><div class="lbl">Permissions Granted</div></div>
     </div>
+    ${mon ? `<div class="card">
+      <h3>Network Usage <span style="font-weight:400;color:var(--ink-soft);font-size:12px;text-transform:none;letter-spacing:0;">(this session)</span></h3>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+        <div class="stat" style="flex:1;min-width:120px;"><div class="num">${mon.requests}</div><div class="lbl">API Requests</div></div>
+        <div class="stat" style="flex:1;min-width:120px;"><div class="num">${mon.bytesDownKB} KB</div><div class="lbl">Data Downloaded</div></div>
+        <div style="display:flex;align-items:center;"><button class="btn btn-outline btn-sm" onclick="if(window.examMonitor){examMonitor.reset();renderOverview();}">Reset</button></div>
+      </div>
+      <div class="hint" style="margin-top:8px;">Tracking Supabase queries made through this session. Resets on page reload or when you press Reset.</div>
+    </div>` : ''}
     <div class="card">
       <h3>Getting started</h3>
       <div style="font-size:13.5px;line-height:1.9;color:var(--ink-soft);">
@@ -2401,11 +2443,11 @@ async function submitEditSubject(id){
 function studentRowHtml(s){
   return `
     <tr>
-      <td>${s.photo ? `<img src="${s.photo}" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--line);vertical-align:middle;">` : `<span class="mono" style="color:var(--ink-soft);font-size:10px;">no photo</span>`}</td>
-      <td class="mono">${s.roll}</td>
-      <td>${s.name}</td>
-      <td>${classNameOf(s.classId)}</td>
-      <td class="mono" style="font-size:12px;">${s.username || '—'}${s.mustChangePassword ? ' <span style="color:var(--gold);font-size:10px;">(default pwd)</span>' : ''}</td>
+      <td>${s.photo ? `<img src="${esc(s.photo)}" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--line);vertical-align:middle;">` : `<span class="mono" style="color:var(--ink-soft);font-size:10px;">no photo</span>`}</td>
+      <td class="mono">${esc(s.roll)}</td>
+      <td>${esc(s.name)}</td>
+      <td>${esc(classNameOf(s.classId))}</td>
+      <td class="mono" style="font-size:12px;">${esc(s.username || '—')}${s.mustChangePassword ? ' <span style="color:var(--gold);font-size:10px;">(default pwd)</span>' : ''}</td>
       <td class="mono" style="font-size:12px;">${pwdToggleHtml(s)}</td>
       <td style="white-space:nowrap;">
         <button class="btn-edit-outline" onclick="openStudentDetailsModal('${s.id}')">Details</button>
@@ -2422,8 +2464,8 @@ function openStudentDetailsModal(id){
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-overlay" id="edit-overlay">
       <div class="modal">
-        <h3>${s.name} — Full Profile</h3>
-        ${s.photo ? `<div style="text-align:center;margin-bottom:10px;"><img src="${s.photo}" alt="" style="width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid var(--line);"></div>` : ''}
+        <h3>${esc(s.name)} — Full Profile</h3>
+        ${s.photo ? `<div style="text-align:center;margin-bottom:10px;"><img src="${esc(s.photo)}" alt="" style="width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid var(--line);"></div>` : ''}
         ${row('Roll No.', s.roll)}
         ${row('Student ID / EMIS ID', s.emisId)}
         ${row('Class', classNameOf(s.classId))}
@@ -2472,43 +2514,48 @@ function renderStudents(){
     </div>` : '<div class="card" style="margin-top:16px;"><div class="empty">Add a class first</div></div>';
 
   c.innerHTML = `
-    <div class="card">
-      <h3>Add Student</h3>
-      <div class="row-form">
-        <div class="field"><label>Full name</label><input id="new-stu-name" placeholder="Student name"></div>
-        <div class="field"><label>Roll no.</label><input id="new-stu-roll" placeholder="e.g. 12"></div>
-        <div class="field"><label>Class</label>
-          <select id="new-stu-class">
-            ${STRUCT.classes.map(cl=>`<option value="${cl.id}">${cl.name}</option>`).join('') || '<option value="">Add a class first</option>'}
-          </select>
-        </div>
-        <div class="field"><label>Student ID / EMIS ID</label><input id="new-stu-emis" placeholder="optional"></div>
-        <div class="field">
-          <label>Photo (optional)</label>
-          <input id="new-stu-photo" type="file" accept="image/*" onchange="previewPhotoFile(this,'new-stu-photo-preview','new-stu-photo-preview-wrap')">
-          <div id="new-stu-photo-preview-wrap" class="simple-photo-preview" style="display:none;"><img id="new-stu-photo-preview" src="" alt=""></div>
-        </div>
+    <div style="border:1px solid var(--line);border-radius:5px;margin-bottom:16px;">
+      <div class="collapse-head" onclick="toggleCollapse('add-student')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;">
+        <h3 style="margin:0;">Add Student</h3>
+        <span id="collapse-chevron-add-student" class="collapse-chevron">${isCollapsed('add-student') ? '▶' : '▼'}</span>
       </div>
-      <h3 style="margin-top:18px;font-size:13px;">Additional details (optional)</h3>
-      <div class="grid2">
-        <div class="field"><label>Date of birth</label><input type="date" id="new-stu-dob"></div>
-        <div class="field"><label>Gender</label>
-          <select id="new-stu-gender">
-            <option value="" selected>—</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
+      <div id="collapse-body-add-student" class="collapse-body ${isCollapsed('add-student') ? '' : 'open'}" style="padding:0 16px 16px;border-top:1px solid var(--line);">
+        <div class="row-form">
+          <div class="field"><label>Full name</label><input id="new-stu-name" placeholder="Student name"></div>
+          <div class="field"><label>Roll no.</label><input id="new-stu-roll" placeholder="e.g. 12"></div>
+          <div class="field"><label>Class</label>
+            <select id="new-stu-class">
+              ${STRUCT.classes.map(cl=>`<option value="${cl.id}">${cl.name}</option>`).join('') || '<option value="">Add a class first</option>'}
+            </select>
+          </div>
+          <div class="field"><label>Student ID / EMIS ID</label><input id="new-stu-emis" placeholder="optional"></div>
+          <div class="field">
+            <label>Photo (optional)</label>
+            <input id="new-stu-photo" type="file" accept="image/*" onchange="previewPhotoFile(this,'new-stu-photo-preview','new-stu-photo-preview-wrap')">
+            <div id="new-stu-photo-preview-wrap" class="simple-photo-preview" style="display:none;"><img id="new-stu-photo-preview" src="" alt=""></div>
+          </div>
         </div>
-        <div class="field"><label>Father's name</label><input id="new-stu-father"></div>
-        <div class="field"><label>Mother's name</label><input id="new-stu-mother"></div>
-        <div class="field"><label>Guardian contact</label><input id="new-stu-contact"></div>
-        <div class="field"><label>Blood group</label><input id="new-stu-blood"></div>
-      </div>
-      <div class="field"><label>Address</label><input id="new-stu-address"></div>
-      <div class="loader-slider" id="stu-add-loader"></div>
-      <div class="modal-actions" style="justify-content:flex-start;margin-top:14px;">
-        <button class="btn btn-navy" id="add-stu-btn" onclick="addStudent()">Add Student</button>
+        <h3 style="margin-top:18px;font-size:13px;">Additional details (optional)</h3>
+        <div class="grid2">
+          <div class="field"><label>Date of birth</label><input type="date" id="new-stu-dob"></div>
+          <div class="field"><label>Gender</label>
+            <select id="new-stu-gender">
+              <option value="" selected>—</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field"><label>Father's name</label><input id="new-stu-father"></div>
+          <div class="field"><label>Mother's name</label><input id="new-stu-mother"></div>
+          <div class="field"><label>Guardian contact</label><input id="new-stu-contact"></div>
+          <div class="field"><label>Blood group</label><input id="new-stu-blood"></div>
+        </div>
+        <div class="field"><label>Address</label><input id="new-stu-address"></div>
+        <div class="loader-slider" id="stu-add-loader"></div>
+        <div class="modal-actions" style="justify-content:flex-start;margin-top:14px;">
+          <button class="btn btn-navy" id="add-stu-btn" onclick="addStudent()">Add Student</button>
+        </div>
       </div>
     </div>
     <div class="card" style="margin-top:16px;">
@@ -2916,44 +2963,49 @@ function renderTeachers(){
   const c = document.getElementById('content-area');
   c.innerHTML = `
     <div class="grid2">
-      <div class="card" style="grid-column:1 / -1;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-          <h3 style="margin:0;">Add Teacher Account</h3>
-          <button type="button" class="btn btn-outline" onclick="printTeachersList()">🖨 Print All Teachers</button>
-        </div>
-        <div class="modal-section-label" style="margin-top:0;">Account</div>
-        <div class="grid3">
-          <div class="field"><label>Full name</label><input id="new-t-name" placeholder="Teacher's name"></div>
-          <div class="field"><label>Username <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label><input id="new-t-user" placeholder="Defaults to first name"></div>
-          <div class="field"><label>Password <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label><input id="new-t-pass" placeholder="Defaults to username"></div>
-        </div>
-        <div class="modal-section-label">Details (optional)</div>
-        <div class="grid3">
-          <div class="field"><label>Phone</label><input id="new-t-phone"></div>
-          <div class="field"><label>Email</label><input id="new-t-email" type="email"></div>
-          <div class="field"><label>Qualification</label><input id="new-t-qual"></div>
-          <div class="field"><label>Designation</label>
-            <select id="new-t-desig" onchange="document.getElementById('new-t-desig-other').style.display = this.value==='Other' ? 'block' : 'none';">
-              ${DESIGNATION_OPTIONS.map(d=>`<option value="${d}">${d}</option>`).join('')}
-              <option value="Other">Other (specify)</option>
-            </select>
-            <input id="new-t-desig-other" placeholder="Enter designation" style="display:none;margin-top:6px;">
+      <div style="border:1px solid var(--line);border-radius:5px;margin-bottom:16px;grid-column:1 / -1;">
+        <div class="collapse-head" onclick="toggleCollapse('add-teacher')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h3 style="margin:0;">Add Teacher Account</h3>
+            <button type="button" class="btn btn-outline" onclick="event.stopPropagation();printTeachersList()">🖨 Print All Teachers</button>
           </div>
-          <div class="field"><label>Joining date</label><input type="date" id="new-t-joined"></div>
-          <div class="field">
-            <label>Photo (optional)</label>
-            <input id="new-t-photo" type="file" accept="image/*" onchange="previewPhotoFile(this,'new-t-photo-preview','new-t-photo-preview-wrap')">
-            <div id="new-t-photo-preview-wrap" class="simple-photo-preview" style="display:none;"><img id="new-t-photo-preview" src="" alt=""></div>
+          <span id="collapse-chevron-add-teacher" class="collapse-chevron">${isCollapsed('add-teacher') ? '▶' : '▼'}</span>
+        </div>
+        <div id="collapse-body-add-teacher" class="collapse-body ${isCollapsed('add-teacher') ? '' : 'open'}" style="padding:0 16px 16px;border-top:1px solid var(--line);">
+          <div class="modal-section-label" style="margin-top:12px;">Account</div>
+          <div class="grid3">
+            <div class="field"><label>Full name</label><input id="new-t-name" placeholder="Teacher's name"></div>
+            <div class="field"><label>Username <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label><input id="new-t-user" placeholder="Defaults to first name"></div>
+            <div class="field"><label>Password <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label><input id="new-t-pass" placeholder="Defaults to username"></div>
           </div>
-          <div class="field" style="grid-column:span 3;"><label>Address</label><input id="new-t-address"></div>
-        </div>
-        <div class="modal-section-label">Class Teacher Of <span style="font-weight:400;color:var(--ink-soft);text-transform:none;letter-spacing:0;">(grants access to that class's Gradesheets &amp; Class Ledger)</span></div>
-        <div class="checkbox-grid" id="new-t-classteacher">
-          ${STRUCT.classes.map(cl=>`<div class="checkbox-row"><input type="checkbox" id="new-t-ct-${cl.id}" value="${cl.id}"><label for="new-t-ct-${cl.id}" style="font-weight:400;">${cl.name}</label></div>`).join('') || '<div class="hint">Add a class first</div>'}
-        </div>
-        <div class="loader-slider" id="t-add-loader"></div>
-        <div class="modal-actions" style="justify-content:flex-start;margin-top:6px;">
-          <button class="btn btn-navy" id="add-t-btn" onclick="addTeacher()">Create Account</button>
+          <div class="modal-section-label">Details (optional)</div>
+          <div class="grid3">
+            <div class="field"><label>Phone</label><input id="new-t-phone"></div>
+            <div class="field"><label>Email</label><input id="new-t-email" type="email"></div>
+            <div class="field"><label>Qualification</label><input id="new-t-qual"></div>
+            <div class="field"><label>Designation</label>
+              <select id="new-t-desig" onchange="document.getElementById('new-t-desig-other').style.display = this.value==='Other' ? 'block' : 'none';">
+                ${DESIGNATION_OPTIONS.map(d=>`<option value="${d}">${d}</option>`).join('')}
+                <option value="Other">Other (specify)</option>
+              </select>
+              <input id="new-t-desig-other" placeholder="Enter designation" style="display:none;margin-top:6px;">
+            </div>
+            <div class="field"><label>Joining date</label><input type="date" id="new-t-joined"></div>
+            <div class="field">
+              <label>Photo (optional)</label>
+              <input id="new-t-photo" type="file" accept="image/*" onchange="previewPhotoFile(this,'new-t-photo-preview','new-t-photo-preview-wrap')">
+              <div id="new-t-photo-preview-wrap" class="simple-photo-preview" style="display:none;"><img id="new-t-photo-preview" src="" alt=""></div>
+            </div>
+            <div class="field" style="grid-column:span 3;"><label>Address</label><input id="new-t-address"></div>
+          </div>
+          <div class="modal-section-label">Class Teacher Of <span style="font-weight:400;color:var(--ink-soft);text-transform:none;letter-spacing:0;">(grants access to that class's Gradesheets &amp; Class Ledger)</span></div>
+          <div class="checkbox-grid" id="new-t-classteacher">
+            ${STRUCT.classes.map(cl=>`<div class="checkbox-row"><input type="checkbox" id="new-t-ct-${cl.id}" value="${cl.id}"><label for="new-t-ct-${cl.id}" style="font-weight:400;">${cl.name}</label></div>`).join('') || '<div class="hint">Add a class first</div>'}
+          </div>
+          <div class="loader-slider" id="t-add-loader"></div>
+          <div class="modal-actions" style="justify-content:flex-start;margin-top:6px;">
+            <button class="btn btn-navy" id="add-t-btn" onclick="addTeacher()">Create Account</button>
+          </div>
         </div>
       </div>
       <div class="card">
@@ -2985,28 +3037,43 @@ function renderTeachers(){
     </div>
     <div class="card">
       <h3>Teacher Accounts</h3>
-      <table>
-        <thead><tr><th></th><th>Name</th><th>Designation</th><th>Username</th><th>Password</th><th>Assigned subjects</th><th></th></tr></thead>
-        <tbody>
-        ${AUTH.teachers.length ? AUTH.teachers.map(t=>{
-          const perms = PERMS.filter(p=>p.teacherId===t.id);
-          const ctClasses = (t.classTeacherOf||[]).map(cid=>classNameOf(cid));
-          return `<tr>
-            <td>${t.photo ? `<img src="${t.photo}" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--line);vertical-align:middle;">` : `<span class="mono" style="color:var(--ink-soft);font-size:10px;">no photo</span>`}</td>
-            <td>${t.name}</td>
-            <td>${t.designation || '<span style="color:var(--ink-soft);">—</span>'}${ctClasses.length ? `<br><span class="pill pill-green" style="font-size:10px;">Class Teacher: ${ctClasses.join(', ')}</span>` : ''}</td>
-            <td class="mono">${t.username}${t.mustChangePassword ? ' <span style="color:var(--gold);font-size:10px;">(default pwd)</span>' : ''}</td>
-            <td class="mono">${pwdToggleHtml(t)}</td>
-            <td><div class="tag-list">${perms.length ? perms.map(p=>`<span class="subj-tag">${subjLabelOf(p.subjectId)} · ${classNameOf(p.classId)}<span class="mtype ${p.markType||'both'}">${MARK_TYPE_LABEL[p.markType||'both']}</span> <a href="javascript:void(0)" onclick="removePermission('${p.teacherId}','${p.classId}','${p.subjectId}')" style="color:var(--red);margin-left:4px;">✕</a></span>`).join('') : '<span style="color:var(--ink-soft);font-size:12px;">No subjects assigned</span>'}</div></td>
-            <td style="white-space:nowrap;">
+      ${AUTH.teachers.length ? AUTH.teachers.map(t=>{
+        const perms = PERMS.filter(p=>p.teacherId===t.id);
+        const ctClasses = (t.classTeacherOf||[]).map(cid=>classNameOf(cid));
+        const collapsed = isCollapsed('teacher-'+t.id);
+        return `<div style="border:1px solid var(--line);border-radius:5px;margin-bottom:10px;">
+          <div class="collapse-head" onclick="toggleCollapse('teacher-${t.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+              ${t.photo ? `<img src="${t.photo}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--line);flex-shrink:0;">` : `<span style="width:36px;height:36px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--ink-soft);flex-shrink:0;">${t.name[0]}</span>`}
+              <div style="min-width:0;">
+                <div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.name}</div>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:1px;">
+                  ${t.designation ? `<span style="color:var(--ink-soft);font-size:11px;">${t.designation}</span>` : ''}
+                  ${ctClasses.length ? `<span class="pill pill-green" style="font-size:9px;">Class Teacher: ${ctClasses.join(', ')}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <span id="collapse-chevron-teacher-${t.id}" class="collapse-chevron" style="flex-shrink:0;">${collapsed ? '▶' : '▼'}</span>
+          </div>
+          <div id="collapse-body-teacher-${t.id}" class="collapse-body ${collapsed ? '' : 'open'}" style="padding:0 16px 14px;border-top:1px solid var(--line);">
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:13px;margin-top:12px;align-items:center;">
+              <span style="color:var(--ink-soft);">Username</span>
+              <span class="mono">${t.username}${t.mustChangePassword ? ' <span style="color:var(--gold);font-size:10px;">(default pwd)</span>' : ''}</span>
+              <span style="color:var(--ink-soft);">Password</span>
+              <span class="mono">${pwdToggleHtml(t)}</span>
+            </div>
+            <div style="margin:10px 0;">
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:6px;">Assigned subjects</div>
+              <div class="tag-list">${perms.length ? perms.map(p=>`<span class="subj-tag">${subjLabelOf(p.subjectId)} · ${classNameOf(p.classId)}<span class="mtype ${p.markType||'both'}">${MARK_TYPE_LABEL[p.markType||'both']}</span> <a href="javascript:void(0)" onclick="removePermission('${p.teacherId}','${p.classId}','${p.subjectId}')" style="color:var(--red);margin-left:4px;">✕</a></span>`).join('') : '<span style="color:var(--ink-soft);font-size:12px;">No subjects assigned</span>'}</div>
+            </div>
+            <div style="display:flex;gap:8px;">
               <button class="btn-edit-outline" onclick="openTeacherDetailsModal('${t.id}')">Details</button>
-              <button class="btn-edit-outline" style="margin-left:6px;" onclick="openEditTeacherModal('${t.id}')">Edit</button>
-              <button class="btn-danger-outline" style="margin-left:6px;" onclick="removeTeacher('${t.id}')">Remove</button>
-            </td>
-          </tr>`;
-        }).join('') : '<tr><td colspan="7" class="empty">No teacher accounts yet</td></tr>'}
-        </tbody>
-      </table>
+              <button class="btn-edit-outline" onclick="openEditTeacherModal('${t.id}')">Edit</button>
+              <button class="btn-danger-outline" onclick="removeTeacher('${t.id}')">Remove</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('') : '<div class="empty"><b>No teacher accounts yet</b>Create one above.</div>'}
     </div>
   `;
   PERM_MARKTYPE = 'both';
@@ -3263,58 +3330,199 @@ async function removePermission(teacherId, classId, subjectId){
 function renderExams(){
   const c = document.getElementById('content-area');
   c.innerHTML = `
-    <div class="card">
-      <h3>Create Exam</h3>
-      <div class="row-form">
-        <div class="field"><label>Exam name</label><input id="new-exam-name" placeholder="e.g. First Terminal Exam 2083"></div>
-        <div class="field"><label>Conducted from</label><input type="date" id="new-exam-start"></div>
-        <div class="field"><label>Conducted to</label><input type="date" id="new-exam-end"></div>
-        <div class="field"><label>Result publish date</label><input type="date" id="new-exam-date"></div>
-        <div class="field"><label>Result publish time</label><input type="time" id="new-exam-time" value="00:00"></div>
-        <button class="btn btn-navy" onclick="createExam()">Create Exam</button>
+    <div style="border:1px solid var(--line);border-radius:5px;margin-bottom:16px;">
+      <div class="collapse-head" onclick="toggleCollapse('add-exam')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;">
+        <h3 style="margin:0;">Create Exam</h3>
+        <span id="collapse-chevron-add-exam" class="collapse-chevron">${isCollapsed('add-exam') ? '▶' : '▼'}</span>
       </div>
-      <div class="hint">The conducted from/to dates print on the gradesheet header. The publish date &amp; time are shown to visitors on the website and control the exact moment results become viewable. After creating, set the full marks / pass marks for each subject in the exam below.</div>
+      <div id="collapse-body-add-exam" class="collapse-body ${isCollapsed('add-exam') ? '' : 'open'}" style="padding:0 16px 16px;border-top:1px solid var(--line);">
+        <div class="row-form">
+          <div class="field"><label>Exam name</label><input id="new-exam-name" placeholder="e.g. First Terminal Exam 2083"></div>
+          <div class="field"><label>Conducted from</label><input type="date" id="new-exam-start"></div>
+          <div class="field"><label>Conducted to</label><input type="date" id="new-exam-end"></div>
+        </div>
+        <div class="row-form">
+          <div class="field"><label>Publish from</label><input type="date" id="new-exam-pubfrom"></div>
+          <div class="field"><label>Publish from time</label><input type="time" id="new-exam-pubfrom-time" value="00:00"></div>
+          <div class="field"><label>Publish until</label><input type="date" id="new-exam-pubuntil"></div>
+          <div class="field"><label>Publish until time</label><input type="time" id="new-exam-pubuntil-time" value="23:59"></div>
+        </div>
+        <div style="background:#f7f8fb;border:1px solid var(--line);border-radius:5px;padding:12px 14px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;">Visible to classes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(leave all unchecked for all classes)</span></div>
+          <div class="checkbox-grid">
+            ${STRUCT.classes.map(cl => `<div class="checkbox-row"><input type="checkbox" id="new-exam-pc-${cl.id}" value="${cl.id}"><label for="new-exam-pc-${cl.id}" style="font-weight:400;">${cl.name}</label></div>`).join('') || '<div class="hint">Add a class first</div>'}
+          </div>
+        </div>
+        <div style="margin-top:14px;"><button class="btn btn-navy" onclick="createExam()">Create Exam</button></div>
+        <div class="hint" style="margin-top:10px;">The conducted from/to dates print on the gradesheet header. The publish from/until dates control when students can view their results. After the publish until date, the result is no longer visible and the countdown for the next exam (if any) begins. Select specific classes above to restrict which students can see this exam — leave all unchecked to make it visible to all classes. After creating, set the full marks / pass marks for each subject in the exam below.</div>
+      </div>
     </div>
+    ${EXAMS.length ? renderPubPanel() : ''}
     <div class="card">
       <h3>Existing Exams</h3>
       <div class="hint" style="margin-bottom:14px;">Grading scale (applies to every subject, regardless of its full marks — the percentage obtained decides the grade): A+ 90-100% (4.0, Outstanding) · A 80-89% (3.6, Excellent) · B+ 70-79% (3.2, Very Good) · B 60-69% (2.8, Good) · C+ 50-59% (2.4, Satisfactory) · C 40-49% (2.0, Acceptable) · D 35-39% (1.6, Basic) · NG below 35% (0.0, Not Graded).</div>
       ${EXAMS.length ? EXAMS.map(ex => renderExamConfigBlock(ex)).join('') : '<div class="empty"><b>No exams yet</b>Create one above to begin configuring subject marks.</div>'}
     </div>
   `;
+  EXAMS.forEach(ex => renderExamSubjectsTable(ex.id));
+}
+function renderPubPanel(){
+  return `<div class="card">
+    <h3>Quick Publish</h3>
+    <div class="row-form">
+      <div class="field"><label>Exam</label>
+        <select id="pub-exam" class="big-select" onchange="pubLoadExam()">
+          <option value="">— Select an exam —</option>
+          ${EXAMS.map(e=>`<option value="${e.id}">${e.name}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div id="pub-panel" style="display:none;">
+      <div style="background:#f7f8fb;border:1px solid var(--line);border-radius:5px;padding:12px 14px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;">Visible to classes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(leave all unchecked for all classes)</span></div>
+        <div class="checkbox-grid" id="pub-classes">
+          ${STRUCT.classes.map(cl => `<div class="checkbox-row"><input type="checkbox" id="pub-pc-${cl.id}" value="${cl.id}"><label for="pub-pc-${cl.id}" style="font-weight:400;">${cl.name}</label></div>`).join('') || '<div class="hint">Add a class first</div>'}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <button class="btn btn-navy" id="pub-toggle-btn" onclick="pubToggle()">Publish</button>
+        <button class="btn btn-gold" onclick="pubSaveClasses()">Save Class Audience</button>
+        <span id="pub-status" style="font-size:13px;color:var(--ink-soft);font-weight:600;"></span>
+        <button class="btn-danger-outline" onclick="pubDelete()" style="margin-left:auto;">Delete Exam</button>
+      </div>
+      <div class="hint" id="pub-hint" style="margin-top:10px;"></div>
+    </div>
+  </div>`;
+}
+function pubLoadExam(){
+  const examId = document.getElementById('pub-exam').value;
+  const panel = document.getElementById('pub-panel');
+  if(!examId){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  const ex = EXAMS.find(e=>e.id===examId);
+  if(!ex) return;
+  STRUCT.classes.forEach(cl => {
+    const cb = document.getElementById('pub-pc-'+cl.id);
+    if(cb) cb.checked = Array.isArray(ex.publishClasses) && ex.publishClasses.includes(cl.id);
+  });
+  const btn = document.getElementById('pub-toggle-btn');
+  btn.textContent = ex.published ? 'Unpublish' : 'Publish';
+  btn.className = 'btn ' + (ex.published ? 'btn-danger-outline' : 'btn-navy');
+  document.getElementById('pub-status').textContent = ex.published ? 'Published' : 'Unpublished';
+  document.getElementById('pub-hint').innerHTML = examPublishHint(ex);
+  // Expand + highlight the exam block
+  document.querySelectorAll('[id^="exam-block-"]').forEach(el => el.style.boxShadow = 'none');
+  if(isCollapsed('exam-'+examId)) toggleCollapse('exam-'+examId);
+  const block = document.getElementById('exam-block-'+examId);
+  if(block){
+    block.scrollIntoView({ behavior:'smooth', block:'start' });
+    block.style.boxShadow = '0 0 0 2px var(--gold)';
+  }
+}
+async function pubToggle(){
+  const examId = document.getElementById('pub-exam').value;
+  if(!examId) return;
+  const ex = EXAMS.find(e=>e.id===examId);
+  if(!ex) return;
+  if(!ex.subjectMarks) ex.subjectMarks = {};
+  ex.published = !ex.published;
+  ex.subjectMarks._published = ex.published;
+  const ok = await dbUpdateExam(examId, {subjectMarks: ex.subjectMarks});
+  if(!ok){ ex.published = !ex.published; return; }
+  toast(ex.published ? 'Exam published' : 'Exam unpublished');
+  renderExams();
+  document.getElementById('pub-exam').value = examId;
+  pubLoadExam();
+}
+async function pubSaveClasses(){
+  const examId = document.getElementById('pub-exam').value;
+  if(!examId) return;
+  const selected = STRUCT.classes.map(cl=>cl.id).filter(id=>document.getElementById('pub-pc-'+id)?.checked);
+  const ex = EXAMS.find(e=>e.id===examId);
+  if(!ex) return;
+  ex.publishClasses = selected;
+  if(!ex.subjectMarks) ex.subjectMarks = {};
+  ex.subjectMarks._publishClasses = selected;
+  const ok = await dbUpdateExam(examId, {subjectMarks: ex.subjectMarks});
+  if(!ok) return;
+  toast('Class audience saved');
+  renderExams();
+  document.getElementById('pub-exam').value = examId;
+  pubLoadExam();
+}
+async function pubDelete(){
+  const examId = document.getElementById('pub-exam').value;
+  if(!examId) return;
+  await removeExam(examId);
+}
+function renderExamSubjectsTable(examId){
+  const ex = EXAMS.find(e=>e.id===examId);
+  if(!ex) return;
+  const classId = document.getElementById('exam-def-class-'+examId)?.value;
+  const filtered = classId ? STRUCT.subjects.filter(s=>s.classId===classId) : STRUCT.subjects;
+  const showClassCol = !classId;
+  const wrap = document.getElementById('exam-subjects-wrap-'+examId);
+  if(!wrap) return;
+  if(!filtered.length){
+    wrap.innerHTML = '<div class="empty">' + (classId ? 'No subjects for this class yet.' : 'Add subjects first.') + '</div>';
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Subject</th>${showClassCol ? '<th>Class</th>' : ''}<th>Theory full</th><th>Theory pass</th><th>Practical full</th><th>Practical pass</th></tr></thead>
+    <tbody>${filtered.map(sb=>{
+      const cfg = (ex.subjectMarks && ex.subjectMarks[sb.id]) || {theoryFull:100, theoryPass:35, practFull:0, practPass:0};
+      return `<tr>
+        <td>${sb.name}</td>
+        ${showClassCol ? '<td>'+classNameOf(sb.classId)+'</td>' : ''}
+        <td><input type="number" style="width:70px" value="${cfg.theoryFull}" onchange="updateExamCfg('${ex.id}','${sb.id}','theoryFull',this.value)"></td>
+        <td><input type="number" style="width:70px" value="${cfg.theoryPass}" onchange="updateExamCfg('${ex.id}','${sb.id}','theoryPass',this.value)"></td>
+        <td><input type="number" style="width:70px" value="${cfg.practFull}" onchange="updateExamCfg('${ex.id}','${sb.id}','practFull',this.value)"></td>
+        <td><input type="number" style="width:70px" value="${cfg.practPass}" onchange="updateExamCfg('${ex.id}','${sb.id}','practPass',this.value)"></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
 }
 function renderExamConfigBlock(ex){
-  const rows = STRUCT.subjects.map(sb=>{
-    const cfg = (ex.subjectMarks && ex.subjectMarks[sb.id]) || {theoryFull:100, theoryPass:35, practFull:0, practPass:0};
-    return `<tr>
-      <td>${sb.name}</td>
-      <td>${classNameOf(sb.classId)}</td>
-      <td><input type="number" style="width:70px" value="${cfg.theoryFull}" onchange="updateExamCfg('${ex.id}','${sb.id}','theoryFull',this.value)"></td>
-      <td><input type="number" style="width:70px" value="${cfg.theoryPass}" onchange="updateExamCfg('${ex.id}','${sb.id}','theoryPass',this.value)"></td>
-      <td><input type="number" style="width:70px" value="${cfg.practFull}" onchange="updateExamCfg('${ex.id}','${sb.id}','practFull',this.value)"></td>
-      <td><input type="number" style="width:70px" value="${cfg.practPass}" onchange="updateExamCfg('${ex.id}','${sb.id}','practPass',this.value)"></td>
-    </tr>`;
-  }).join('');
+  const collapsed = isCollapsed('exam-'+ex.id);
   return `
-    <div style="border:1px solid var(--line);border-radius:5px;padding:16px 18px;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
+    <div id="exam-block-${ex.id}" style="border:1px solid var(--line);border-radius:5px;margin-bottom:16px;">
+      <div class="collapse-head" onclick="toggleCollapse('exam-${ex.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px;gap:10px;flex-wrap:wrap;">
         <h4 style="font-size:15px;color:var(--navy-deep);">${ex.name}</h4>
+        <span style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span class="pill ${ex.published ? 'pill-green' : collapsed ? '' : 'pill-red'}" style="font-size:11px;">${ex.published ? 'Published' : 'Unpublished'}</span>
+          <span id="collapse-chevron-exam-${ex.id}" class="collapse-chevron">${collapsed ? '▶' : '▼'}</span>
+        </span>
+      </div>
+      <div id="collapse-body-exam-${ex.id}" class="collapse-body ${collapsed ? '' : 'open'}" style="padding:0 18px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <label style="font-size:13px;color:var(--navy-deep);">Conducted</label>
           <input type="date" value="${ex.startDate || ''}" onchange="updateExamConductedDates('${ex.id}', this.value, null)">
           <span style="font-size:12px;color:var(--ink-soft);">to</span>
           <input type="date" value="${ex.endDate || ''}" onchange="updateExamConductedDates('${ex.id}', null, this.value)">
-          <label style="font-size:13px;color:var(--navy-deep);">Result publish date</label>
-          <input type="date" value="${ex.resultDate || ''}" onchange="updateExamDate('${ex.id}', this.value, null)">
-          <input type="time" value="${ex.resultTime || ''}" onchange="updateExamDate('${ex.id}', null, this.value)">
-          <button class="btn-danger-outline" onclick="removeExam('${ex.id}')">Delete exam</button>
+          <label style="font-size:13px;color:var(--navy-deep);">Publish from</label>
+          <input type="date" value="${ex.publishFrom || ex.resultDate || ''}" onchange="updateExamPublishDates('${ex.id}', 'fromDate', this.value)">
+          <input type="time" value="${ex.publishFromTime || ex.resultTime || ''}" onchange="updateExamPublishDates('${ex.id}', 'fromTime', this.value)">
+          <label style="font-size:13px;color:var(--navy-deep);">Publish until</label>
+          <input type="date" value="${ex.publishUntil || ''}" onchange="updateExamPublishDates('${ex.id}', 'untilDate', this.value)">
+          <input type="time" value="${ex.publishUntilTime || ''}" onchange="updateExamPublishDates('${ex.id}', 'untilTime', this.value)">
+          <button class="btn ${ex.published ? 'btn-danger-outline' : 'btn-navy'}" onclick="event.stopPropagation();toggleExamPublish('${ex.id}')">${ex.published ? 'Unpublish' : 'Publish'}</button>
+          <button class="btn-danger-outline" onclick="event.stopPropagation();removeExam('${ex.id}')">Delete</button>
         </div>
       </div>
-      <div class="hint" style="margin-bottom:10px;">${ex.resultDate ? 'Result will be visible on the website from ' + formatDateLong(ex.resultDate) + (ex.resultTime ? ' at ' + formatTime12(ex.resultTime) : ' (midnight)') + '.' : 'No publish date set — result will not be shown as scheduled on the website.'}</div>
+      <div class="hint" style="margin-bottom:10px;">${examPublishHint(ex)}</div>
       <div style="background:#f7f8fb;border:1px solid var(--line);border-radius:5px;padding:12px 14px;margin-bottom:14px;">
-        <div style="font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;">Set default marks for a whole class</div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;">Visible to classes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(leave all unchecked for all classes)</span></div>
+        <div class="checkbox-grid" id="exam-pubclasses-${ex.id}">
+          ${STRUCT.classes.map(cl => `<div class="checkbox-row"><input type="checkbox" id="exam-pc-${ex.id}-${cl.id}" value="${cl.id}" ${Array.isArray(ex.publishClasses) && ex.publishClasses.includes(cl.id) ? 'checked' : ''} onchange="updateExamPublishClasses('${ex.id}')"><label for="exam-pc-${ex.id}-${cl.id}" style="font-weight:400;">${cl.name}</label></div>`).join('') || '<div class="hint">Add a class first</div>'}
+        </div>
+      </div>
+      <div style="background:#f7f8fb;border:1px solid var(--line);border-radius:5px;padding:12px 14px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;">Set default marks for a whole class <span style="font-weight:400;text-transform:none;letter-spacing:0;">— selects which subjects appear in the table below</span></div>
         <div class="row-form" style="margin-bottom:0;">
           <div class="field"><label>Class</label>
-            <select id="exam-def-class-${ex.id}">
+            <select id="exam-def-class-${ex.id}" onchange="renderExamSubjectsTable('${ex.id}')">
+              <option value="">— All classes —</option>
               ${STRUCT.classes.map(cl=>`<option value="${cl.id}">${cl.name}</option>`).join('') || '<option value="">Add a class first</option>'}
             </select>
           </div>
@@ -3326,10 +3534,8 @@ function renderExamConfigBlock(ex){
         </div>
         <div class="hint" style="margin-top:8px;">Fills in theory/practical full &amp; pass marks for every subject of the selected class in this exam — set practical full marks to 0 for subjects with no practical. You can still fine-tune any single subject in the table below afterward.</div>
       </div>
-      <table>
-        <thead><tr><th>Subject</th><th>Class</th><th>Theory full</th><th>Theory pass</th><th>Practical full</th><th>Practical pass</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="6" class="empty">Add subjects first</td></tr>'}</tbody>
-      </table>
+      <div id="exam-subjects-wrap-${ex.id}"></div>
+    </div>
     </div>
   `;
 }
@@ -3355,10 +3561,13 @@ async function createExam(){
   const name = document.getElementById('new-exam-name').value.trim();
   const startDate = document.getElementById('new-exam-start').value || '';
   const endDate = document.getElementById('new-exam-end').value || '';
-  const resultDate = document.getElementById('new-exam-date').value || '';
-  const resultTime = document.getElementById('new-exam-time').value || '';
+  const publishFrom = document.getElementById('new-exam-pubfrom').value || '';
+  const publishFromTime = document.getElementById('new-exam-pubfrom-time').value || '';
+  const publishUntil = document.getElementById('new-exam-pubuntil').value || '';
+  const publishUntilTime = document.getElementById('new-exam-pubuntil-time').value || '';
   if(!name) return toast('Enter an exam name');
-  const created = await dbInsertExam({name, startDate, endDate, resultDate, resultTime});
+  const publishClasses = STRUCT.classes.map(cl=>cl.id).filter(id=>document.getElementById('new-exam-pc-'+id)?.checked);
+  const created = await dbInsertExam({name, startDate, endDate, publishFrom, publishFromTime, publishUntil, publishUntilTime, published: true, publishClasses});
   if(!created) return;
   EXAMS.push(created);
   toast('Exam created'); renderExams();
@@ -3372,19 +3581,58 @@ async function updateExamConductedDates(examId, startValue, endValue){
   if(!ok) return;
   toast('Exam dates updated'); renderExams();
 }
-async function updateExamDate(examId, dateValue, timeValue){
+function examPublishHint(ex){
+  const audienceText = Array.isArray(ex.publishClasses) && ex.publishClasses.length
+    ? ' for <b>' + ex.publishClasses.map(cid=>classNameOf(cid)).join(', ') + '</b>'
+    : ' for <b>all classes</b>';
+  if(!ex.published) return 'This exam is <b>unpublished</b> — results are hidden from students regardless of dates. Click <b>Publish</b> to make it visible within the publish window' + audienceText + '.';
+  if(ex.publishFrom && ex.publishUntil){
+    const now = new Date();
+    const from = new Date(ex.publishFrom + 'T' + (ex.publishFromTime || '00:00') + ':00');
+    const until = new Date(ex.publishUntil + 'T' + (ex.publishUntilTime || '23:59') + ':00');
+    if(now < from) return `Results will be visible${audienceText} from <b>${formatDateLong(ex.publishFrom)}</b> at <b>${formatTime12(ex.publishFromTime || '00:00')}</b> until <b>${formatDateLong(ex.publishUntil)}</b> at <b>${formatTime12(ex.publishUntilTime || '23:59')}</b>.`;
+    if(now > until) return `The viewing window for this result ended on <b>${formatDateLong(ex.publishUntil)}</b> at <b>${formatTime12(ex.publishUntilTime || '23:59')}</b>. Results are no longer visible to students.`;
+    return `Results are <b>visible now</b>${audienceText} (published from ${formatDateLong(ex.publishFrom)} at ${formatTime12(ex.publishFromTime || '00:00')} until ${formatDateLong(ex.publishUntil)} at ${formatTime12(ex.publishUntilTime || '23:59')}).`;
+  }
+  if(ex.publishFrom){
+    const from = new Date(ex.publishFrom + 'T' + (ex.publishFromTime || '00:00') + ':00');
+    if(from > new Date()) return `Results will be visible${audienceText} from <b>${formatDateLong(ex.publishFrom)}</b> at <b>${formatTime12(ex.publishFromTime || '00:00')}</b> (no end date).`;
+    return `Results are <b>visible now</b>${audienceText} (published from ${formatDateLong(ex.publishFrom)} at ${formatTime12(ex.publishFromTime || '00:00')}, no end date).`;
+  }
+  if(ex.resultDate) return `Results will be visible from <b>${formatDateLong(ex.resultDate)}</b> at <b>${formatTime12(ex.resultTime || '00:00')}</b> (legacy).`;
+  return 'No publish schedule set. Set a publish from/until date above to schedule result visibility.';
+}
+async function updateExamPublishDates(examId, field, value){
   const ex = EXAMS.find(e=>e.id===examId);
   if(!ex) return;
-  if(dateValue !== null) ex.resultDate = dateValue || '';
-  if(timeValue !== null){
-    ex.resultTime = timeValue || '';
-    if(!ex.subjectMarks) ex.subjectMarks = {};
-    if(ex.resultTime) ex.subjectMarks._resultTime = ex.resultTime;
-    else delete ex.subjectMarks._resultTime;
-  }
-  const ok = await dbUpdateExam(examId, {resultDate: ex.resultDate, subjectMarks: ex.subjectMarks});
+  if(!ex.subjectMarks) ex.subjectMarks = {};
+  if(field === 'fromDate'){ ex.publishFrom = value || ''; ex.subjectMarks._publishFrom = ex.publishFrom; }
+  if(field === 'fromTime'){ ex.publishFromTime = value || ''; ex.subjectMarks._publishFromTime = ex.publishFromTime; }
+  if(field === 'untilDate'){ ex.publishUntil = value || ''; ex.subjectMarks._publishUntil = ex.publishUntil; }
+  if(field === 'untilTime'){ ex.publishUntilTime = value || ''; ex.subjectMarks._publishUntilTime = ex.publishUntilTime; }
+  const ok = await dbUpdateExam(examId, {publishFrom: ex.publishFrom, subjectMarks: ex.subjectMarks});
   if(!ok) return;
-  toast('Publish date/time updated'); renderExams();
+  toast('Publish dates updated'); renderExams();
+}
+async function updateExamPublishClasses(examId){
+  const ex = EXAMS.find(e=>e.id===examId);
+  if(!ex) return;
+  const selected = STRUCT.classes.map(cl=>cl.id).filter(id=>document.getElementById(`exam-pc-${examId}-${id}`)?.checked);
+  ex.publishClasses = selected;
+  if(!ex.subjectMarks) ex.subjectMarks = {};
+  ex.subjectMarks._publishClasses = selected;
+  const ok = await dbUpdateExam(examId, {subjectMarks: ex.subjectMarks});
+  if(!ok) return;
+}
+async function toggleExamPublish(examId){
+  const ex = EXAMS.find(e=>e.id===examId);
+  if(!ex) return;
+  if(!ex.subjectMarks) ex.subjectMarks = {};
+  ex.published = !ex.published;
+  ex.subjectMarks._published = ex.published;
+  const ok = await dbUpdateExam(examId, {subjectMarks: ex.subjectMarks});
+  if(!ok){ ex.published = !ex.published; return; }
+  toast(ex.published ? 'Exam published' : 'Exam unpublished'); renderExams();
 }
 function formatDateLong(isoDate){
   if(!isoDate) return '';
@@ -3560,19 +3808,19 @@ function renderGradesheets(){
       <div class="hint" style="margin-bottom:6px;">Choose which details print in the gradesheet header:</div>
       <div class="row-form" style="margin-top:0;margin-bottom:10px;">
         ${GS_DETAIL_OPTIONS.map(o=>`
-          <div class="checkbox-row"><input type="checkbox" id="gs-col-${o.key}" ${GS_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleGsSetting('${o.key}', this.checked)"><label for="gs-col-${o.key}" style="font-weight:400;">${o.label}</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gs-d-${o.key}" ${GS_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleGsSetting('${o.key}', this.checked)"><label for="gs-d-${o.key}" style="font-weight:400;">${o.label}</label></div>
         `).join('')}
       </div>
       <div class="hint" style="margin-bottom:6px;">Choose which columns print on the gradesheet:</div>
       <div class="row-form" style="margin-top:0;margin-bottom:10px;">
         ${GS_COLUMN_OPTIONS.map(o=>`
-          <div class="checkbox-row"><input type="checkbox" id="gs-col-${o.key}" ${GS_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleGsSetting('${o.key}', this.checked)"><label for="gs-col-${o.key}" style="font-weight:400;">${o.label}</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gs-c-${o.key}" ${GS_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleGsSetting('${o.key}', this.checked)"><label for="gs-c-${o.key}" style="font-weight:400;">${o.label}</label></div>
         `).join('')}
       </div>
       <div class="hint" style="margin-bottom:6px;">Extra signature lines (printed between Examination In-charge and Head Teacher):</div>
       <div class="row-form" style="margin-top:0;margin-bottom:0;">
         ${GS_SIGNATURE_OPTIONS.map(o=>`
-          <div class="checkbox-row"><input type="checkbox" id="gs-col-${o.key}" ${GS_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleGsSetting('${o.key}', this.checked)"><label for="gs-col-${o.key}" style="font-weight:400;">${o.label}</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="gs-s-${o.key}" ${GS_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleGsSetting('${o.key}', this.checked)"><label for="gs-s-${o.key}" style="font-weight:400;">${o.label}</label></div>
         `).join('')}
       </div>
     </div>
@@ -4179,19 +4427,19 @@ function renderClassLedger(){
       <div class="hint" style="margin-bottom:6px;">Choose which details print in the ledger header:</div>
       <div class="row-form" style="margin-top:0;margin-bottom:10px;">
         ${CL_DETAIL_OPTIONS.map(o=>`
-          <div class="checkbox-row"><input type="checkbox" id="cl-col-${o.key}" ${CL_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleClSetting('${o.key}', this.checked)"><label for="cl-col-${o.key}" style="font-weight:400;">${o.label}</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="cl-d-${o.key}" ${CL_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleClSetting('${o.key}', this.checked)"><label for="cl-d-${o.key}" style="font-weight:400;">${o.label}</label></div>
         `).join('')}
       </div>
       <div class="hint" style="margin-bottom:6px;">Choose which columns print on the ledger:</div>
       <div class="row-form" style="margin-top:0;margin-bottom:10px;">
         ${CL_COLUMN_OPTIONS.map(o=>`
-          <div class="checkbox-row"><input type="checkbox" id="cl-col-${o.key}" ${CL_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleClSetting('${o.key}', this.checked)"><label for="cl-col-${o.key}" style="font-weight:400;">${o.label}</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="cl-c-${o.key}" ${CL_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleClSetting('${o.key}', this.checked)"><label for="cl-c-${o.key}" style="font-weight:400;">${o.label}</label></div>
         `).join('')}
       </div>
       <div class="hint" style="margin-bottom:6px;">Extra signature lines (printed between Exam Coordinator and Head Teacher):</div>
       <div class="row-form" style="margin-top:0;margin-bottom:0;">
         ${CL_SIGNATURE_OPTIONS.map(o=>`
-          <div class="checkbox-row"><input type="checkbox" id="cl-col-${o.key}" ${CL_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleClSetting('${o.key}', this.checked)"><label for="cl-col-${o.key}" style="font-weight:400;">${o.label}</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="cl-s-${o.key}" ${CL_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleClSetting('${o.key}', this.checked)"><label for="cl-s-${o.key}" style="font-weight:400;">${o.label}</label></div>
         `).join('')}
       </div>
       <div class="hint">Shows every student in the selected class as one row, with marks for every subject, so the whole class's result can be reviewed and signed off at once. For large classes the ledger flows across multiple pages, repeating the column headers on every page and never splitting a student's row. When a class has more subjects than the "Subjects per block" setting, the ledger breaks into stacked blocks instead of one very narrow table — each block repeats Roll No. and Student Name, and only the last block carries the totals/GPA/rank columns, so the sheet stays readable and fills out the full A3 page. Use the Print Scale control above the preview if a block still needs to be scaled down slightly so no column runs past the edge of the page.</div>
@@ -4636,7 +4884,7 @@ function renderMySubjects(){
   if(!teacherRec || !teacherRec.photo){
     ensurePersonPhoto('teachers', SESSION.teacherId, teacherRec).then(photo=>{
       if(photo && currentTab === 'my-subjects') renderMySubjects();
-    });
+    }).catch(e=>console.error('teacher photo fetch failed', e));
   }
 }
 
@@ -4676,6 +4924,7 @@ async function loadMarksEntryTable(){
   const myPerms = PERMS.filter(p=>p.teacherId===SESSION.teacherId);
   const perm = myPerms[Number(document.getElementById('em-perm').value)];
   const ex = EXAMS.find(e=>e.id===examId);
+  if(!perm || !ex){ document.getElementById('em-table-wrap').innerHTML = '<div class="empty">Select an exam and a subject permission.</div>'; return; }
   const cfg = (ex.subjectMarks && ex.subjectMarks[perm.subjectId]) || {theoryFull:100, theoryPass:35, practFull:0, practPass:0};
   const studs = sortStudentsByRollThenName(STRUCT.students.filter(s=>s.classId===perm.classId));
   const marksAll = await dbFetchMarksMap(examId, studs.map(s=>s.id));
@@ -4751,16 +5000,30 @@ async function saveMarksEntry(){
 }
 
 /* ================= STUDENT: MY RESULT ================= */
-function isExamPublished(ex){
-  if(!ex || !ex.resultDate) return true;
-  const pub = new Date(ex.resultDate + 'T' + (ex.resultTime || '00:00') + ':00');
-  return pub <= new Date();
+function isExamPublished(ex, studentClassId){
+  if(!ex) return false;
+  if(!ex.published) return false;
+  if(Array.isArray(ex.publishClasses) && ex.publishClasses.length && studentClassId){
+    if(!ex.publishClasses.includes(studentClassId)) return false;
+  }
+  if(!ex.publishFrom) {
+    if(!ex.resultDate) return true;
+    const pub = new Date(ex.resultDate + 'T' + (ex.resultTime || '00:00') + ':00');
+    return pub <= new Date();
+  }
+  const from = new Date(ex.publishFrom + 'T' + (ex.publishFromTime || '00:00') + ':00');
+  if (from > new Date()) return false;
+  if (ex.publishUntil) {
+    const until = new Date(ex.publishUntil + 'T' + (ex.publishUntilTime || '23:59') + ':00');
+    if (new Date() > until) return false;
+  }
+  return true;
 }
-// The exact publish moment as a Date, or null if the exam has no publish
-// schedule set (in which case it's treated as always-published, see above).
 function examPublishMoment(ex){
-  if(!ex || !ex.resultDate) return null;
-  return new Date(ex.resultDate + 'T' + (ex.resultTime || '00:00') + ':00');
+  if(!ex) return null;
+  if(ex.publishFrom) return new Date(ex.publishFrom + 'T' + (ex.publishFromTime || '00:00') + ':00');
+  if(ex.resultDate) return new Date(ex.resultDate + 'T' + (ex.resultTime || '00:00') + ':00');
+  return null;
 }
 // Renders one exam's "result not published yet" card with a live countdown.
 // Elements carry per-exam ids (cd-d/h/m/s-{examId}) so tickMyResultCountdowns()
@@ -4773,6 +5036,9 @@ function buildCountdownCardHTML(ex){
   const mins = Math.floor((diff % 3600000) / 60000);
   const secs = Math.floor((diff % 60000) / 1000);
   const pad = n => String(n).padStart(2,'0');
+  const pubFrom = ex.publishFrom || ex.resultDate || '';
+  const pubFromTime = ex.publishFromTime || ex.resultTime || '00:00';
+  const untilText = ex.publishUntil ? ` until <b>${formatDateLong(ex.publishUntil)}</b> at <b>${formatTime12(ex.publishUntilTime || '23:59')}</b>` : '';
   return `
     <div class="countdown-card" id="cd-card-${ex.id}">
       <div class="countdown-head">
@@ -4788,7 +5054,7 @@ function buildCountdownCardHTML(ex){
         <div class="countdown-unit"><div class="num" id="cd-m-${ex.id}">${pad(mins)}</div><div class="lbl">Minutes</div></div>
         <div class="countdown-unit"><div class="num" id="cd-s-${ex.id}">${pad(secs)}</div><div class="lbl">Seconds</div></div>
       </div>
-      <div class="countdown-exact">Results for <b>${ex.name}</b> will be published on <b>${formatDateLong(ex.resultDate)}</b> at <b>${formatTime12(ex.resultTime || '00:00')}</b>.</div>
+      <div class="countdown-exact">Results for <b>${ex.name}</b> will be published on <b>${formatDateLong(pubFrom)}</b> at <b>${formatTime12(pubFromTime)}</b>${untilText}.</div>
     </div>`;
 }
 // Called every second while the "My Result" tab is open and at least one
@@ -4797,7 +5063,20 @@ function buildCountdownCardHTML(ex){
 // triggers a full re-render so the newly-published result appears.
 function tickMyResultCountdowns(){
   if(!EXAMS || currentTab !== 'my-result') return;
-  const pending = EXAMS.filter(e => e.resultDate && !isExamPublished(e));
+  const now = new Date();
+  const student = STRUCT.students.find(s=>s.id===SESSION.studentId);
+  const studentClassId = student ? student.classId : null;
+  const pending = EXAMS.filter(e => {
+    if(!e.published) return false;
+    if(Array.isArray(e.publishClasses) && e.publishClasses.length && studentClassId){
+      if(!e.publishClasses.includes(studentClassId)) return false;
+    }
+    if(e.publishUntil){
+      const until = new Date(e.publishUntil + 'T' + (e.publishUntilTime || '23:59') + ':00');
+      if(now > until) return false;
+    }
+    return (e.publishFrom || e.resultDate) && !isExamPublished(e, studentClassId);
+  });
   if(!pending.length){
     if(myResultCountdownTimer){ clearInterval(myResultCountdownTimer); myResultCountdownTimer = null; }
     return;
@@ -4809,11 +5088,15 @@ function tickMyResultCountdowns(){
     const diff = target - new Date();
     if(diff <= 0){ anyJustPublished = true; return; }
     const dEl = document.getElementById('cd-d-'+ex.id);
-    if(!dEl) return; // card isn't on screen (shouldn't happen, but stay safe)
-    document.getElementById('cd-d-'+ex.id).textContent = pad(Math.floor(diff / 86400000));
-    document.getElementById('cd-h-'+ex.id).textContent = pad(Math.floor((diff % 86400000) / 3600000));
-    document.getElementById('cd-m-'+ex.id).textContent = pad(Math.floor((diff % 3600000) / 60000));
-    document.getElementById('cd-s-'+ex.id).textContent = pad(Math.floor((diff % 60000) / 1000));
+    if(!dEl) return;
+    const hEl = document.getElementById('cd-h-'+ex.id);
+    const mEl = document.getElementById('cd-m-'+ex.id);
+    const sEl = document.getElementById('cd-s-'+ex.id);
+    if(!hEl || !mEl || !sEl) return;
+    dEl.textContent = pad(Math.floor(diff / 86400000));
+    hEl.textContent = pad(Math.floor((diff % 86400000) / 3600000));
+    mEl.textContent = pad(Math.floor((diff % 3600000) / 60000));
+    sEl.textContent = pad(Math.floor((diff % 60000) / 1000));
   });
   if(anyJustPublished){
     if(myResultCountdownTimer){ clearInterval(myResultCountdownTimer); myResultCountdownTimer = null; }
@@ -4833,11 +5116,20 @@ async function renderMyResult(){
   // directly if it isn't cached yet, so it's there on the very first paint.
   await ensurePersonPhoto('students', student.id, student);
   if(myResultCountdownTimer){ clearInterval(myResultCountdownTimer); myResultCountdownTimer = null; }
-  const published = EXAMS.filter(isExamPublished);
-  // Exams with a publish schedule that hasn't arrived yet — shown as
-  // countdown cards so students know exactly when to check back.
-  const pending = EXAMS.filter(e => e.resultDate && !isExamPublished(e))
-    .sort((a,b) => examPublishMoment(a) - examPublishMoment(b));
+  const studentClassId = student.classId;
+  const now = new Date();
+  const pending = EXAMS.filter(e => {
+    if(!e.published) return false;
+    if(Array.isArray(e.publishClasses) && e.publishClasses.length && studentClassId){
+      if(!e.publishClasses.includes(studentClassId)) return false;
+    }
+    if(e.publishUntil){
+      const until = new Date(e.publishUntil + 'T' + (e.publishUntilTime || '23:59') + ':00');
+      if(now > until) return false;
+    }
+    return (e.publishFrom || e.resultDate) && !isExamPublished(e, studentClassId);
+  }).sort((a,b) => examPublishMoment(a) - examPublishMoment(b));
+  const published = EXAMS.filter(e => isExamPublished(e, studentClassId));
   const pendingHTML = pending.map(buildCountdownCardHTML).join('');
   let banner = '';
   if(student.mustChangePassword){
@@ -4894,13 +5186,25 @@ async function renderMyResult(){
 async function loadMyResult(){
   const examId = document.getElementById('mr-exam').value;
   const ex = EXAMS.find(e=>e.id===examId);
+  const isExpired = ex && ex.publishUntil ? new Date(ex.publishUntil + 'T' + (ex.publishUntilTime || '23:59') + ':00') < new Date() : false;
   const noteEl = document.getElementById('mr-publish-note');
   if(noteEl){
-    noteEl.innerHTML = (ex && ex.resultDate)
-      ? `<span class="pill pill-green">Published</span> This result went live on <b>${formatDateLong(ex.resultDate)}</b> at <b>${formatTime12(ex.resultTime || '00:00')}</b>.`
-      : '';
+    if(ex && (ex.publishFrom || ex.resultDate)){
+      const pubFrom = ex.publishFrom || ex.resultDate || '';
+      const pubFromTime = ex.publishFromTime || ex.resultTime || '00:00';
+      const untilText = ex.publishUntil ? ` until <b>${formatDateLong(ex.publishUntil)}</b> at <b>${formatTime12(ex.publishUntilTime || '23:59')}</b>` : '';
+      noteEl.innerHTML = isExpired
+        ? `<span class="pill pill-red">Expired</span> The viewing window for this result ended on <b>${formatDateLong(ex.publishUntil)}</b> at <b>${formatTime12(ex.publishUntilTime || '23:59')}</b>.`
+        : `<span class="pill pill-green">Published</span> This result went live on <b>${formatDateLong(pubFrom)}</b> at <b>${formatTime12(pubFromTime)}</b>${untilText}.`;
+    } else {
+      noteEl.innerHTML = '';
+    }
   }
   const wrap = document.getElementById('mr-area');
+  if(isExpired){
+    wrap.innerHTML = '<div class="empty"><b>Result not available</b>The viewing window for this result has ended.</div>';
+    return;
+  }
   wrap.innerHTML = '<div class="empty">Loading…</div>';
   const html = await buildGradesheetHTML(examId, SESSION.studentId);
   wrap.innerHTML = html;

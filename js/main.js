@@ -1,137 +1,70 @@
-var DEFAULT_TEACHERS = [
-  { name:'Arjun Prashad Sharma Dhakal', subject:'G5 - Primary', qualification:'Intermediate or +2', photo_url:'assets/images/Teachers/Arjun Prasad Dhakal.webp' },
-  { name:'Gayatri Acharya Regmi', subject:'G12 - Primary', qualification:'Bachelors', photo_url:'assets/images/Teachers/Gayatrai.webp' },
-  { name:'Kalpana Bhattarai', subject:'ECD', qualification:'Intermediate or +2', photo_url:'assets/images/Teachers/Kalpana Bhattrai.webp' },
-  { name:'Shreedhar Gautam', subject:'English (G1-G12)', qualification:'Bachelors', photo_url:'assets/images/Teachers/Shreedhar Gautam.webp' },
-  { name:'Maniram Gautam', subject:'Mathematics (G10)', qualification:'Masters', photo_url:'assets/images/Teachers/Man ram Gautam.webp' },
-  { name:'Amrita Parajuli', subject:'G11 - Primary', qualification:'Bachelors', photo_url:'assets/images/Teachers/Amrita Parajuli.webp' },
-  { name:'Dhan Bahadur Kala', subject:'Mathematics (G4-G6)', qualification:'Intermediate or +2', photo_url:'assets/images/Teachers/Dhan Bahadur Kala.webp' },
-  { name:'Homnath Pokhrel', subject:'English (G10)', qualification:'Bachelors', photo_url:'assets/images/Teachers/Homnath Pokheral.webp' },
-  { name:'Harikala Nepali', subject:'G1-G12 - Primary', qualification:'Bachelors', photo_url:'assets/images/Teachers/Harikala Nepali.webp' },
-  { name:'Er. Amit Rajbanshi', subject:'Computer Science (G12)', qualification:'Masters', photo_url:'assets/images/Teachers/Er. Amit Rajbanshi.webp' },
-  { name:'Keshav Raj Dhakal', subject:'Science (G12)', qualification:'Masters', photo_url:'assets/images/Teachers/Keshab Raj DHakal.webp' },
-  { name:'Bhojraj Dhakal', subject:'G1-G12 - Primary', qualification:'Intermediate or +2', photo_url:'assets/images/Teachers/Bhojraj Dhakal.webp' },
-  { name:'Devi Kumari Thapa', subject:'Nepali (G10)', qualification:'Masters', photo_url:'assets/images/Teachers/Devi KUmari Thapa.webp' },
-  { name:'Santosh Basnet', subject:'Science (G12)', qualification:'Masters', photo_url:'assets/images/Teachers/Santosh Basnet.webp' },
-  { name:'Man Bahadur Thapa', subject:'Humanities (G10-G12)', qualification:'Masters', photo_url:'assets/images/Teachers/Man Bahadur Thapa.webp' },
-  { name:'Surendra Prasad Poudel', subject:'English (G1-G12)', qualification:'Masters', photo_url:'assets/images/Teachers/Surendra kumar Paudel.webp' },
-  { name:'Denim Kumar Ale', subject:'Computer Science (G7, G9-G10)', qualification:'Intermediate or +2', photo_url:'assets/images/Teachers/Danim Kumar Ale.webp' },
-  { name:'Shristi Bhandari', subject:'Computer Tech. (G3, G5)', qualification:'Intermediate or +2', photo_url:'assets/images/Teachers/Shristi Bhandari.webp' },
-  { name:'Chitra Bahadur Tharu', subject:'Mathematics (G10-G12)', qualification:'Masters', photo_url:'assets/images/Teachers/Chitra Bahadur Tharu.webp' },
-  { name:'Chhabilal Bhandari', subject:'G10 - Science', qualification:'Bachelors', photo_url:'assets/images/Teachers/Chhabilal Bhandari.webp' },
-  { name:'Kalpana Bhandari', subject:'ECD', qualification:'Intermediate or +2', photo_url:'assets/images/Teachers/Kalpana Bhattrai.webp' },
-  { name:'Hem Raj Timilsina', subject:'Nepali (G12)', qualification:'Bachelors', photo_url:'assets/images/Teachers/Hemraj Timilsina.webp' },
-  { name:'Mahesh Paudel', subject:'Nepali (G1-G12)', qualification:'Masters', photo_url:'assets/images/Teachers/Mahesh Paudel.webp' },
-  { name:'Indira Pulami', subject:'G6-G7 - Primary', qualification:'Bachelors', photo_url:'assets/images/Teachers/Indra Pulami.webp' },
-  { name:'Er. Prem Shankar Singh', subject:'Computer Tech. (G1-G12)', qualification:'Bachelors', photo_url:'assets/images/Teachers/Prem Shankar Singh.webp' },
-  { name:'Er. Sarthak Aryal', subject:'Computer Tech. (G1-G12)', qualification:'Bachelors', photo_url:'assets/images/Teachers/Er. Sarthak Aryal.webp' },
-  { name:'Chemkali Kala Shrees', subject:'G1-G12 - Primary', qualification:'Intermediate or +2', photo_url:'assets/images/Teachers/Chemkala Kala Shiris.webp' },
-  { name:'Dhanesh Kumar Barai', subject:'Science (G3-G5)', qualification:'Masters', photo_url:'assets/images/Teachers/Ramesh Barai.webp' },
-  { name:'Er. Sunil Ram Luhar', subject:'Computer Science (G1-G12)', qualification:'Bachelors', photo_url:'assets/images/Teachers/Er. Sunil Ram Luhar.webp' },
-  { name:'Manisha Sunar', subject:'G1-G12 - Primary', qualification:'Intermediate or +2', photo_url:'assets/images/Teachers/Manisha Sunar.webp' }
-];
-
-var DEFAULT_STAFF = [
-  { name:'Nawaraj Dhakal', position:'Support Staff (Peon)', photo_url:'assets/images/Staff/Nawaraj Dhakal.webp' },
-  { name:'Manju Archarya', position:'Support Staff (Peon)', photo_url:'assets/images/Staff/Manju Archarya.webp' },
-  { name:'Bishnu Bhandari', position:'Accountant', photo_url:'assets/images/Staff/Bishnu Bhandari.webp' },
-  { name:'Laxmi BK', position:'Support Staff (Sweeper)', photo_url:'assets/images/Staff/Laxmi Bk.webp' }
-];
-
-var DEFAULT_GALLERY = [
-  { src:"assets/images/Farewell SLC 2082/IMG-20260424-WA0144.webp", category:"graduation", caption:"Farewell SLC 2082" },
-  { src:"assets/images/Farewell SLC 2082/IMG-20260424-WA0145.webp", category:"graduation", caption:"Farewell SLC 2082" },
-  { src:"assets/images/Farewell SLC 2082/IMG-20260424-WA0147.webp", category:"graduation", caption:"Farewell SLC 2082" },
-  { src:"assets/images/Farewell SLC 2082/IMG-20260424-WA0150.webp", category:"graduation", caption:"Farewell SLC 2082" },
-  { src:"assets/images/Farewell SLC 2082/IMG-20260424-WA0151.webp", category:"graduation", caption:"Farewell SLC 2082" },
-  { src:"assets/images/Farewell SLC 2082/IMG-20260424-WA0153.webp", category:"graduation", caption:"Farewell SLC 2082" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0005(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0006(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0007(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0008(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0009(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0010(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0011(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0012(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0013(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0014(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0015(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0016(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0017(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0018(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0019(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0020(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0021(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0022(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0023(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0024(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0025(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/General Farewell SEE 2082/IMG-20260325-WA0026(1).webp", category:"events", caption:"Farewell SEE 2082 (General)" },
-  { src:"assets/images/Lab/IMG20240626090858.webp", category:"lab", caption:"Lab & Technical" },
-  { src:"assets/images/Lab/IMG20240628151550.webp", category:"lab", caption:"Lab & Technical" },
-  { src:"assets/images/Lab/IMG20240628151556.webp", category:"lab", caption:"Lab & Technical" },
-  { src:"assets/images/Lab/IMG20240628155138.webp", category:"lab", caption:"Lab & Technical" },
-  { src:"assets/images/Lab/IMG20240628155206.webp", category:"lab", caption:"Lab & Technical" },
-  { src:"assets/images/Lab/IMG20240628155233.webp", category:"lab", caption:"Lab & Technical" },
-  { src:"assets/images/Lab/IMG20240628155258.webp", category:"lab", caption:"Lab & Technical" },
-  { src:"assets/images/Lab/smartboard.webp", category:"lab", caption:"Lab & Technical" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161434.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161545.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161620.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161710.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161711.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161732.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161802.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161805.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161819.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161822.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161913.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325161920.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/IMG20260325162331.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/SEE English Teacher.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Technical Farewell SEE 2082/SEE Nepali Teacher.webp", category:"graduation", caption:"Farewell SEE 2082 (Technical)" },
-  { src:"assets/images/Trip/IMG-20241209-WA0028.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/IMG-20241209-WA0030.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/IMG-20241209-WA0041.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/IMG-20241209-WA0049.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/IMG-20241209-WA0073.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/IMG-20241209-WA0213.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/IMG-20241209-WA0229.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/IMG-20241209-WA0246.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/IMG20241208135820.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/Trip 2081.webp", category:"trip", caption:"School Trip 2081" },
-  { src:"assets/images/Trip/Trip image 2081.webp", category:"trip", caption:"School Trip 2081" }
-];
-
 var App = {
   currentSlide: 0,
   slideInterval: null,
   countersStarted: false,
+  _loaded: {},
+  _settings: null,
 
   async init() {
     try {
-      await this.renderHeader();
       this.renderSplitHero();
-      await this.renderAbout();
-      await this.renderStats();
-      await this.renderNotices();
-      this.renderAnnualPlan();
-      await this.renderPrograms();
-      await this.renderTeachers();
-      await this.renderStaff();
-      await this.renderGallery();
-      await this.renderEvents();
-      await this.renderTestimonials();
-      await this.renderFooter();
       this.setupNavigation();
       this.setupAdmissionForm();
       this.setupScrollReveal();
       this.setupHeaderScroll();
       this.setupParallax();
       document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+      const settings = await DataStore.get('SETTINGS');
+      this._settings = settings || {};
+      await this.renderHeader();
+      await this.renderFooter();
+
+      const sections = [
+        { id: 'about', el: 'about', render: 'renderAbout' },
+        { id: 'stats', el: 'stats', render: 'renderStats' },
+        { id: 'notices', el: 'notices', render: 'renderNotices' },
+        { id: 'programs', el: 'programs', render: 'renderPrograms' },
+        { id: 'teachers', el: 'teachers', render: 'renderTeachers' },
+        { id: 'staff', el: 'staff', render: 'renderStaff' },
+        { id: 'gallery', el: 'gallery', render: 'renderGallery' },
+        { id: 'events', el: 'events', render: 'renderEvents' },
+        { id: 'testimonials', el: 'testimonials', render: 'renderTestimonials' },
+      ];
+
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced || !('IntersectionObserver' in window)) {
+        for (const sec of sections) {
+          await this[sec.render]();
+        }
+      } else {
+        this._lazyLoadSections(sections);
+      }
     } catch (e) {
       console.error('Error initializing app:', e);
     }
+  },
+
+  _lazyLoadSections(sections) {
+    const io = new IntersectionObserver(async (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.id;
+          if (this._loaded[sectionId]) { io.unobserve(entry.target); continue; }
+          this._loaded[sectionId] = true;
+          io.unobserve(entry.target);
+          const sec = sections.find(s => s.el === sectionId || s.id === sectionId);
+          if (sec) {
+            try { await this[sec.render](); } catch (e) { console.error('Error loading ' + sec.render, e); }
+          }
+        }
+      }
+    }, { threshold: 0.05, rootMargin: '0px 0px 200px 0px' });
+
+    sections.forEach(sec => {
+      const el = document.getElementById(sec.el) || document.querySelector('[data-section="' + sec.el + '"]');
+      if (el) io.observe(el);
+    });
   },
 
   setupScrollReveal() {
@@ -149,11 +82,6 @@ var App = {
       });
     }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
     document.querySelectorAll('[data-reveal]').forEach(function (el) { io.observe(el); });
-    // Also reveal gallery items, teacher cards, staff cards on scroll
-    document.querySelectorAll('.gallery-item, .teacher-card, .staff-card, .program-card').forEach(function (el) {
-      el.setAttribute('data-reveal', '');
-      io.observe(el);
-    });
   },
 
   setupParallax() {
@@ -164,10 +92,10 @@ var App = {
     var currentIndex = 0;
 
     function cycleSlides() {
-      var next = (currentIndex + 1) % slides.length;
-      slides[next].classList.add('active');
       var prev = slides[currentIndex];
-      setTimeout(function () { prev.classList.remove('active'); }, 100);
+      var next = (currentIndex + 1) % slides.length;
+      prev.classList.remove('active');
+      slides[next].classList.add('active');
       currentIndex = next;
     }
     setInterval(cycleSlides, 5000);
@@ -216,20 +144,19 @@ var App = {
     container.innerHTML = html;
   },
 
-
-  renderHeader() { return DataStore.get('SETTINGS').then(function (settings) {
-    settings = settings || {};
+  renderHeader() {
+    var settings = this._settings || {};
     var logoEl = document.getElementById('schoolLogo');
     if (logoEl) logoEl.src = settings.logo || 'assets/images/School circular logo.webp';
     var nameEl = document.getElementById('schoolName');
     if (nameEl) nameEl.textContent = settings.schoolName || 'Shree Saraswati Secondary School';
     var taglineEl = document.getElementById('schoolTagline');
     if (taglineEl) taglineEl.textContent = settings.tagline || '\u0936\u093f\u0915\u094d\u0937\u093e \u0928\u0948 \u0938\u0936\u0915\u094d\u0924\u093f\u0915\u0930\u0923';
-  }); },
+  },
 
-  renderAbout() { return Promise.all([DataStore.get('ABOUT'), DataStore.get('SETTINGS')]).then(function (results) {
-    var about = results[0] || {};
-    var settings = results[1] || {};
+  renderAbout() { return DataStore.get('ABOUT').then(function (about) {
+    about = about || {};
+    var settings = App._settings || {};
     var estEl = document.getElementById('establishedDate');
     if (estEl) estEl.textContent = settings.established || '2016 Bhadra 16';
     var histEl = document.getElementById('aboutHistory');
@@ -316,7 +243,8 @@ var App = {
         '<span class="nbadge ' + (n.priority || 'normal') + '">' + (n.priority || 'normal') + '</span>' +
         '</div>';
     }).join('');
-  }); },
+    this.renderAnnualPlan();
+  }.bind(this)); },
 
   toggleAllNotices() {
     DataStore.get('NOTICES').then(function (notices) {
@@ -338,14 +266,13 @@ var App = {
   },
 
   renderAnnualPlan() {
-    var left = document.getElementById('nbLeft');
-    var right = document.getElementById('nbRight');
-    if (!left || !right) return;
+    var planEl = document.getElementById('annualPlan');
+    var calEl = document.getElementById('nepaliCal');
+    if (!planEl || !calEl) return;
     var bs = bsDateFromAd(new Date());
-    left.innerHTML =
+    planEl.innerHTML =
       '<div class="yp-header"><h3 class="yp-title">Annual Work Plan 2083</h3><div class="month-picker" id="monthPicker"></div></div>' +
       '<div class="yp-body" id="ypBody"></div>';
-    right.innerHTML = '<div class="nepali-cal" id="nepaliCal"></div>';
     var picker = document.getElementById('monthPicker');
     picker.innerHTML = MONTH_ORDER.map(function (m, i) {
       return '<button class="mon-btn" data-month="' + m + '" data-idx="' + i + '">' + m + '</button>';
@@ -379,7 +306,7 @@ var App = {
       var isHoliday = /vacation|holiday/i.test(a.activity);
       var parts = a.date.match(/(\d+)/g);
       if (!parts) return;
-      if (a.date.indexOf('–') > -1) {
+      if (a.date.indexOf('\u2013') > -1) {
         var from = parseInt(parts[0]), to = parseInt(parts[1] || parts[0]);
         for (var d = from; d <= to; d++) {
           if (isHoliday) holidays[d] = true;
@@ -425,7 +352,7 @@ var App = {
       else if (/competition|contest|speech|quiz|dance|spelling|race|drawing|handwriting|essay/i.test(act)) cls += ' yp-event';
       else if (/meeting|staff/i.test(act)) cls += ' yp-meeting';
       else cls += ' yp-regular';
-      return '<div class="' + cls + '"><span class="yp-date">' + a.date + '</span><div class="yp-body-inner"><span class="yp-activity">' + act + '</span>' + (a.responsible && a.responsible !== '—' ? '<span class="yp-meta">' + a.responsible + '</span>' : '') + '</div></div>';
+      return '<div class="' + cls + '"><span class="yp-date">' + a.date + '</span><div class="yp-body-inner"><span class="yp-activity">' + act + '</span>' + (a.responsible && a.responsible !== '\u2014' ? '<span class="yp-meta">' + a.responsible + '</span>' : '') + '</div></div>';
     }).join('');
   },
 
@@ -435,9 +362,9 @@ var App = {
     var technical = programs.filter(function (p) { return p.type === 'technical' && p.visible !== false; });
     var container = document.getElementById('programsContent');
     if (!container) return;
-    container.innerHTML = '<div class="programs-content active" id="programsGeneral"><div class="program-banner"><img src="assets/images/General%20Block.webp" alt="General Block"><div class="program-banner-text"><h3>General Block</h3><p>ECD to Grade 12 &mdash; Comprehensive education</p></div></div><div class="programs-grid">' + general.map(function (p) {
+    container.innerHTML = '<div class="programs-content active" id="programsGeneral"><div class="program-banner"><img src="assets/images/General%20Block.webp" alt="General Block" loading="lazy"><div class="program-banner-text"><h3>General Block</h3><p>ECD to Grade 12 \u2014 Comprehensive education</p></div></div><div class="programs-grid">' + general.map(function (p) {
       return '<div class="program-card"><h4>' + (p.name || '') + '</h4><p>' + (p.description || '') + '</p></div>';
-    }).join('') + '</div></div><div class="programs-content" id="programsTechnical"><div class="program-banner"><img src="assets/images/Technical%20Block.webp" alt="Technical Block"><div class="program-banner-text"><h3>Technical Block</h3><p>Computer Engineering Program (Grade 9-12)</p></div></div><div class="programs-grid">' + technical.map(function (p) {
+    }).join('') + '</div></div><div class="programs-content" id="programsTechnical"><div class="program-banner"><img src="assets/images/Technical%20Block.webp" alt="Technical Block" loading="lazy"><div class="program-banner-text"><h3>Technical Block</h3><p>Computer Engineering Program (Grade 9-12)</p></div></div><div class="programs-grid">' + technical.map(function (p) {
       return '<div class="program-card"><h4>' + (p.name || '') + '</h4><p>' + (p.description || '') + '</p></div>';
     }).join('') + '</div></div>';
     document.querySelectorAll('.tab-btn').forEach(function (btn) {
@@ -453,7 +380,7 @@ var App = {
 
   renderTeachers() { return DataStore.get('TEACHERS').then(function (teachers) {
     teachers = teachers || [];
-    if (!teachers.length) teachers = DEFAULT_TEACHERS;
+    if (!teachers.length) teachers = typeof teacherData !== 'undefined' ? teacherData : [];
     var container = document.getElementById('teachersGrid');
     if (!container) return;
     container.innerHTML = teachers.map(function (t) {
@@ -465,7 +392,7 @@ var App = {
 
   renderStaff() { return DataStore.get('STAFF').then(function (staff) {
     staff = staff || [];
-    if (!staff.length) staff = DEFAULT_STAFF;
+    if (!staff.length) staff = typeof staffData !== 'undefined' ? staffData : [];
     var container = document.getElementById('staffGrid');
     if (!container) return;
     container.innerHTML = staff.map(function (s) {
@@ -484,7 +411,6 @@ var App = {
 
   renderGallery() { return DataStore.get('GALLERY').then(function (gallery) {
     gallery = gallery || [];
-    if (!gallery.length) gallery = DEFAULT_GALLERY;
     var container = document.getElementById('galleryGrid');
     if (!container) return;
     this.galleryAllImages = gallery;
@@ -508,7 +434,8 @@ var App = {
   renderGalleryMarquee(images) {
     var container = document.getElementById('galleryMarquee');
     if (!container || !images || !images.length) return;
-    var doubled = images.concat(images);
+    var shown = images.slice(0, 10);
+    var doubled = shown.concat(shown);
     container.innerHTML = '<div class="gmarquee-track">' + doubled.map(function (img) {
       var src = img.src || img.image_url || '';
       return '<img src="' + src + '" alt="' + (img.caption || '') + '" loading="lazy">';
@@ -555,8 +482,8 @@ var App = {
     }
   }); },
 
-  renderFooter() { return DataStore.get('SETTINGS').then(function (settings) {
-    settings = settings || {};
+  renderFooter() {
+    var settings = this._settings || {};
     var flEl = document.getElementById('footerLogo');
     if (flEl) flEl.src = settings.logo || 'assets/images/School circular logo.webp';
     var fnEl = document.getElementById('footerSchoolName');
@@ -569,7 +496,7 @@ var App = {
     if (fpEl) fpEl.textContent = settings.phone || '+977-9857062876';
     var feEl = document.getElementById('footerEmail');
     if (feEl) feEl.textContent = settings.email || 'infosaraswatimavijohang@gmail.com';
-  }); },
+  },
 
   setupNavigation() {
     document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
@@ -588,11 +515,12 @@ var App = {
     var navMenu = document.getElementById('navMenu');
     if (menuToggle) menuToggle.addEventListener('click', function () {
       navMenu.classList.toggle('open');
+      var expanded = navMenu.classList.contains('open');
+      menuToggle.setAttribute('aria-expanded', expanded);
     });
     if (navMenu) navMenu.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') navMenu.classList.remove('open');
     });
-    // Close mobile menu on click outside
     document.addEventListener('click', function (e) {
       if (navMenu && navMenu.classList.contains('open') && !e.target.closest('.header-container')) {
         navMenu.classList.remove('open');
@@ -660,7 +588,6 @@ var App = {
       window.scrollTo({ top: form.offsetTop - 80, behavior: 'smooth' });
     }
 
-    // Inline validation on blur
     form.querySelectorAll('input, select, textarea').forEach(function (el) {
       el.addEventListener('blur', function () { validateField(el); });
       el.addEventListener('input', function () { clearFieldError(el); });
@@ -713,7 +640,7 @@ var App = {
           birthCertificate: files[1],
           bleCertificate: files[2]
         };
-        try { await supabase.insert('admissions', application); } catch(err) {
+        try { await supabase.insert('admissions', application, { returnColumns: ['id'] }); } catch(err) {
           var existing = JSON.parse(localStorage.getItem('sss_admissions') || '[]');
           existing.push(application);
           localStorage.setItem('sss_admissions', JSON.stringify(existing));
