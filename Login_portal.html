@@ -6221,23 +6221,21 @@ function renderClassFeeRows(){
   /* Student fee status — always shown */
   var students = sortStudentsByRollThenName(STRUCT.students.filter(function(s){ return s.classId === classId; }));
   if(students.length){
-    html += '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">Student Fee Status <span style="font-size:11px;color:var(--ink-soft);font-weight:400;">— monthly details shown below</span></div>';
+    html += '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">Student Fee Status</div>';
+    html += '<table class="fee-table"><thead><tr><th>Roll</th><th>Student</th><th>Total Fee (Rs)</th><th>Paid (Rs)</th><th>Balance (Rs)</th><th></th></tr></thead><tbody>';
     students.forEach(function(s){
       var totalF = studentTotalFees(s.id, classId);
       var paidF = studentTotalPaid(s.id);
-      var net = getDiscountedAmount(s.id, classId);
-      var bal = net - paidF;
+      var bal = totalF - paidF;
       var balClass = bal > 0 ? 'style="color:#d32f2f;font-weight:600;"' : 'style="color:#2e7d32;font-weight:600;"';
-      html += '<table class="fee-table" style="margin-bottom:8px;"><thead><tr><th>Roll</th><th>Student</th><th>Total Fee (Rs)</th><th>Paid (Rs)</th><th>Balance (Rs)</th><th>Status</th></tr></thead><tbody>';
       html += '<tr><td>' + (s.roll || '—') + '</td><td>' + esc(s.name) + '</td>';
       html += '<td>Rs ' + Number(totalF).toLocaleString() + '</td>';
       html += '<td>Rs ' + Number(paidF).toLocaleString() + '</td>';
       html += '<td ' + balClass + '>Rs ' + Number(bal).toLocaleString() + '</td>';
-      html += '<td style="font-weight:600;color:' + (bal > 0 ? '#d32f2f' : '#2e7d32') + ';">' + (bal > 0 ? 'Due' : 'Cleared') + '</td></tr>';
-      html += '</tbody></table>';
-      html += feeDetailHtml(s.id, classId);
-      html += '<div style="height:10px;"></div>';
+      html += '<td><button class="btn btn-sm" style="border:1px solid var(--teal);color:var(--teal);background:transparent;border-radius:3px;padding:2px 8px;font-size:11px;cursor:pointer;" onclick="toggleFeeDetail(\'' + s.id + '\',\'' + classId + '\')">Details</button></td></tr>';
+      html += '<tr id="fd-row-' + s.id + '" style="display:none;"><td colspan="6" style="padding:8px;background:#f9fafb;">' + feeDetailHtml(s.id, classId) + '</td></tr>';
     });
+    html += '</tbody></table>';
     if(!schoolFees.length && !classFees.length){
       html += '<div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">No fee heads configured — all amounts are zero. Add fee heads above.</div>';
     }
@@ -6762,11 +6760,6 @@ function printClassLedger(classId){
     html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;font-weight:600;color:' + statusColor + ';">' + Number(bal).toLocaleString() + '</td>';
     html += '<td style="padding:5px;border:1px solid #ccc;text-align:center;font-weight:600;color:' + statusColor + ';">' + status + '</td>';
     html += '</tr>';
-    /* Monthly detail row */
-    html += '<tr style="page-break-inside:avoid;"><td colspan="9" style="padding:0 5px 10px 5px;">';
-    html += '<div style="font-size:9px;color:#666;margin-bottom:4px;">Monthly Fee Detail — ' + esc(s.name) + ':</div>';
-    html += feeDetailHtml(s.id, classId);
-    html += '</td></tr>';
   });
 
   /* Totals row */
