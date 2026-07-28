@@ -907,7 +907,7 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 .id-card .id-footer .id-valid{opacity:.6;}
 .id-card .id-footer .id-sig{text-align:right;}
 .id-card .id-footer .id-sig img{max-width:70px;max-height:20px;object-fit:contain;display:block;margin-left:auto;}
-.id-card .id-footer .id-sig span{font-size:8px;color:#999;border-top:1px solid #ccc;padding-top:2px;display:inline-block;line-height:1;}
+.id-card .id-footer .id-sig .id-sig-placeholder{border-top:1px solid #ccc;padding-top:2px;display:inline-block;width:60px;}
 .id-card .id-bar{height:3px;width:100%;flex-shrink:0;}
 .id-card.id-student{background:#fff;}
 .id-card.id-student .id-top{background:linear-gradient(180deg,oklch(0.72 0.13 85/0.12),transparent 80%);}
@@ -7308,8 +7308,8 @@ window.printAdmitCards = printAdmitCards;
 var ID_SIG = null;
 
 function idCardSignatureHtml(){
-  if(ID_SIG) return '<img src="' + ID_SIG + '" style="height:18px;display:block;margin:0 auto;">';
-  return '<span style="font-size:8px;color:#999;border-top:1px solid #ccc;padding-top:2px;display:inline-block;line-height:1;">Head Teacher</span>';
+  var img = ID_SIG ? '<img src="' + ID_SIG + '" style="height:18px;display:block;margin:0 auto;">' : '<span class="id-sig-placeholder"></span>';
+  return img + '<span style="display:block;font-size:7px;color:#999;margin-top:1px;line-height:1.2;">Head Teacher</span>';
 }
 
 function loadIdSig(){
