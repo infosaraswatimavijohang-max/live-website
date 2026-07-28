@@ -848,6 +848,38 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 .bill-print-area td{padding:5px 6px;border-bottom:1px solid var(--line);}
 .bill-print-area .total-row td{font-weight:700;border-top:2px solid var(--navy-deep);border-bottom:2px solid var(--navy-deep);}
 .bill-print-area .footer-note{text-align:center;font-size:9.5px;color:var(--ink-soft);margin-top:12px;border-top:1px dashed var(--line);padding-top:8px;}
+
+/* Admit card */
+.admit-card-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px;}
+.admit-card-controls .field{flex:1;min-width:180px;}
+.admit-card-controls .field label{display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;}
+.admit-card-controls .field select,.admit-card-controls .field input{width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;}
+.admit-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;}
+.admit-card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:16px;position:relative;break-inside:avoid;}
+.admit-card .header{text-align:center;border-bottom:2px solid var(--navy-deep);padding-bottom:8px;margin-bottom:10px;}
+.admit-card .header .school-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--navy-deep);}
+.admit-card .header .exam-title{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.admit-card .header .exam-dates{font-size:10px;color:var(--gold);margin-top:1px;}
+.admit-card .body{display:flex;gap:12px;}
+.admit-card .photo{width:70px;height:80px;flex-shrink:0;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--paper);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ink-soft);}
+.admit-card .photo img{width:100%;height:100%;object-fit:cover;}
+.admit-card .info{flex:1;font-size:12px;line-height:1.6;}
+.admit-card .info .row{display:flex;}
+.admit-card .info .label{color:var(--ink-soft);width:75px;flex-shrink:0;}
+.admit-card .info .value{color:var(--ink);font-weight:500;}
+.admit-card .subjects{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px;}
+.admit-card .subjects .title{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:4px;}
+.admit-card .subjects .subj-cols{display:flex;gap:8px;}
+.admit-card .subjects .subj-col{flex:1;min-width:0;}
+.admit-card .subjects table{width:100%;border-collapse:collapse;font-size:11px;}
+.admit-card .subjects th{text-align:left;padding:3px 6px;background:var(--paper);color:var(--navy);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1.5px solid var(--line);}
+.admit-card .subjects td{padding:3px 6px;border-bottom:1px solid var(--line);color:var(--ink);}
+.admit-card .subjects tr:last-child td{border-bottom:none;}
+.admit-card .subjects .code{color:var(--ink-soft);font-family:var(--font-mono);font-size:10px;}
+.admit-card .signature{margin-top:10px;padding-top:6px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:10px;color:var(--ink-soft);}
+.admit-card .signature span{text-align:center;}
+.admit-card .badge{position:absolute;top:8px;right:8px;background:var(--navy-deep);color:#fff;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;}
+@media print{.admit-card-grid{display:block;}.admit-card{page-break-after:always;border:none;border-radius:0;padding:20px;box-shadow:none;}}
 </style>
 <!-- The @page rule that controls print orientation/margins is set dynamically
      by JS (see setPrintPage() in the router) depending on which document
@@ -893,7 +925,7 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 
       <div class="field">
         <label>Username</label>
-        <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username">
+        <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username" autofocus>
       </div>
       <div class="field">
         <label>Password</label>
@@ -2053,6 +2085,7 @@ async function handleLogin(){
     if(teacher.password === p){
       SESSION = { role:'teacher', teacherId:teacher.id, name:teacher.name, username:u };
       enterApp();
+      if(teacher.mustChangePassword) setTimeout(openChangePasswordModal, 150);
       return;
     }
     errEl.textContent = 'Incorrect password. If you changed your password recently, make sure you\'re using the new one — not an old password.';
@@ -2063,6 +2096,7 @@ async function handleLogin(){
     if(student.password === p){
       SESSION = { role:'student', studentId:student.id, name:student.name, username:student.username };
       enterApp();
+      if(student.mustChangePassword) setTimeout(openChangePasswordModal, 150);
       return;
     }
     errEl.textContent = 'Incorrect password. If you changed your password recently, make sure you\'re using the new one — not an old password.';
@@ -2092,21 +2126,27 @@ function openChangePasswordModal(){
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-overlay" id="cp-overlay">
       <div class="modal">
-        <h3>Change Password</h3>
-        <div class="hint" style="margin-bottom:14px;">Updating password for account <b class="mono">${usernameLabel}</b></div>
-        ${isFirstTime ? `<div class="hint" style="margin-bottom:14px;color:var(--gold);">You're using the default password (${SESSION.role === 'student' ? 'your roll number' : 'your first name'}). We recommend setting a new one now.</div>` : ''}
+        <h3>${isFirstTime ? 'Set Up Your Account' : 'Change Password'}</h3>
+        <div class="hint" style="margin-bottom:14px;">${isFirstTime ? 'This is your first login. Please set a new username and password to continue.' : 'Updating password for account <b class="mono">' + usernameLabel + '</b>'}</div>
+        ${isFirstTime ? `
+          <div class="field">
+            <label>New Username</label>
+            <input type="text" id="cp-username" value="${esc(usernameLabel)}" placeholder="Choose a new username" autocomplete="username">
+          </div>
+        ` : ''}
         <div class="field"><label>Current password</label><input type="password" id="cp-current" autocomplete="current-password"></div>
         <div class="field"><label>New password</label><input type="password" id="cp-new" autocomplete="new-password"></div>
         <div class="field"><label>Confirm new password</label><input type="password" id="cp-confirm" autocomplete="new-password"></div>
         <div class="login-error" id="cp-error"></div>
         <div class="loader-slider" id="cp-loader"></div>
         <div class="modal-actions">
-          <button class="btn btn-outline" id="cp-cancel-btn" onclick="closeChangePasswordModal()">Cancel</button>
-          <button class="btn btn-navy" id="cp-submit-btn" onclick="submitChangePassword()">Update Password</button>
+          ${isFirstTime ? '' : '<button class="btn btn-outline" id="cp-cancel-btn" onclick="closeChangePasswordModal()">Cancel</button>'}
+          <button class="btn btn-navy" id="cp-submit-btn" onclick="submitChangePassword()">${isFirstTime ? 'Save & Continue' : 'Update Password'}</button>
         </div>
       </div>
     </div>
   `;
+  if(isFirstTime) document.getElementById('cp-username').focus();
 }
 function closeChangePasswordModal(){
   document.getElementById('modal-root').innerHTML = '';
@@ -2115,6 +2155,8 @@ async function submitChangePassword(){
   const current = document.getElementById('cp-current').value;
   const next = document.getElementById('cp-new').value;
   const confirmPwd = document.getElementById('cp-confirm').value;
+  const newUsernameEl = document.getElementById('cp-username');
+  const newUsername = newUsernameEl ? newUsernameEl.value.trim() : null;
   const errEl = document.getElementById('cp-error');
   errEl.textContent = '';
 
@@ -2126,56 +2168,66 @@ async function submitChangePassword(){
   const previousPassword = SESSION.role === 'admin' ? AUTH.admin.previousPassword
     : SESSION.role === 'teacher' ? teacherRec.previousPassword
     : studentRec.previousPassword;
-  if(!current || !next || !confirm){ errEl.textContent = 'Please fill in all fields.'; return; }
+  if(!current || !next || !confirmPwd){ errEl.textContent = 'Please fill in all fields.'; return; }
   if(current !== actualCurrent){ errEl.textContent = 'Current password is incorrect.'; return; }
   if(next.length < 4){ errEl.textContent = 'New password should be at least 4 characters.'; return; }
   if(next !== confirmPwd){ errEl.textContent = 'New password and confirmation do not match.'; return; }
-  // The old password can never be reused: block re-entering the password
-  // you're changing away from, or the one you most recently changed away
-  // from before that.
   if(next === actualCurrent || (previousPassword && next === previousPassword)){
     errEl.textContent = 'You cannot reuse a previous password. Please choose a new one.';
     return;
   }
+  let usernameChanged = false;
+  if(newUsername){
+    if(newUsername.length < 3){ errEl.textContent = 'Username should be at least 3 characters.'; return; }
+    const oldUsername = SESSION.role === 'admin' ? AUTH.admin.username : SESSION.username;
+    usernameChanged = newUsername !== oldUsername;
+    if(usernameChanged && usernameTaken(newUsername, {
+      excludeTeacherId: teacherRec?.id,
+      excludeStudentId: studentRec?.id
+    })){
+      errEl.textContent = 'That username is already taken. Please choose another.';
+      return;
+    }
+  }
 
-  // From here on we're actually talking to Supabase, so show the same
-  // animated progress slider + live elapsed timer used elsewhere in the
-  // app, and lock the modal's buttons until the round trip finishes.
   const submitBtn = document.getElementById('cp-submit-btn');
   const cancelBtn = document.getElementById('cp-cancel-btn');
   setBtnBusy(submitBtn, true, 'Updating…');
   if(cancelBtn) cancelBtn.disabled = true;
-  showLoaderBar('cp-loader', 'Updating password…');
+  showLoaderBar('cp-loader', 'Updating…');
   try{
     if(SESSION.role === 'admin'){
-      // Admin isn't a row in any Supabase table — its credentials only ever
-      // lived in the exam_portal_kv 'auth' entry, so that's still the source
-      // of truth here.
       AUTH.admin.previousPassword = AUTH.admin.password;
       AUTH.admin.password = next;
       await persistAuth();
     } else if(SESSION.role === 'teacher'){
-      const ok = await dbUpdateTeacherDetails(SESSION.teacherId, { password: next });
-      if(!ok) return; // dbUpdateTeacherDetails already toasted the error
+      const updateFields = { password: next };
+      if(newUsername && newUsername !== teacherRec.username) updateFields.username = newUsername;
+      const ok = await dbUpdateTeacherDetails(SESSION.teacherId, updateFields);
+      if(!ok) return;
       teacherRec.previousPassword = teacherRec.password;
       teacherRec.password = next;
+      if(newUsername) teacherRec.username = newUsername;
       teacherRec.mustChangePassword = false;
-      await persistAuth(); // keep the kv cache (used for fast login checks) in sync too
+      SESSION.username = newUsername || SESSION.username;
+      await persistAuth();
     } else {
-      const ok = await dbUpdateStudentDetails(SESSION.studentId, { password: next });
-      if(!ok) return; // dbUpdateStudentDetails already toasted the error
+      const updateFields = { password: next };
+      if(newUsername && newUsername !== studentRec.username) updateFields.username = newUsername;
+      const ok = await dbUpdateStudentDetails(SESSION.studentId, updateFields);
+      if(!ok) return;
       studentRec.previousPassword = studentRec.password;
       studentRec.password = next;
+      if(newUsername) studentRec.username = newUsername;
       studentRec.mustChangePassword = false;
-      await persistStructure(); // keep the kv cache (used for fast login checks) in sync too
+      SESSION.username = newUsername || SESSION.username;
+      await persistStructure();
     }
     closeChangePasswordModal();
-    toast('Password updated');
+    toast(usernameChanged ? 'Username and password updated' : 'Password updated');
     if(SESSION.role === 'student' && currentTab === 'my-result') renderTab();
     if(SESSION.role === 'teacher' && currentTab === 'my-subjects') renderTab();
   } finally {
-    // If the modal is still open (an error path returned early above),
-    // restore the button/loader so the person can correct and retry.
     setBtnBusy(submitBtn, false);
     if(cancelBtn) cancelBtn.disabled = false;
     hideLoaderBar('cp-loader');
@@ -2237,6 +2289,7 @@ const ADMIN_NAV = [
   {id:'students', label:'Students'},
   {id:'teachers', label:'Teachers & Permissions'},
   {id:'exams', label:'Exams'},
+  {id:'admit-cards', label:'Admit Cards'},
   {id:'marks-overview', label:'Marks Overview'},
   {id:'gradesheets', label:'Gradesheets'},
   {id:'class-ledger', label:'Class Ledger'},
@@ -2259,6 +2312,7 @@ function getTeacherNav(){
   if(isClassTeacherOfAny()){
     extra.push({id:'gradesheets', label:'Gradesheets'});
     extra.push({id:'class-ledger', label:'Class Ledger'});
+    extra.push({id:'admit-cards', label:'Admit Cards'});
   }
   if(!extra.length) return TEACHER_NAV_BASE;
   return [...TEACHER_NAV_BASE, ...extra];
@@ -2313,9 +2367,11 @@ async function renderTab(){
   const titles = {
     'overview':['Dashboard','Overview'],
     'account':['Finance','Account'],
+    'classes':['Setup','Classes & Subjects'],
     'students':['Records','Students'],
     'teachers':['Access Control','Teachers & Permissions'],
     'exams':['Assessment','Exams'],
+    'admit-cards':['Documents','Admit Cards'],
     'marks-overview':['Assessment','Marks Overview'],
     'gradesheets':['Documents','Gradesheets'],
     'class-ledger':['Documents','Class Ledger'],
@@ -2338,6 +2394,7 @@ async function renderTab(){
   if(currentTab==='students') return renderStudents();
   if(currentTab==='teachers') return renderTeachers();
   if(currentTab==='exams') return renderExams();
+  if(currentTab==='admit-cards') return renderAdmitCards();
   if(currentTab==='marks-overview') return renderMarksOverview();
   if(currentTab==='gradesheets' || currentTab==='class-ledger'){
     if(SESSION.role === 'student'){
@@ -2918,13 +2975,13 @@ function printTeachersList(){
     const perms = PERMS.filter(p=>p.teacherId===t.id);
     const subs = perms.length ? perms.map(p=>`${subjNameOf(p.subjectId)} (${classNameOf(p.classId)})`).join(', ') : '';
     return `<tr>
-      <td>${t.name}</td>
-      <td>${t.username || ''}</td>
-      <td>${pwdPrintText(t)}</td>
-      <td>${t.phone || ''}</td>
-      <td>${t.email || ''}</td>
-      <td>${subs}</td>
-    </tr>`;
+        <td>${t.name}</td>
+        <td>${t.username || ''}</td>
+        <td>${pwdPrintText(t)}</td>
+        <td>${t.phone || ''}</td>
+        <td>${t.email || ''}</td>
+        <td>${subs}</td>
+      </tr>`;
   }).join('');
   const body = `<table><thead><tr><th>Name</th><th>Username</th><th>Password</th><th>Phone</th><th>Email</th><th>Assigned subjects</th></tr></thead><tbody>${rows || '<tr><td colspan="6">No teachers</td></tr>'}</tbody></table>`;
   openPrintWindow('Teacher Accounts', body);
@@ -3314,8 +3371,7 @@ function renderTeachers(){
           </div>
         </div>`;
       }).join('') : '<div class="empty"><b>No teacher accounts yet</b>Create one above.</div>'}
-    </div>
-  `;
+    </div>`;
   PERM_MARKTYPE = 'both';
   refreshPermSubjectOptions();
 }
@@ -5942,7 +5998,7 @@ async function renderAccount(){
   await seedDefaultFeeCategories();
   await loadFeeData();
   var classes = accountAccessibleClasses();
-  var canEdit = SESSION.role === 'admin' || isAccountant();
+  var canEdit = SESSION.role === 'admin' || isAccountant() || isClassTeacherOfAny();
 
   var html = '';
 
@@ -6278,7 +6334,7 @@ function renderClassFeeRows(){
     html += '</div>';
 
     /* Discounts & Scholarships manager */
-    if(SESSION.role === 'admin' || isAccountant()){
+    if(SESSION.role === 'admin' || isAccountant() || isClassTeacherOfAny()){
       html += '<div style="height:16px;"></div>';
       html += '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">Discounts & Scholarships</div>';
       html += '<table class="fee-table"><thead><tr><th>Roll</th><th>Student</th><th>Type</th><th>Applies To</th><th>Discount %</th><th>Fixed Amt</th><th>Reason</th><th></th></tr></thead><tbody>';
@@ -6979,6 +7035,151 @@ function printBill(collId){
   });
   showBill(coll.student_id, items, coll.bill_no);
 }
+
+/* ---------------- admit cards ---------------- */
+async function renderAdmitCards(){
+  var c = document.getElementById('content-area');
+  if(SESSION.role === 'teacher' && !isClassTeacherOfAny()){
+    c.innerHTML = '<div class="empty"><b>Not available</b>Only a class teacher can generate admit cards.</div>';
+    return;
+  }
+  var classes = SESSION.role === 'admin' ? STRUCT.classes : STRUCT.classes.filter(function(cl){ return myClassTeacherClassIds().includes(cl.id); });
+  if(!EXAMS || !EXAMS.length){
+    c.innerHTML = '<div class="empty"><b>No exams found</b>Create an exam first in the Exams section.</div>';
+    return;
+  }
+  c.innerHTML = '<div class="empty">Loading…</div>';
+  c.innerHTML = `
+    <div class="card">
+      <h3>Generate Admit Cards</h3>
+      <div class="hint" style="margin-bottom:14px;">Select an exam and a class, then generate admit cards for all students. Each card includes the student\'s photo, personal details, and the list of exam subjects.</div>
+      <div class="admit-card-controls">
+        <div class="field"><label>Exam</label><select id="ac-select-exam" style="width:100%;">${EXAMS.map(function(e){ return '<option value="' + e.id + '">' + esc(e.name) + '</option>'; }).join('')}</select></div>
+        <div class="field"><label>Class</label><select id="ac-select-class" style="width:100%;"><option value="">— Select Class —</option>${classes.map(function(cl){ return '<option value="' + cl.id + '">' + esc(cl.name) + '</option>'; }).join('')}</select></div>
+        <button class="btn btn-navy" onclick="generateAdmitCards()">Generate</button>
+      </div>
+      <div id="ac-results"></div>
+    </div>
+    <div id="ac-print-area" style="display:none;"></div>
+  `;
+}
+window.renderAdmitCards = renderAdmitCards;
+
+function generateAdmitCards(){
+  var examId = document.getElementById('ac-select-exam')?.value;
+  var classId = document.getElementById('ac-select-class')?.value;
+  if(!examId || !classId){ toast('Select both an exam and a class.'); return; }
+  var exam = EXAMS.find(function(e){ return e.id === examId; });
+  if(!exam){ toast('Exam not found.'); return; }
+  var students = STRUCT.students.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return (a.roll||'').localeCompare(b.roll||''); });
+  if(!students.length){ toast('No students in this class.'); return; }
+  var subjects = STRUCT.subjects.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return a.serialNo - b.serialNo || a.name.localeCompare(b.name); });
+  if(!subjects.length){ toast('No subjects found for this class. Add subjects first.'); return; }
+  var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
+  var half = Math.ceil(subjects.length / 2);
+  var subjLeft = subjects.slice(0, half);
+  var subjRight = subjects.slice(half);
+  var html = '<div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + students.length + ' admit cards generated</span><button class="btn btn-navy" onclick="printAdmitCards()" style="padding:8px 18px;font-size:14px;">🖨 Print All Admit Cards</button></div>';
+  html += '<div class="admit-card-grid">';
+  students.forEach(function(st){
+    var examDates = '';
+    if(exam.startDate && exam.endDate) examDates = (exam.startDate === exam.endDate) ? exam.startDate : exam.startDate + ' to ' + exam.endDate;
+    else if(exam.startDate) examDates = 'From ' + exam.startDate;
+    html += '<div class="admit-card" id="ac-card-' + st.id + '">';
+    html += '<div class="badge">' + esc(cls.name) + '</div>';
+    html += '<div class="header"><div class="school-name">Shree Saraswati Secondary School</div><div class="exam-title">' + esc(exam.name) + '</div>' + (examDates ? '<div class="exam-dates">' + examDates + '</div>' : '') + '</div>';
+    html += '<div class="body">';
+    html += '<div class="photo">' + (st.photo ? '<img src="' + st.photo + '" alt="' + esc(st.name) + '">' : '<span>No<br>Photo</span>') + '</div>';
+    html += '<div class="info">';
+    html += '<div class="row"><span class="label">Name</span><span class="value">' + esc(st.name) + '</span></div>';
+    html += '<div class="row"><span class="label">Roll</span><span class="value">' + esc(st.roll) + '</span></div>';
+    html += '<div class="row"><span class="label">Class</span><span class="value">' + esc(cls.name) + '</span></div>';
+    html += '<div class="row"><span class="label">Father</span><span class="value">' + esc(st.fatherName || '—') + '</span></div>';
+    if(st.dob) html += '<div class="row"><span class="label">DOB</span><span class="value">' + esc(st.dob) + '</span></div>';
+    html += '</div></div>';
+    html += '<div class="subjects"><div class="title">Subjects</div><div class="subj-cols"><div class="subj-col"><table><thead><tr><th>Code</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb){ return '<tr><td class="code">' + esc(sb.code) + '</td><td>' + esc(sb.name) + '</td></tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="subj-col"><table><thead><tr><th>Code</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb){ return '<tr><td class="code">' + esc(sb.code) + '</td><td>' + esc(sb.name) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
+    html += '<div class="signature"><span>Class Teacher<br>_________________</span><span>Exam Controller<br>_________________</span><span>Principal<br>_________________</span></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('ac-results').innerHTML = html;
+}
+window.generateAdmitCards = generateAdmitCards;
+
+function printAdmitCards(){
+  var examId = document.getElementById('ac-select-exam')?.value;
+  var classId = document.getElementById('ac-select-class')?.value;
+  if(!examId || !classId) return;
+  var exam = EXAMS.find(function(e){ return e.id === examId; });
+  var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
+  var students = STRUCT.students.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return (a.roll||'').localeCompare(b.roll||''); });
+  var subjects = STRUCT.subjects.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return a.serialNo - b.serialNo || a.name.localeCompare(b.name); });
+  var examDates = '';
+  if(exam.startDate && exam.endDate) examDates = (exam.startDate === exam.endDate) ? exam.startDate : exam.startDate + ' to ' + exam.endDate;
+  else if(exam.startDate) examDates = 'From ' + exam.startDate;
+  var half = Math.ceil(subjects.length / 2);
+  var subjLeft = subjects.slice(0, half);
+  var subjRight = subjects.slice(half);
+
+  var bodyHtml = '';
+  students.forEach(function(st){
+    bodyHtml += '<div class="ac-print-card">';
+    bodyHtml += '<div class="ac-print-header"><div class="ac-school">Shree Saraswati Secondary School</div><div class="ac-exam">' + esc(exam.name) + '</div>' + (examDates ? '<div class="ac-dates">' + esc(examDates) + '</div>' : '') + '</div>';
+    bodyHtml += '<div class="ac-print-body">';
+    bodyHtml += '<div class="ac-photo">' + (st.photo ? '<img src="' + st.photo + '">' : '<div class="ac-photo-placeholder">No Photo</div>') + '</div>';
+    bodyHtml += '<div class="ac-info"><table>';
+    bodyHtml += '<tr><td class="ac-lbl">Name</td><td class="ac-val">' + esc(st.name) + '</td></tr>';
+    bodyHtml += '<tr><td class="ac-lbl">Roll No.</td><td class="ac-val">' + esc(st.roll) + '</td></tr>';
+    bodyHtml += '<tr><td class="ac-lbl">Class</td><td class="ac-val">' + esc(cls.name) + '</td></tr>';
+    bodyHtml += '<tr><td class="ac-lbl">Father</td><td class="ac-val">' + esc(st.fatherName || '—') + '</td></tr>';
+    if(st.dob) bodyHtml += '<tr><td class="ac-lbl">DOB</td><td class="ac-val">' + esc(st.dob) + '</td></tr>';
+    bodyHtml += '</table></div></div>';
+    bodyHtml += '<div class="ac-subjects"><div class="ac-sub-lbl">Subjects</div><div class="ac-sub-cols"><div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>Code</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb){ return '<tr><td class="ac-code">' + esc(sb.code) + '</td><td>' + esc(sb.name) + '</td></tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>Code</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb){ return '<tr><td class="ac-code">' + esc(sb.code) + '</td><td>' + esc(sb.name) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
+    bodyHtml += '<div class="ac-signatures"><div class="ac-sig">Class Teacher<br>_________________</div><div class="ac-sig">Exam Controller<br>_________________</div><div class="ac-sig">Principal<br>_________________</div></div>';
+    bodyHtml += '</div>';
+  });
+
+  var win = window.open('', '_blank', 'width=800,height=600');
+  if(!win){ toast('Please allow pop-ups for printing.'); return; }
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admit Cards - ' + esc(exam.name) + ' - ' + esc(cls.name) + '</title>');
+  win.document.write('<style>');
+  win.document.write('*{box-sizing:border-box;margin:0;padding:0;}');
+  win.document.write('body{font-family:"Segoe UI",Arial,sans-serif;background:#eee;padding:15px;}');
+  win.document.write('.ac-print-wrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}');
+  win.document.write('.ac-print-card{width:90mm;min-height:70mm;background:#fff;padding:10px 12px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.12);box-sizing:border-box;}');
+  win.document.write('.ac-print-header{text-align:center;border-bottom:2px solid #1c2b5e;padding-bottom:5px;margin-bottom:8px;}');
+  win.document.write('.ac-school{font-size:13px;font-weight:700;color:#1c2b5e;letter-spacing:.02em;}');
+  win.document.write('.ac-exam{font-size:11px;color:#5a6072;margin-top:2px;}');
+  win.document.write('.ac-dates{font-size:9px;color:#b8952f;margin-top:1px;}');
+  win.document.write('.ac-print-body{display:flex;gap:10px;}');
+  win.document.write('.ac-photo{width:60px;height:72px;flex-shrink:0;border:1px solid #dfe2ea;border-radius:3px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f2f3f7;}');
+  win.document.write('.ac-photo img{width:100%;height:100%;object-fit:cover;}');
+  win.document.write('.ac-photo-placeholder{font-size:9px;color:#5a6072;text-align:center;}');
+  win.document.write('.ac-info{flex:1;font-size:11px;}');
+  win.document.write('.ac-info table{width:100%;border-collapse:collapse;}');
+  win.document.write('.ac-lbl{color:#5a6072;width:60px;padding:1px 0;vertical-align:top;}');
+  win.document.write('.ac-val{color:#1c1f2a;font-weight:500;padding:1px 0;}');
+  win.document.write('.ac-subjects{margin-top:6px;padding-top:4px;border-top:1px dashed #dfe2ea;}');
+  win.document.write('.ac-sub-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:#5a6072;margin-bottom:2px;}');
+  win.document.write('.ac-sub-cols{display:flex;gap:6px;}');
+  win.document.write('.ac-sub-col{flex:1;min-width:0;}');
+  win.document.write('.ac-sub-table{width:100%;border-collapse:collapse;font-size:10px;}');
+  win.document.write('.ac-sub-table th{text-align:left;padding:2px 4px;background:#f2f3f7;color:#1c2b5e;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1.5px solid #dfe2ea;}');
+  win.document.write('.ac-sub-table td{padding:2px 4px;border-bottom:1px solid #dfe2ea;color:#1c1f2a;}');
+  win.document.write('.ac-sub-table tr:last-child td{border-bottom:none;}');
+  win.document.write('.ac-code{color:#5a6072;font-family:"Courier New",monospace;font-size:9px;}');
+  win.document.write('.ac-signatures{display:flex;justify-content:space-between;margin-top:8px;padding-top:5px;border-top:1px solid #dfe2ea;font-size:9px;color:#5a6072;text-align:center;}');
+  win.document.write('.ac-sig{flex:1;}');
+  win.document.write('@media print{body{background:#fff;padding:5px;}.ac-print-wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;}.ac-print-card{box-shadow:none;border-radius:0;width:96mm;padding:8mm 6mm;}}');
+  win.document.write('</style></head><body>');
+  win.document.write('<div class="ac-print-wrap">');
+  win.document.write(bodyHtml);
+  win.document.write('</div>');
+  win.document.write('</body></html>');
+  win.document.close();
+  setTimeout(function(){ win.focus(); win.print(); }, 200);
+}
+window.printAdmitCards = printAdmitCards;
 
 /* ---------------- init ---------------- */
 (async function init(){
