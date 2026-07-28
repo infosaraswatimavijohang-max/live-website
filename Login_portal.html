@@ -6729,13 +6729,30 @@ function printClassLedger(classId){
   var students = sortStudentsByRollThenName(STRUCT.students.filter(function(s){ return s.classId === classId; }));
   if(!students.length){ toast('No students in this class'); return; }
 
-  var perMonthTotals = [0,0,0,0,0,0,0,0,0,0,0,0];
   var totalFee = 0, totalPaid = 0, totalBal = 0, totalNet = 0;
+
+  function hasPay(sid, m){
+    for(var ci = 0; ci < FEE_COLLS.length; ci++){
+      var c = FEE_COLLS[ci];
+      if(c.student_id === sid && (m === undefined || Number(c.bs_month) === m)) return true;
+    }
+    return false;
+  }
+
+  var activeFees = FEE_CATS.filter(function(f){ return getFeeAmount(f, null, classId) > 0; });
+  var paidMonths = [];
+  for(var mi = 0; mi < 12; mi++){
+    for(var si = 0; si < students.length; si++){
+      if(hasPay(students[si].id, mi + 1)){ paidMonths.push(mi); break; }
+    }
+  }
+  var monthAbbr = ['Bai','Jes','Asa','Shr','Bha','Ash','Kar','Man','Pou','Mag','Fal','Cha'];
+  var pmLabels = paidMonths.map(function(mi){ return monthAbbr[mi]; });
+
   students.forEach(function(s){
     totalFee += studentTotalFees(s.id, classId);
     totalPaid += studentTotalPaid(s.id);
     totalNet += getDiscountedAmount(s.id, classId);
-    for(var mi = 0; mi < 12; mi++) perMonthTotals[mi] += studentTotalPaidInMonth(s.id, mi + 1);
   });
   totalBal = totalNet - totalPaid;
 
@@ -6747,21 +6764,32 @@ function printClassLedger(classId){
   html += '<div style="font-size:11px;color:#666;">Class: <b>' + esc(cl) + '</b> &nbsp;|&nbsp; Fiscal Year: <b>' + fy + '</b> &nbsp;|&nbsp; Date: ' + formatDateShort(new Date()) + '</div>';
   html += '</div>';
 
-  var monthAbbr = ['Bai','Jes','Asa','Shr','Bha','Ash','Kar','Man','Pou','Mag','Fal','Cha'];
   html += '<table style="width:100%;border-collapse:collapse;font-size:8.5px;border:1.5px solid #1a3a5c;">';
   html += '<thead><tr style="background:#1a3a5c;color:#fff;">';
   html += '<th style="padding:4px 3px;text-align:left;border:1px solid #1a3a5c;">#</th>';
   html += '<th style="padding:4px 3px;text-align:left;border:1px solid #1a3a5c;">Roll</th>';
   html += '<th style="padding:4px 3px;text-align:left;border:1px solid #1a3a5c;">Student</th>';
-  monthAbbr.forEach(function(m){
-    html += '<th style="padding:4px 2px;text-align:center;border:1px solid #1a3a5c;font-size:7.5px;">' + m + '</th>';
+  activeFees.forEach(function(f){
+    var abbr = f.name.length > 8 ? f.name.substring(0,6) + '..' : f.name;
+    html += '<th style="padding:4px 2px;text-align:center;border:1px solid #1a3a5c;font-size:7px;">' + esc(abbr) + '</th>';
   });
+  html += '<th style="padding:4px 2px;text-align:center;border:1px solid #1a3a5c;font-size:7px;" colspan="' + paidMonths.length + '">Paid Months</th>';
   html += '<th style="padding:4px 3px;text-align:right;border:1px solid #1a3a5c;">Total Fee</th>';
   html += '<th style="padding:4px 3px;text-align:right;border:1px solid #1a3a5c;">Net Fee</th>';
   html += '<th style="padding:4px 3px;text-align:right;border:1px solid #1a3a5c;">Paid</th>';
   html += '<th style="padding:4px 3px;text-align:right;border:1px solid #1a3a5c;">Balance</th>';
   html += '<th style="padding:4px 3px;text-align:center;border:1px solid #1a3a5c;">Status</th>';
-  html += '</tr></thead><tbody>';
+  html += '</tr>';
+  if(pmLabels.length){
+    html += '<tr style="background:#1a3a5c;color:#fff;">';
+    html += '<th colspan="' + (3 + activeFees.length) + '" style="padding:2px;border:1px solid #1a3a5c;"></th>';
+    pmLabels.forEach(function(l){
+      html += '<th style="padding:2px 2px;text-align:center;border:1px solid #1a3a5c;font-size:7px;">' + l + '</th>';
+    });
+    html += '<th colspan="5" style="padding:2px;border:1px solid #1a3a5c;"></th>';
+    html += '</tr>';
+  }
+  html += '</thead><tbody>';
 
   students.forEach(function(s, i){
     var gross = studentTotalFees(s.id, classId);
@@ -6775,10 +6803,17 @@ function printClassLedger(classId){
     html += '<td style="padding:3px;border:1px solid #ccc;text-align:center;">' + (i + 1) + '</td>';
     html += '<td style="padding:3px;border:1px solid #ccc;text-align:center;">' + esc(s.roll || '—') + '</td>';
     html += '<td style="padding:3px;border:1px solid #ccc;">' + esc(s.name) + '</td>';
-    for(var mi = 0; mi < 12; mi++){
-      var mAmt = studentTotalPaidInMonth(s.id, mi + 1);
-      html += '<td style="padding:3px 2px;border:1px solid #ccc;text-align:right;font-size:8px;">' + (mAmt > 0 ? Number(mAmt).toLocaleString() : '—') + '</td>';
-    }
+    activeFees.forEach(function(f){
+      var amt = getFeeAmount(f, s.id, classId);
+      var paid = f.frequency === 'monthly'
+        ? (function(){ for(var mm = 0; mm < 12; mm++){ if(!studentPaidForFee(s.id, f.id, mm + 1)) return false; } return true; })()
+        : studentPaidForFee(s.id, f.id);
+      html += '<td style="padding:3px 2px;border:1px solid #ccc;text-align:center;font-size:8px;font-weight:600;color:' + (paid ? '#2e7d32' : '#d32f2f') + ';">' + (paid ? '✓' : 'Rs ' + Number(amt).toLocaleString()) + '</td>';
+    });
+    paidMonths.forEach(function(mi){
+      var hasP = hasPay(s.id, mi + 1);
+      html += '<td style="padding:3px 2px;border:1px solid #ccc;text-align:center;font-size:9px;color:' + (hasP ? '#2e7d32' : '#bbb') + ';">' + (hasP ? '✓' : '—') + '</td>';
+    });
     html += '<td style="padding:3px;border:1px solid #ccc;text-align:right;">' + Number(gross).toLocaleString() + '</td>';
     html += '<td style="padding:3px;border:1px solid #ccc;text-align:right;font-weight:600;">' + Number(net).toLocaleString() + '</td>';
     html += '<td style="padding:3px;border:1px solid #ccc;text-align:right;">' + Number(paidF).toLocaleString() + '</td>';
@@ -6789,10 +6824,12 @@ function printClassLedger(classId){
 
   /* Totals row */
   html += '<tr style="background:#f0f4f8;font-weight:700;">';
-  html += '<td colspan="3" style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;">TOTAL</td>';
-  for(var mi = 0; mi < 12; mi++){
-    html += '<td style="padding:4px 2px;border:1.5px solid #1a3a5c;text-align:right;font-size:8px;">' + (perMonthTotals[mi] > 0 ? Number(perMonthTotals[mi]).toLocaleString() : '—') + '</td>';
-  }
+  html += '<td colspan="' + (3 + activeFees.length) + '" style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;">TOTAL</td>';
+  paidMonths.forEach(function(mi){
+    var cnt = 0;
+    students.forEach(function(s){ if(hasPay(s.id, mi + 1)) cnt++; });
+    html += '<td style="padding:4px 2px;border:1.5px solid #1a3a5c;text-align:center;font-size:9px;color:' + (cnt > 0 ? '#2e7d32' : '#bbb') + ';">' + cnt + '</td>';
+  });
   html += '<td style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalFee).toLocaleString() + '</td>';
   html += '<td style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalNet).toLocaleString() + '</td>';
   html += '<td style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalPaid).toLocaleString() + '</td>';
@@ -6801,17 +6838,6 @@ function printClassLedger(classId){
   html += '</tr>';
 
   html += '</tbody></table>';
-
-  /* Fee structure reference */
-  html += '<div style="margin-top:12px;font-size:10px;color:#666;">';
-  html += '<b>Fee Structure:</b> ';
-  var feeParts = [];
-  FEE_CATS.forEach(function(f){
-    var amt = f.scope === 'school' ? ('Rs ' + Number(f.amount).toLocaleString()) : (f.scope === 'class' ? 'varies by class' : 'per student');
-    feeParts.push(esc(f.name) + ' (' + f.frequency + ', ' + amt + ')');
-  });
-  html += feeParts.join(' &nbsp;|&nbsp; ');
-  html += '</div>';
 
   html += '<div style="margin-top:8px;font-size:10px;color:#999;text-align:center;border-top:1px solid #ddd;padding-top:6px;">';
   html += 'This is a computer-generated report. Generated on ' + formatDateLong(new Date()) + '.';
