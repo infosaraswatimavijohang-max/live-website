@@ -7306,6 +7306,7 @@ window.printAdmitCards = printAdmitCards;
 
 /* ==================== STUDENT ID CARDS ==================== */
 var ID_SIG = null;
+var ID_VALIDITY = '';
 
 function idCardSignatureHtml(){
   var img = ID_SIG ? '<img src="' + ID_SIG + '" style="height:18px;display:block;margin:0 auto;">' : '<span class="id-sig-placeholder"></span>';
@@ -7326,6 +7327,16 @@ function saveIdSig(dataUrl){
   });
 }
 
+function loadIdValidity(){
+  var saved = localStorage.getItem('sss_id_validity');
+  if(saved) ID_VALIDITY = saved;
+}
+function saveIdValidity(val){
+  ID_VALIDITY = val;
+  try { localStorage.setItem('sss_id_validity', val); } catch(e) {}
+  document.querySelectorAll('.id-valid').forEach(function(el){ el.textContent = ID_VALIDITY ? 'Valid till: ' + ID_VALIDITY + ' BS' : 'Valid ' + new Date().getFullYear(); });
+}
+
 function attachSignature(file){
   if(!file) return;
   var reader = new FileReader();
@@ -7336,13 +7347,14 @@ function attachSignature(file){
 function idCardStudentHtml(st, cls){
   var clName = cls ? esc(cls.name) : '—';
   var initial = (st.name || '?')[0];
-  return '<div class="id-card id-student"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (st.photo ? '<img class="id-photo" src="' + st.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(st.name) + '</div><div class="id-role">Student</div><div class="id-body"><table><tr><td class="id-lbl">Class</td><td class="id-val">' + clName + '</td></tr><tr><td class="id-lbl">Roll</td><td class="id-val">' + esc(st.roll || '—') + '</td></tr><tr><td class="id-lbl">Father</td><td class="id-val">' + esc(st.fatherName || '—') + '</td></tr><tr><td class="id-lbl">DOB</td><td class="id-val">' + esc(st.dob || '—') + '</td></tr><tr><td class="id-lbl">Blood</td><td class="id-val">' + esc(st.bloodGroup || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-valid">Valid ' + new Date().getFullYear() + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+  var validText = ID_VALIDITY ? 'Valid till: ' + ID_VALIDITY + ' BS' : 'Valid ' + new Date().getFullYear();
+  return '<div class="id-card id-student"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (st.photo ? '<img class="id-photo" src="' + st.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(st.name) + '</div><div class="id-role">Student</div><div class="id-body"><table><tr><td class="id-lbl">Class</td><td class="id-val">' + clName + '</td></tr><tr><td class="id-lbl">Roll</td><td class="id-val">' + esc(st.roll || '—') + '</td></tr><tr><td class="id-lbl">Father</td><td class="id-val">' + esc(st.fatherName || '—') + '</td></tr><tr><td class="id-lbl">DOB</td><td class="id-val">' + esc(st.dob || '—') + '</td></tr><tr><td class="id-lbl">Blood</td><td class="id-val">' + esc(st.bloodGroup || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
 }
 
 async function renderStudentIdCards(){
   var c = document.getElementById('content-area');
   var classes = SESSION.role === 'admin' ? STRUCT.classes : STRUCT.classes.filter(function(cl){ return myClassTeacherClassIds().includes(cl.id); });
-  c.innerHTML = '<div class="card"><h3>Student ID Cards</h3><div class="hint" style="margin-bottom:14px;">Select a class to generate student ID cards.</div><div class="id-card-controls"><div class="field"><label>Class</label><select id="idc-select-class" style="width:100%;"><option value="">— Select Class —</option>' + classes.map(function(cl){ return '<option value="' + cl.id + '">' + esc(cl.name) + '</option>'; }).join('') + '</select></div><button class="btn btn-navy" onclick="generateStudentIdCards()">Generate</button><button class="btn btn-outline" onclick="openIdSignaturePicker()" style="margin-left:auto;">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div id="idc-results"></div></div><div id="idc-print-area" style="display:none;"></div>';
+  c.innerHTML = '<div class="card"><h3>Student ID Cards</h3><div class="hint" style="margin-bottom:14px;">Select a class to generate student ID cards.</div><div class="id-card-controls"><div class="field"><label>Class</label><select id="idc-select-class" style="width:100%;"><option value="">— Select Class —</option>' + classes.map(function(cl){ return '<option value="' + cl.id + '">' + esc(cl.name) + '</option>'; }).join('') + '</select></div><button class="btn btn-navy" onclick="generateStudentIdCards()">Generate</button><div class="field" style="flex:0 0 130px;"><label>Validity (BS)</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div id="idc-results"></div></div><div id="idc-print-area" style="display:none;"></div>';
 }
 window.renderStudentIdCards = renderStudentIdCards;
 
@@ -7369,26 +7381,28 @@ function isNonTeachingStaff(t){
 
 function idCardTeacherHtml(t){
   var initial = (t.name || '?')[0];
-  return '<div class="id-card id-teacher"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Teacher') + '</div><div class="id-body"><table><tr><td class="id-lbl">Qualif.</td><td class="id-val">' + esc(t.qualification || '—') + '</td></tr><tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr><tr><td class="id-lbl">Email</td><td class="id-val">' + esc(t.email || '—') + '</td></tr><tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-valid">Valid ' + new Date().getFullYear() + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+  var validText = ID_VALIDITY ? 'Valid till: ' + ID_VALIDITY + ' BS' : 'Valid ' + new Date().getFullYear();
+  return '<div class="id-card id-teacher"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Teacher') + '</div><div class="id-body"><table><tr><td class="id-lbl">Qualif.</td><td class="id-val">' + esc(t.qualification || '—') + '</td></tr><tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr><tr><td class="id-lbl">Email</td><td class="id-val">' + esc(t.email || '—') + '</td></tr><tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
 }
 
 function renderTeacherIdCards(){
   var c = document.getElementById('content-area');
   var teachers = AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
-  c.innerHTML = '<div class="card"><h3>Teacher ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + teachers.length + ' teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'teacher\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><button class="btn btn-outline" onclick="openIdSignaturePicker()" style="margin-left:auto;">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div class="id-card-grid">' + teachers.map(function(t){ return idCardTeacherHtml(t); }).join('') + '</div></div>';
+  c.innerHTML = '<div class="card"><h3>Teacher ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + teachers.length + ' teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'teacher\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div class="id-card-grid">' + teachers.map(function(t){ return idCardTeacherHtml(t); }).join('') + '</div></div>';
 }
 window.renderTeacherIdCards = renderTeacherIdCards;
 
 /* ==================== STAFF ID CARDS ==================== */
 function idCardStaffHtml(t){
   var initial = (t.name || '?')[0];
-  return '<div class="id-card id-staff"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Staff') + '</div><div class="id-body"><table>' + (t.department ? '<tr><td class="id-lbl">Dept.</td><td class="id-val">' + esc(t.department) + '</td></tr>' : '') + '<tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr><tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-valid">Valid ' + new Date().getFullYear() + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+  var validText = ID_VALIDITY ? 'Valid till: ' + ID_VALIDITY + ' BS' : 'Valid ' + new Date().getFullYear();
+  return '<div class="id-card id-staff"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Staff') + '</div><div class="id-body"><table>' + (t.department ? '<tr><td class="id-lbl">Dept.</td><td class="id-val">' + esc(t.department) + '</td></tr>' : '') + '<tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr><tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
 }
 
 function renderStaffIdCards(){
   var c = document.getElementById('content-area');
   var staff = AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
-  c.innerHTML = '<div class="card"><h3>Staff ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + staff.length + ' non-teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'staff\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><button class="btn btn-outline" onclick="openIdSignaturePicker()" style="margin-left:auto;">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div class="id-card-grid">' + staff.map(function(t){ return idCardStaffHtml(t); }).join('') + '</div></div>';
+  c.innerHTML = '<div class="card"><h3>Staff ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + staff.length + ' non-teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'staff\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div class="id-card-grid">' + staff.map(function(t){ return idCardStaffHtml(t); }).join('') + '</div></div>';
 }
 window.renderStaffIdCards = renderStaffIdCards;
 
@@ -7435,7 +7449,7 @@ window.printIdCards = printIdCards;
 
 /* ---------------- init ---------------- */
 (async function init(){
-  loadIdSig();
+  loadIdSig(); loadIdValidity();
   document.querySelectorAll('img[src="LOGO_PLACEHOLDER"]').forEach(img => img.src = LOGO_DATA);
   INITIAL_LOAD_PROMISE = loadAll();
   await INITIAL_LOAD_PROMISE;
