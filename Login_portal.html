@@ -5732,6 +5732,11 @@ function studentFeeAmount(studentId, catId){
   var f = STUDENT_FEES.find(s => s.student_id === studentId && s.fee_category_id === catId);
   return f ? f.amount : 0;
 }
+function getFeeAmount(fee, studentId, classId){
+  if(fee.scope === 'school') return fee.amount || 0;
+  if(fee.scope === 'class') return classFeeAmount(classId, fee.id);
+  return studentFeeAmount(studentId, fee.id);
+}
 
 async function getNextBillNo(){
   var fy = currentFiscalYear();
@@ -5750,14 +5755,14 @@ async function seedDefaultFeeCategories(){
   var { data } = await supabaseClient.from('fee_categories').select('id').limit(1);
   if(data && data.length) return;
   var defaults = [
-    {name:'Monthly Tuition Fee', frequency:'monthly', is_uniform:true, description:'Regular monthly tuition fee'},
-    {name:'Transport Fee', frequency:'monthly', is_uniform:false, description:'Student transport fee (varies per student)'},
-    {name:'Computer/Lab Fee', frequency:'monthly', is_uniform:true, description:'Computer lab maintenance fee'},
-    {name:'Exam Fee', frequency:'yearly', is_uniform:true, description:'Annual examination fee'},
-    {name:'Admission Fee', frequency:'yearly', is_uniform:true, description:'One-time admission fee'},
-    {name:'Sports Fee', frequency:'yearly', is_uniform:true, description:'Annual sports fee'},
-    {name:'Library Fee', frequency:'monthly', is_uniform:true, description:'Library and reading material fee'},
-    {name:'Event/Celebration Fee', frequency:'event', is_uniform:true, description:'Special events and celebrations'},
+    {name:'Monthly Tuition Fee', frequency:'monthly', scope:'school', amount:500, description:'Regular monthly tuition (same for all)'},
+    {name:'Transport Fee', frequency:'monthly', scope:'student', description:'Student transport fee (varies per student)'},
+    {name:'Computer/Lab Fee', frequency:'monthly', scope:'class', description:'Computer lab fee (per class)'},
+    {name:'Exam Fee', frequency:'yearly', scope:'school', amount:1000, description:'Annual examination fee (same for all)'},
+    {name:'Admission Fee', frequency:'yearly', scope:'school', amount:2000, description:'One-time admission fee'},
+    {name:'Sports Fee', frequency:'yearly', scope:'school', amount:500, description:'Annual sports fee'},
+    {name:'Library Fee', frequency:'monthly', scope:'class', description:'Library fee (per class)'},
+    {name:'Event/Celebration Fee', frequency:'event', scope:'school', description:'Special events and celebrations'},
   ];
   await supabaseClient.from('fee_categories').insert(defaults);
   FEE_CATS = (await supabaseClient.from('fee_categories').select('*').order('name')).data || [];
@@ -5801,11 +5806,11 @@ async function collectFee(studentId, catId, amount, month, billNo){
 
 function studentName(id){
   var s = STRUCT.students.find(x => x.id === id);
-  return s ? s.full_name : '—';
+  return s ? s.name : '—';
 }
 function className(id){
   var c = STRUCT.classes.find(x => x.id === id);
-  return c ? c.class_label : '—';
+  return c ? c.name : '—';
 }
 function feeCatName(id){
   var c = FEE_CATS.find(x => x.id === id);
@@ -5845,14 +5850,14 @@ async function renderAccount(){
     html += '<table class="fee-table"><thead><tr><th>Fee Name</th><th>Frequency</th><th>Type</th><th style="width:70px;"></th></tr></thead><tbody>';
     FEE_CATS.forEach(function(f){
       html += '<tr><td><strong>' + esc(f.name) + '</strong>' + (f.description ? '<br><span style="font-size:11px;color:var(--ink-soft)">' + esc(f.description) + '</span>' : '') + '</td>';
-      html += '<td>' + f.frequency + '</td><td>' + (f.is_uniform ? 'Uniform' : 'Per Student') + '</td>';
+      html += '<td>' + f.frequency + '</td><td>' + f.scope + '</td>';
       html += '<td><button class="btn btn-danger-outline btn-sm" onclick="deleteFeeCat(\'' + f.id + '\')">Remove</button></td></tr>';
     });
     html += '</tbody></table>';
     html += '<div class="row-form" style="margin:0;">';
     html += '<div class="field"><input type="text" id="fcat-name" placeholder="Fee name" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"></div>';
     html += '<div class="field"><select id="fcat-freq" style="padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="monthly">Monthly</option><option value="yearly">Yearly</option><option value="event">Event</option></select></div>';
-    html += '<div class="field"><select id="fcat-uniform" style="padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="1">Uniform (same for all)</option><option value="0">Per Student</option></select></div>';
+    html += '<div class="field"><select id="fcat-scope" style="padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="school">Whole School</option><option value="class">Per Class</option><option value="student">Per Student</option></select></div>';
     html += '<button class="btn btn-navy" onclick="addFeeCat()">+ Add</button>';
     html += '</div></div></div>';
 
@@ -5860,7 +5865,7 @@ async function renderAccount(){
     html += '<div class="fee-section"><h3>Class Fee Structure</h3>';
     html += '<div class="card">';
     html += '<div class="row-form"><div class="field"><select id="ac-class-fee" onchange="renderClassFeeRows()" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="">— Select Class —</option>';
-    classes.forEach(function(cls){ html += '<option value="' + cls.id + '">' + esc(cls.class_label) + '</option>'; });
+    classes.forEach(function(cls){ html += '<option value="' + cls.id + '">' + esc(cls.name) + '</option>'; });
     html += '</select></div></div>';
     html += '<div id="ac-class-fee-rows"></div>';
     html += '</div></div>';
@@ -5868,13 +5873,13 @@ async function renderAccount(){
 
   /* ====== PER-STUDENT FEE SETUP (for non-uniform fees) ====== */
   if(canEdit){
-    var nonUniform = FEE_CATS.filter(function(f){ return !f.is_uniform; });
+    var nonUniform = FEE_CATS.filter(function(f){ return f.scope === 'student'; });
     if(nonUniform.length){
       html += '<div class="fee-section"><h3>Per-Student Fees</h3>';
       html += '<div class="card">';
       html += '<div class="row-form">';
       html += '<div class="field"><select id="ac-ps-class" onchange="renderStudentFeeRows()" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="">— Select Class —</option>';
-      classes.forEach(function(cls){ html += '<option value="' + cls.id + '">' + esc(cls.class_label) + '</option>'; });
+      classes.forEach(function(cls){ html += '<option value="' + cls.id + '">' + esc(cls.name) + '</option>'; });
       html += '</select></div>';
       html += '<div class="field"><select id="ac-ps-cat" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;">';
       nonUniform.forEach(function(f){ html += '<option value="' + f.id + '">' + esc(f.name) + '</option>'; });
@@ -5891,7 +5896,7 @@ async function renderAccount(){
   html += '<div class="card">';
   html += '<div class="row-form">';
   html += '<div class="field"><select id="ac-col-class" onchange="renderCollectionStudents()" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="">— Select Class —</option>';
-  classes.forEach(function(cls){ html += '<option value="' + cls.id + '">' + esc(cls.class_label) + '</option>'; });
+  classes.forEach(function(cls){ html += '<option value="' + cls.id + '">' + esc(cls.name) + '</option>'; });
   html += '</select></div>';
   html += '<div class="field"><select id="ac-col-student" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="">— Select Student —</option></select></div>';
   html += '<button class="btn btn-navy btn-sm" onclick="renderCollectionForm()">Load Fee</button>';
@@ -5929,8 +5934,8 @@ async function addFeeCat(){
   var name = document.getElementById('fcat-name').value.trim();
   if(!name){ toast('Enter a fee name'); return; }
   var freq = document.getElementById('fcat-freq').value;
-  var uniform = document.getElementById('fcat-uniform').value === '1';
-  var d = await dbInsertFeeCategory({name, frequency: freq, is_uniform: uniform});
+  var scope = document.getElementById('fcat-scope').value;
+  var d = await dbInsertFeeCategory({name, frequency: freq, scope: scope});
   if(d){ FEE_CATS.push(d); toast('Fee head added'); renderAccount(); }
 }
 
@@ -5948,7 +5953,7 @@ function renderClassFeeRows(){
   var classId = document.getElementById('ac-class-fee').value;
   var container = document.getElementById('ac-class-fee-rows');
   if(!classId){ container.innerHTML = ''; return; }
-  var applicable = FEE_CATS.filter(function(f){ return f.is_uniform; });
+  var applicable = FEE_CATS.filter(function(f){ return f.scope === 'class'; });
   if(!applicable.length){ container.innerHTML = '<div class="empty">No uniform fee heads defined.</div>'; return; }
   var html = '<table class="fee-table"><thead><tr><th>Fee</th><th>Frequency</th><th>Amount (Rs)</th><th></th></tr></thead><tbody>';
   applicable.forEach(function(f){
@@ -5974,12 +5979,12 @@ function renderStudentFeeRows(){
   var catId = document.getElementById('ac-ps-cat').value;
   var container = document.getElementById('ac-ps-rows');
   if(!classId || !catId){ container.innerHTML = ''; return; }
-  var students = STRUCT.students.filter(function(s){ return s.class_id === classId; }).sort(sortStudentsByRollThenName);
+  var students = sortStudentsByRollThenName(STRUCT.students.filter(function(s){ return s.classId === classId; }));
   if(!students.length){ container.innerHTML = '<div class="empty">No students in this class.</div>'; return; }
   var html = '<table class="fee-table"><thead><tr><th>Roll</th><th>Student</th><th>Amount (Rs)</th><th></th></tr></thead><tbody>';
   students.forEach(function(s){
     var amt = studentFeeAmount(s.id, catId);
-    html += '<tr><td>' + (s.school_roll_no || '—') + '</td><td>' + esc(s.full_name) + '</td>';
+    html += '<tr><td>' + (s.roll || '—') + '</td><td>' + esc(s.name) + '</td>';
     html += '<td><input type="number" id="ps-amount-' + s.id + '" value="' + amt + '" min="0" step="1" style="width:90px;"></td>';
     html += '<td><button class="btn btn-navy btn-sm" onclick="saveStudentFee(\'' + s.id + '\',\'' + catId + '\')">Save</button></td></tr>';
   });
@@ -6000,8 +6005,8 @@ function renderCollectionStudents(){
   var sel = document.getElementById('ac-col-student');
   sel.innerHTML = '<option value="">— Select Student —</option>';
   if(!classId) return;
-  STRUCT.students.filter(function(s){ return s.class_id === classId; }).sort(sortStudentsByRollThenName).forEach(function(s){
-    sel.innerHTML += '<option value="' + s.id + '">' + (s.school_roll_no || '') + '. ' + esc(s.full_name) + '</option>';
+  sortStudentsByRollThenName(STRUCT.students.filter(function(s){ return s.classId === classId; })).forEach(function(s){
+    sel.innerHTML += '<option value="' + s.id + '">' + (s.roll || '') + '. ' + esc(s.name) + '</option>';
   });
   document.getElementById('ac-col-form').innerHTML = '';
 }
@@ -6012,7 +6017,7 @@ function renderCollectionForm(){
   if(!studentId){ container.innerHTML = ''; return; }
   var student = STRUCT.students.find(function(s){ return s.id === studentId; });
   if(!student){ container.innerHTML = '<div class="empty">Student not found.</div>'; return; }
-  var classId = student.class_id;
+  var classId = student.classId;
 
   var html = '<div style="margin-top:12px;">';
   html += '<table class="fee-table"><thead><tr><th>Fee</th><th>Amount</th><th>Months / Details</th></tr></thead><tbody>';
@@ -6023,9 +6028,8 @@ function renderCollectionForm(){
   var eventFees = [];
 
   FEE_CATS.forEach(function(f){
-    var amount = f.is_uniform ? classFeeAmount(classId, f.id) : studentFeeAmount(studentId, f.id);
+    var amount = getFeeAmount(f, studentId, classId);
     if(!amount) return;
-    total += amount;
     if(f.frequency === 'monthly') monthlyFees.push({cat: f, amount: amount});
     else if(f.frequency === 'yearly') yearlyFees.push({cat: f, amount: amount});
     else eventFees.push({cat: f, amount: amount});
@@ -6086,10 +6090,10 @@ async function processCollection(){
   var billNo = await getNextBillNo();
   var collected = [];
   var student = STRUCT.students.find(function(s){ return s.id === studentId; });
-  var classId = student ? student.class_id : null;
+  var classId = student ? student.classId : null;
 
   FEE_CATS.forEach(function(f){
-    var amount = f.is_uniform ? classFeeAmount(classId, f.id) : studentFeeAmount(studentId, f.id);
+    var amount = getFeeAmount(f, studentId, classId);
     if(!amount) return;
 
     if(f.frequency === 'monthly'){
@@ -6130,7 +6134,7 @@ async function processCollection(){
 function showBill(studentId, items, billNo){
   var student = STRUCT.students.find(function(s){ return s.id === studentId; });
   if(!student) return;
-  var cl = className(student.class_id);
+  var cl = className(student.classId);
   var fy = currentFiscalYear();
   var total = 0;
   items.forEach(function(i){ total += i.amount; });
@@ -6141,8 +6145,8 @@ function showBill(studentId, items, billNo){
   html += '<div class="school-name">Shree Saraswati Secondary School</div>';
   html += '<div class="bill-title">Fee Receipt — A.C. ' + fy + '</div>';
   html += '<div class="bill-meta"><span>Bill No: <strong>' + billNo + '</strong></span><span>Date: ' + formatDateShort(new Date()) + '</span></div>';
-  html += '<div class="bill-meta"><span>Student: <strong>' + esc(student.full_name) + '</strong></span><span>Class: ' + esc(cl) + '</span></div>';
-  if(student.school_roll_no) html += '<div class="bill-meta"><span>Roll No: ' + esc(student.school_roll_no) + '</span></div>';
+  html += '<div class="bill-meta"><span>Student: <strong>' + esc(student.name) + '</strong></span><span>Class: ' + esc(cl) + '</span></div>';
+  if(student.roll) html += '<div class="bill-meta"><span>Roll No: ' + esc(student.roll) + '</span></div>';
   html += '<table><thead><tr><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead><tbody>';
   items.forEach(function(i){
     var detail = i.catName;

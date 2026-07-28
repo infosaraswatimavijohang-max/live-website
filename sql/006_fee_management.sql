@@ -3,17 +3,42 @@
    Run in Supabase SQL Editor after the other migrations.
    ========================================================================= */
 
-/* Fee categories (master fee types) */
+/* Fee categories (master fee types)
+   scope: school = same for all students across all classes
+          class  = uniform per class (amount in class_fees)
+          student = individual per student (amount in student_fees)
+   amount: default amount for school-wide fees (ignored for class/student scope)
+*/
 CREATE TABLE IF NOT EXISTS fee_categories (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   name text NOT NULL,
   frequency text NOT NULL CHECK (frequency IN ('monthly','yearly','event')),
-  is_uniform boolean DEFAULT true,
+  scope text NOT NULL DEFAULT 'school' CHECK (scope IN ('school','class','student')),
+  amount numeric(10,2) DEFAULT 0,
   description text DEFAULT '',
   created_at timestamptz DEFAULT now()
 );
 
-/* Class-wise fee amounts for uniform fees (monthly fee same for all in a class) */
+/* Migrate existing rows if the old is_uniform column still exists */
+DO $$ BEGIN
+  IF EXISTS(SELECT 1 FROM information_schema.columns
+    WHERE table_name='fee_categories' AND column_name='is_uniform') THEN
+    ALTER TABLE fee_categories RENAME COLUMN is_uniform TO scope_old;
+    ALTER TABLE fee_categories ADD COLUMN scope text DEFAULT 'school';
+    UPDATE fee_categories SET scope = CASE WHEN scope_old = true THEN 'class' ELSE 'student' END;
+    ALTER TABLE fee_categories ALTER COLUMN scope SET NOT NULL;
+    ALTER TABLE fee_categories DROP COLUMN scope_old;
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM information_schema.columns
+    WHERE table_name='fee_categories' AND column_name='amount') THEN
+    ALTER TABLE fee_categories ADD COLUMN amount numeric(10,2) DEFAULT 0;
+  END IF;
+END $$;
+
+/* Class-wise fee amounts for class-scoped fees (monthly fee same for all in a class) */
 CREATE TABLE IF NOT EXISTS class_fees (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   class_id uuid REFERENCES classes(id) ON DELETE CASCADE,
@@ -24,7 +49,7 @@ CREATE TABLE IF NOT EXISTS class_fees (
   UNIQUE(class_id, fee_category_id, academic_year)
 );
 
-/* Per-student fee amounts for non-uniform fees (transport varies per student) */
+/* Per-student fee amounts for student-scoped fees (transport varies per student) */
 CREATE TABLE IF NOT EXISTS student_fees (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id uuid REFERENCES students(id) ON DELETE CASCADE,
