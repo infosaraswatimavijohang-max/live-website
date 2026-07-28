@@ -2192,14 +2192,16 @@ function enterApp(){
   renderTab();
 }
 
-/* ---------------- designations & class-teacher privilege ----------------
-   `designation` (free text on the teachers table) is purely informational —
-   Head Teacher, Assistant Head Teacher, Coordinator, Incharge, Accountant,
-   Cook, Sweeper, etc. It does NOT by itself grant any extra access.
-   "Class Teacher" is different: it's a real assignment (which class(es) a
-   teacher is class teacher of, stored as an id array in class_teacher_of),
-   and it's what unlocks that teacher's Gradesheets / Class Ledger tabs,
-   scoped to only the class(es) they're assigned to. */
+/* ---------------- designation-based & class-teacher privilege ----------------
+   Most `designation` values are informational only, but two are enforced:
+   - "Accountant" unlocks the Account tab (full access).
+   - "Subject Teacher" can be granted marks-entry permissions per class+subject
+     via the admin interface (PERMS), independent of designation.
+   "Class Teacher" is a real assignment (which class(es) a teacher is class
+   teacher of, stored as an id array in class_teacher_of), and it's what
+   unlocks that teacher's Gradesheets / Class Ledger tabs, scoped to only
+   the class(es) they're assigned to. Class teachers also get the Account
+   tab, scoped to their own class(es). */
 const DESIGNATION_OPTIONS = [
   'Subject Teacher','Class Teacher','Head Teacher','Assistant Head Teacher',
   'Coordinator','Incharge','Accountant','Librarian','Office Assistant',
@@ -2220,7 +2222,7 @@ function isClassTeacherOfAny(){
 }
 function isAccountant(){
   if(SESSION.role !== 'teacher') return false;
-  const t = STRUCT.teachers.find(t => t.id === SESSION.teacherId);
+  const t = AUTH.teachers.find(t => t.id === SESSION.teacherId);
   return t && (t.designation === 'Accountant');
 }
 function isAccountPrivileged(){
@@ -2338,6 +2340,10 @@ async function renderTab(){
   if(currentTab==='exams') return renderExams();
   if(currentTab==='marks-overview') return renderMarksOverview();
   if(currentTab==='gradesheets' || currentTab==='class-ledger'){
+    if(SESSION.role === 'student'){
+      c.innerHTML = '<div class="empty"><b>Not available</b>Use "My Result" to view your own gradesheet.</div>';
+      return;
+    }
     if(SESSION.role === 'teacher' && !isClassTeacherOfAny()){
       c.innerHTML = '<div class="empty"><b>Not available</b>Only a class teacher can view gradesheets or the class ledger.</div>';
       return;
@@ -5847,15 +5853,21 @@ async function saveFeeHead(id){
     var classId = document.getElementById('fe-class-' + id)?.value;
     var camt = parseFloat(document.getElementById('fe-camt-' + id)?.value) || 0;
     if(!classId){ toast('Select a class for class-scoped fee'); return; }
-    await dbUpdateFeeCategory(id, {name, frequency: freq, scope: 'class', amount: 0});
-    await dbUpsertClassFee(classId, id, camt, currentFiscalYear());
-    if(f){ f.name = name; f.frequency = freq; f.scope = 'class'; f.amount = 0; }
-    toast('Fee head saved — class amount set');
+    showLoaderBar('fh-loader', 'Saving fee head…');
+    try {
+      await dbUpdateFeeCategory(id, {name, frequency: freq, scope: 'class', amount: 0});
+      await dbUpsertClassFee(classId, id, camt, currentFiscalYear());
+      if(f){ f.name = name; f.frequency = freq; f.scope = 'class'; f.amount = 0; }
+      toast('Fee head saved — class amount set');
+    } finally { hideLoaderBar('fh-loader'); }
   } else {
     var amount = parseFloat(document.getElementById('fe-amount-' + id)?.value) || 0;
-    await dbUpdateFeeCategory(id, {name, frequency: freq, scope: scope, amount: scope === 'school' ? amount : 0});
-    if(f){ f.name = name; f.frequency = freq; f.scope = scope; f.amount = scope === 'school' ? amount : 0; }
-    toast('Fee head updated');
+    showLoaderBar('fh-loader', 'Saving fee head…');
+    try {
+      await dbUpdateFeeCategory(id, {name, frequency: freq, scope: scope, amount: scope === 'school' ? amount : 0});
+      if(f){ f.name = name; f.frequency = freq; f.scope = scope; f.amount = scope === 'school' ? amount : 0; }
+      toast('Fee head updated');
+    } finally { hideLoaderBar('fh-loader'); }
   }
   renderAccount();
 }
@@ -5980,6 +5992,7 @@ async function renderAccount(){
     html += '</div>';
     html += '<div id="fcat-extra-fields" style="margin-bottom:10px;"></div>';
     html += '<button class="btn btn-navy" onclick="addFeeCat()">+ Add Fee Head</button>';
+    html += '<div class="loader-slider" id="fh-loader"></div>';
     html += '</div></div></div>';
 
     /* ====== CLASS FEE STRUCTURE ====== */
@@ -5993,6 +6006,7 @@ async function renderAccount(){
     classes.forEach(function(cls){ html += '<option value="' + cls.id + '">' + esc(cls.name) + '</option>'; });
     html += '</select></div></div>';
     html += '<div id="ac-class-fee-rows"></div>';
+    html += '<div class="loader-slider" id="cf-loader"></div>';
     html += '</div></div></div>';
   }
 
@@ -6016,6 +6030,7 @@ async function renderAccount(){
       html += '<button class="btn btn-navy" onclick="renderStudentFeeRows()">Load Students</button>';
       html += '</div>';
       html += '<div id="ac-ps-rows"></div>';
+      html += '<div class="loader-slider" id="ps-loader"></div>';
       html += '</div></div></div>';
     }
   }
@@ -6061,6 +6076,7 @@ async function renderAccount(){
   html += '</div>';
 
   html += '<div id="rc-table-wrap" style="overflow-x:auto;"></div>';
+  html += '<div class="loader-slider" id="rc-loader"></div>';
   html += '</div></div></div>';
 
   c.innerHTML = html;
@@ -6113,19 +6129,20 @@ function renderFeeCatStudents(){
   });
 }
 async function addFeeCat(){
+  var name = document.getElementById('fcat-name')?.value?.trim();
+  if(!name){ toast('Enter a fee name'); return; }
+  var freq = document.getElementById('fcat-freq')?.value;
+  var scope = document.getElementById('fcat-scope')?.value;
+  var amount = parseFloat(document.getElementById('fcat-amount')?.value) || 0;
+  var classId = document.getElementById('fcat-class')?.value || '';
+  var studentId = document.getElementById('fcat-student')?.value || '';
+
+  if(scope === 'class' && !classId){ toast('Select a class'); return; }
+  if(scope === 'student' && !studentId){ toast('Select a student'); return; }
+  if(scope === 'student' && !classId){ toast('Select a class first'); return; }
+
+  showLoaderBar('fh-loader', 'Adding fee head…');
   try {
-    var name = document.getElementById('fcat-name')?.value?.trim();
-    if(!name){ toast('Enter a fee name'); return; }
-    var freq = document.getElementById('fcat-freq')?.value;
-    var scope = document.getElementById('fcat-scope')?.value;
-    var amount = parseFloat(document.getElementById('fcat-amount')?.value) || 0;
-    var classId = document.getElementById('fcat-class')?.value || '';
-    var studentId = document.getElementById('fcat-student')?.value || '';
-
-    if(scope === 'class' && !classId){ toast('Select a class'); return; }
-    if(scope === 'student' && !studentId){ toast('Select a student'); return; }
-    if(scope === 'student' && !classId){ toast('Select a class first'); return; }
-
     var d = await dbInsertFeeCategory({name, frequency: freq, scope: scope, amount: scope === 'school' ? amount : 0});
     if(d && d.id){
       FEE_CATS.push(d);
@@ -6148,17 +6165,22 @@ async function addFeeCat(){
   } catch(e){
     toast('Error: ' + e.message);
     console.error('addFeeCat error:', e);
+  } finally {
+    hideLoaderBar('fh-loader');
   }
 }
 window.addFeeCat = addFeeCat;
 
 async function deleteFeeCat(id){
   if(!confirm('Delete this fee head? Existing records will be orphaned.')) return;
-  await dbDeleteFeeCategory(id);
-  FEE_CATS = FEE_CATS.filter(function(f){ return f.id !== id; });
-  CLASS_FEES = CLASS_FEES.filter(function(c){ return c.fee_category_id !== id; });
-  toast('Fee head removed');
-  renderAccount();
+  showLoaderBar('fh-loader', 'Removing fee head…');
+  try {
+    await dbDeleteFeeCategory(id);
+    FEE_CATS = FEE_CATS.filter(function(f){ return f.id !== id; });
+    CLASS_FEES = CLASS_FEES.filter(function(c){ return c.fee_category_id !== id; });
+    toast('Fee head removed');
+    renderAccount();
+  } finally { hideLoaderBar('fh-loader'); }
 }
 
 /* ---- Class fee rows ---- */
@@ -6264,6 +6286,7 @@ function renderClassFeeRows(){
         html += '<td><button class="btn btn-navy btn-sm" onclick="saveDiscount(\'' + s.id + '\',\'' + classId + '\')">' + (d ? 'Update' : 'Set') + '</button></td></tr>';
       });
       html += '</tbody></table>';
+      html += '<div class="loader-slider" id="disc-loader"></div>';
     }
   } else {
     html += '<div class="empty">No students in this class.</div>';
@@ -6306,29 +6329,35 @@ async function saveDiscount(studentId, classId){
   var damt = parseFloat(document.getElementById('damt-' + studentId)?.value) || 0;
   var reason = document.getElementById('drsn-' + studentId)?.value?.trim() || '';
   var fy = currentFiscalYear();
-  if(!dtype){ /* Clear discount if exists */
-    var existing = DISCOUNTS.find(function(d){ return d.student_id === studentId && d.academic_year === fy; });
-    if(existing){
-      var r = await supabaseClient.from('student_discounts').delete().eq('id', existing.id);
-      if(r.error){ console.error('saveDiscount delete error:', r.error); toast('Error clearing discount'); return; }
-      DISCOUNTS = DISCOUNTS.filter(function(d){ return d.id !== existing.id; });
-    }
-    toast('Discount cleared');
-    renderClassFeeRows();
+  if(!dtype){
+    showLoaderBar('disc-loader', 'Clearing discount…');
+    try {
+      var existing = DISCOUNTS.find(function(d){ return d.student_id === studentId && d.academic_year === fy; });
+      if(existing){
+        var r = await supabaseClient.from('student_discounts').delete().eq('id', existing.id);
+        if(r.error){ console.error('saveDiscount delete error:', r.error); toast('Error clearing discount'); return; }
+        DISCOUNTS = DISCOUNTS.filter(function(d){ return d.id !== existing.id; });
+      }
+      toast('Discount cleared');
+      renderClassFeeRows();
+    } finally { hideLoaderBar('disc-loader'); }
     return;
   }
-  var existing = DISCOUNTS.find(function(d){ return d.student_id === studentId && d.academic_year === fy; });
-  if(existing){
-    var r = await supabaseClient.from('student_discounts').update({discount_type: dtype, applies_to: dapp, discount_percent: dpct, discount_amount: damt, reason: reason}).eq('id', existing.id);
-    if(r.error){ console.error('saveDiscount update error:', r.error); toast('Error saving discount'); return; }
-    existing.discount_type = dtype; existing.applies_to = dapp; existing.discount_percent = dpct; existing.discount_amount = damt; existing.reason = reason;
-  } else {
-    var r = await supabaseClient.from('student_discounts').insert({student_id: studentId, discount_type: dtype, applies_to: dapp, discount_percent: dpct, discount_amount: damt, reason: reason, academic_year: fy}).select().single();
-    if(r.error){ console.error('saveDiscount insert error:', r.error); toast('Error saving discount'); return; }
-    if(r.data) DISCOUNTS.push(r.data);
-  }
-  toast('Discount saved');
-  renderClassFeeRows();
+  showLoaderBar('disc-loader', 'Saving discount…');
+  try {
+    var existing = DISCOUNTS.find(function(d){ return d.student_id === studentId && d.academic_year === fy; });
+    if(existing){
+      var r = await supabaseClient.from('student_discounts').update({discount_type: dtype, applies_to: dapp, discount_percent: dpct, discount_amount: damt, reason: reason}).eq('id', existing.id);
+      if(r.error){ console.error('saveDiscount update error:', r.error); toast('Error saving discount'); return; }
+      existing.discount_type = dtype; existing.applies_to = dapp; existing.discount_percent = dpct; existing.discount_amount = damt; existing.reason = reason;
+    } else {
+      var r = await supabaseClient.from('student_discounts').insert({student_id: studentId, discount_type: dtype, applies_to: dapp, discount_percent: dpct, discount_amount: damt, reason: reason, academic_year: fy}).select().single();
+      if(r.error){ console.error('saveDiscount insert error:', r.error); toast('Error saving discount'); return; }
+      if(r.data) DISCOUNTS.push(r.data);
+    }
+    toast('Discount saved');
+    renderClassFeeRows();
+  } finally { hideLoaderBar('disc-loader'); }
 }
 
 function studentTotalFees(studentId, classId){
@@ -6398,10 +6427,13 @@ function feeDetailHtml(studentId, classId){
 
 async function saveClassFee(classId, catId){
   var amount = parseFloat(document.getElementById('cf-amount-' + catId).value) || 0;
-  await dbUpsertClassFee(classId, catId, amount, currentFiscalYear());
-  toast('Fee saved');
-  await loadFeeData();
-  renderClassFeeRows();
+  showLoaderBar('cf-loader', 'Saving class fee…');
+  try {
+    await dbUpsertClassFee(classId, catId, amount, currentFiscalYear());
+    toast('Fee saved');
+    await loadFeeData();
+    renderClassFeeRows();
+  } finally { hideLoaderBar('cf-loader'); }
 }
 
 /* ---- Student fee rows (non-uniform) ---- */
@@ -6428,18 +6460,24 @@ function renderStudentFeeRows(){
 
 async function saveStudentFee(studentId, catId){
   var amount = parseFloat(document.getElementById('ps-amount-' + studentId).value) || 0;
-  await dbUpsertStudentFee(studentId, catId, amount, currentFiscalYear());
-  toast('Student fee saved');
-  await loadFeeData();
-  renderStudentFeeRows();
+  showLoaderBar('ps-loader', 'Saving student fee…');
+  try {
+    await dbUpsertStudentFee(studentId, catId, amount, currentFiscalYear());
+    toast('Student fee saved');
+    await loadFeeData();
+    renderStudentFeeRows();
+  } finally { hideLoaderBar('ps-loader'); }
 }
 async function clearStudentFee(studentId, catId){
   if(!confirm('Clear this fee for this student? (discount/scholarship)')) return;
-  document.getElementById('ps-amount-' + studentId).value = '0';
-  await dbClearStudentFee(studentId, catId);
-  toast('Student fee cleared');
-  await loadFeeData();
-  renderStudentFeeRows();
+  showLoaderBar('ps-loader', 'Clearing student fee…');
+  try {
+    document.getElementById('ps-amount-' + studentId).value = '0';
+    await dbClearStudentFee(studentId, catId);
+    toast('Student fee cleared');
+    await loadFeeData();
+    renderStudentFeeRows();
+  } finally { hideLoaderBar('ps-loader'); }
 }
 
 /* ---- Collection form ---- */
@@ -6524,7 +6562,8 @@ function renderCollectionForm(){
   html += '</tbody></table>';
   var nextBill = BILL_SEQ ? (BILL_SEQ.last_number + 1) : 1;
   html += '<div class="fee-summary"><div><div class="total-label">Total to collect</div><div class="total-amount" id="ac-total-amount">Rs 0</div><div style="font-size:11px;color:var(--ink-soft);margin-top:4px;">Bill #' + nextBill + '</div></div>';
-  html += '<button class="btn btn-gold" onclick="processCollection()">Collect & Print Bill</button></div>';
+  html += '<button class="btn btn-gold" onclick="processCollection()">Collect & Print Bill</button>';
+  html += '<div class="loader-slider" id="coll-loader"></div></div>';
   html += '</div>';
 
   container.innerHTML = html;
@@ -6607,17 +6646,17 @@ async function processCollection(){
     collected.push({catName: 'Discount (' + (disc.reason||'waiver') + ')', amount: -Math.abs(disc.discount_amount), catId: null, month: null, billNo: billNo});
   }
 
-  for(var k = 0; k < collected.length; k++){
-    var item = collected[k];
-    if(item.catId) await collectFee(studentId, item.catId, item.amount, item.month, billNo);
-  }
-
-  toast('Collection recorded. Bill #' + billNo);
-  await loadFeeData();
-
-  // Show bill
-  showBill(studentId, collected, billNo);
-  renderAccount();
+  showLoaderBar('coll-loader', 'Recording collection…');
+  try {
+    for(var k = 0; k < collected.length; k++){
+      var item = collected[k];
+      if(item.catId) await collectFee(studentId, item.catId, item.amount, item.month, billNo);
+    }
+    toast('Collection recorded. Bill #' + billNo);
+    await loadFeeData();
+    showBill(studentId, collected, billNo);
+    renderAccount();
+  } finally { hideLoaderBar('coll-loader'); }
 }
 
 function showBill(studentId, items, billNo){
@@ -6748,13 +6787,14 @@ function deleteSelectedCollections(){
   document.querySelectorAll('.rc-sel:checked').forEach(function(cb){ ids.push(cb.getAttribute('data-id')); });
   if(!ids.length) return;
   if(!confirm('Delete ' + ids.length + ' selected collection record(s)? This cannot be undone.')) return;
+  showLoaderBar('rc-loader', 'Deleting ' + ids.length + ' record(s)…');
   var done = 0;
   ids.forEach(function(id){
     supabaseClient.from('fee_collections').delete().eq('id', id).then(function(r){
-      if(r.error){ console.error('deleteSelected error:', r.error); return; }
+      if(r.error){ console.error('deleteSelected error:', r.error); done++; if(done === ids.length) hideLoaderBar('rc-loader'); return; }
       FEE_COLLS = FEE_COLLS.filter(function(c){ return c.id !== id; });
       done++;
-      if(done === ids.length){ toast(ids.length + ' record(s) deleted'); renderAccount(); }
+      if(done === ids.length){ toast(ids.length + ' record(s) deleted'); hideLoaderBar('rc-loader'); renderAccount(); }
     });
   });
 }
