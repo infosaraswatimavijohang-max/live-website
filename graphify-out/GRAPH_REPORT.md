@@ -1,144 +1,158 @@
-# Graph Report - .  (2026-07-24)
+# Graph Report - .  (2026-07-29)
 
 ## Corpus Check
-- 223 files · ~8,230,504 words
-- Verdict: corpus is large enough that graph structure adds value.
+- Large corpus: 228 files · ~8,256,649 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder, or use --no-semantic to run AST-only.
 
 ## Summary
-- 110 nodes · 155 edges · 16 communities detected
-- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 14 edges (avg confidence: 0.8)
+- 174 nodes · 277 edges · 14 communities detected
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 10 edges (avg confidence: 0.76)
 - Token cost: 28,370 input · 6,352 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Nepali Calendar & Seed Data|Nepali Calendar & Seed Data]]
-- [[_COMMUNITY_Admin CMS & Page Sections|Admin CMS & Page Sections]]
-- [[_COMMUNITY_Admin Admissions CRUD|Admin Admissions CRUD]]
-- [[_COMMUNITY_Gallery & Lightbox|Gallery & Lightbox]]
-- [[_COMMUNITY_App Initialization & Renderers|App Initialization & Renderers]]
-- [[_COMMUNITY_School Info Pages|School Info Pages]]
-- [[_COMMUNITY_Product & Documentation|Product & Documentation]]
-- [[_COMMUNITY_Exam Portal System|Exam Portal System]]
-- [[_COMMUNITY_Annual Work Plan & Notice Board|Annual Work Plan & Notice Board]]
-- [[_COMMUNITY_Teachers & Staff Display|Teachers & Staff Display]]
-- [[_COMMUNITY_Admission Form Flow|Admission Form Flow]]
-- [[_COMMUNITY_Design System|Design System]]
-- [[_COMMUNITY_Stats Counters|Stats Counters]]
-- [[_COMMUNITY_Supabase Client|Supabase Client]]
-- [[_COMMUNITY_Events Timeline|Events Timeline]]
-- [[_COMMUNITY_Testimonials Slider|Testimonials Slider]]
+- [[_COMMUNITY_Public Site Rendering|Public Site Rendering]]
+- [[_COMMUNITY_Project Architecture & Docs|Project Architecture & Docs]]
+- [[_COMMUNITY_School Calendar & Events|School Calendar & Events]]
+- [[_COMMUNITY_Fee Management & Roles|Fee Management & Roles]]
+- [[_COMMUNITY_Admin UI Helpers|Admin UI Helpers]]
+- [[_COMMUNITY_Design System & Brand|Design System & Brand]]
+- [[_COMMUNITY_Exam Portal Helpers|Exam Portal Helpers]]
+- [[_COMMUNITY_Data Seeding & Compression|Data Seeding & Compression]]
+- [[_COMMUNITY_Authentication & Authz|Authentication & Authz]]
+- [[_COMMUNITY_Login Portal Page|Login Portal Page]]
+- [[_COMMUNITY_Auth System|Auth System]]
+- [[_COMMUNITY_Fee Scope Model|Fee Scope Model]]
+- [[_COMMUNITY_Fee Frequency Model|Fee Frequency Model]]
+- [[_COMMUNITY_Eco Club|Eco Club]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `init()` - 19 edges
-2. `seedData()` - 7 edges
-3. `Shree Saraswati Secondary School` - 7 edges
-4. `DataStore API (CRUD + Cache)` - 7 edges
-5. `App Renderer (Public Site)` - 7 edges
-6. `Exam & Gradesheet Management System` - 6 edges
-7. `Supabase REST Client (supabase.js)` - 6 edges
-8. `renderAnnualPlan()` - 5 edges
-9. `Admin CMS (CRUD Operations)` - 5 edges
-10. `Default Data Arrays (DEFAULT_TEACHERS, STAFF, GALLERY)` - 5 edges
+1. `AGENTS.md â€” Developer Instructions` - 20 edges
+2. `Annual Work Plan 2083 B.S.` - 16 edges
+3. `about.html â€” About Page` - 14 edges
+4. `index.html â€” Homepage` - 13 edges
+5. `Shree Saraswati Secondary School (Entity)` - 11 edges
+6. `init()` - 10 edges
+7. `Login_portal.html â€” Exam Portal + Account Module` - 10 edges
+8. `notices.html â€” Notices Page` - 9 edges
+9. `admin.html â€” Admin Dashboard` - 9 edges
+10. `README.md â€” Project Readme` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Admin Login Authentication` --semantically_similar_to--> `Login / Auth System (Admin, Teacher, Student)`  [INFERRED] [semantically similar]
-  js/admin.js → exam_portal.html
-- `Staff Section` --references--> `Default Data Arrays (DEFAULT_TEACHERS, STAFF, GALLERY)`  [EXTRACTED]
-  about.html → js/main.js
-- `Supabase Backend (Exam Portal)` --calls--> `Supabase REST Client (supabase.js)`  [EXTRACTED]
-  exam_portal.html → js/supabase.js
-- `Teachers Section` --references--> `Default Data Arrays (DEFAULT_TEACHERS, STAFF, GALLERY)`  [EXTRACTED]
-  index.html → js/main.js
-- `Data Layer Overview (AGENTS.md)` --references--> `DataStore API (CRUD + Cache)`  [EXTRACTED]
-  AGENTS.md → js/data.js
+- `renderAnnualPlan()` --calls--> `bsDateFromAd()`  [INFERRED]
+  js\main.js → js\data.js
+- `setupAdmissionForm()` --calls--> `reset()`  [INFERRED]
+  js\main.js → js\exam_helper.js
+- `Brand Strategy â€” Warm, Dignified, Grounded` --rationale_for--> `Shree Saraswati Secondary School (Entity)`  [EXTRACTED]
+  PRODUCT.md → index.html
+- `Design Principle â€” Photography is the Hero` --rationale_for--> `Shree Saraswati Secondary School (Entity)`  [EXTRACTED]
+  PRODUCT.md → index.html
+- `clearAllAdmissions()` --calls--> `showToast()`  [INFERRED]
+  js\admin.js → js\data.js
 
 ## Hyperedges (group relationships)
-- **Three-Tier Architecture (DataStore -> Supabase -> Admin/Render)** — jsdata_DataStore, jssupabase_SupabaseClient, jsadmin_AdminCMS, jsmain_AppRenderer, jssupabase_SupabaseTableMap [EXTRACTED 1.00]
-- **Exam System Data Flow (Classes, Subjects, Students, Marks, Exams)** — examportalhtml_ExamGradesheetSystem, examportalhtml_SupabaseBackend, examportalhtml_GradesheetPreview, examportalhtml_ClassLedger, examportalhtml_GradingScale, examportalhtml_LoginAuthSystem, jssupabase_SupabaseClient [EXTRACTED 1.00]
-- **Nepali Calendar / Annual Plan System** — jsdata_NepaliDate, jsdata_BSYearVars, jsmain_AnnualPlanRenderer, indexhtml_AnnualWorkPlan, AnnualWorkPlan_BaisakhtoChaitra [EXTRACTED 1.00]
-- **Brand & Design System (Color, Typography, Spacing, Voice)** — DESIGNmd_OKLCHColorSystem, DESIGNmd_TypographyScale, DESIGNmd_SpacingElevationMotion, AGENTSmd_DesignTokens, PRODUCTmd_ProductPurpose, PRODUCTmd_VoicePrinciples [INFERRED 0.90]
+- **Public-Facing Pages (shared header/footer/data stack)** — index_html, about_html, admissions_html, contact_html, notices_html [EXTRACTED 1.00]
+- **Data Architecture (Supabase + localStorage + cache)** — supabase_backend, localStorage_fallback, two_tier_cache, DataStore [EXTRACTED 1.00]
+- **Script Dependency Chain (supabase.js â†’ cache.js â†’ data.js â†’ main.js/admin.js)** — js_supabase_js, js_cache_js, js_data_js, js_main_js, js_admin_js [EXTRACTED 1.00]
+- **Design System Tokens (Navy + Teal + Gold)** — design_token_navy, design_token_teal, design_token_gold [EXTRACTED 1.00]
+- **Typography Stack (Playfair Display + Noto Serif)** — typography_playfair_display, typography_noto_serif [EXTRACTED 1.00]
+- **Brand Strategy Principles (warm, landscape colors, photography hero, no filler)** — brand_strategy_warm_dignified, brand_strategy_landscape_colors, brand_strategy_photography_hero, brand_strategy_no_filler [EXTRACTED 1.00]
+- **School Blocks (General + Technical)** — general_block, technical_block [EXTRACTED 1.00]
+- **Login Portal Modules (Exam Portal + Fee Management)** — Login_portal_html, exam_portal_module, fee_management_module [EXTRACTED 1.00]
+- **Admin CMS Sections (slides, notices, programs, teachers, staff, gallery, events, testimonials, marquee, admissions)** — admin_html, js_admin_js, css_admin_css [EXTRACTED 1.00]
+- **Core Documentation Files (AGENTS, DESIGN, PRODUCT, README)** — AGENTS_md, DESIGN_md, PRODUCT_md, README_md [EXTRACTED 1.00]
+- **Fee Management System** — filestem_fee_categories_table, filestem_class_fees_table, filestem_student_fees_table, filestem_fee_collections_table, filestem_bill_sequence_table, filestem_student_discounts_table, filestem_fee_scope_model, filestem_fee_frequency_model, filestem_discount_model, filestem_collection_process, filestem_get_next_bill_no, filestem_update_collection_total [EXTRACTED 1.00]
+- **Authentication Flow** — filestem_auth_system, filestem_session_object, filestem_auth_object, filestem_struct_object, filestem_handle_login, filestem_change_password, filestem_role_admin, filestem_role_teacher, filestem_role_student [EXTRACTED 1.00]
+- **Navigation Structure** — filestem_admin_nav, filestem_teacher_nav, filestem_student_nav, filestem_render_account, filestem_render_teachers, filestem_render_admit_cards [EXTRACTED 1.00]
+- **Staff Categorization Model** — filestem_staff_categorization, filestem_designation_options, filestem_render_teachers, filestem_role_teacher [EXTRACTED 1.00]
+- **Annual Plan 12-Month Sequence (Baisakh to Chaitra)** — Month_Baisakh, Month_Jestha, Month_Ashadh, Month_Shrawan, Month_Bhadra, Month_Ashwin, Month_Kartik, Month_Mangsir, Month_Poush, Month_Magh, Month_Falgun, Month_Chaitra, AnnualWorkPlan_2083 [EXTRACTED 1.00]
+- **Graph Analysis Structure (Report + Communities + Renderer + Hyperedge)** — Graph_GraphReport, Graph_Community_AnnualWorkPlan, Graph_Community_NepaliCalendar, Graph_renderAnnualPlan, Graph_Hyperedge_NepaliCalendar [EXTRACTED 1.00]
+- **School Governance & Responsibility Actors** — Responsible_Principal, Responsible_ExamCommittee, Responsible_ECACoordinator, Responsible_ClassTeachers, Responsible_SportsCommittee, Responsible_EcoClub, Responsible_SMC [EXTRACTED 1.00]
 
 ## Communities
 
-### Community 0 - "Nepali Calendar & Seed Data"
-Cohesion: 0.2
-Nodes (12): bsDateFromAd(), bsMonthGrid(), seedData(), seedGallery(), seedLocalGallery(), seedLocalStaff(), seedLocalTeachers(), seedStaff() (+4 more)
+### Community 0 - "Public Site Rendering"
+Cohesion: 0.09
+Nodes (25): bsDateFromAd(), bsMonthGrid(), animateCounters(), getPlaceholderImage(), init(), _lazyLoadSections(), renderAnnualPlan(), renderBsCalendar() (+17 more)
 
-### Community 1 - "Admin CMS & Page Sections"
-Cohesion: 0.24
-Nodes (14): Login / Auth System (Admin, Teacher, Student), Hero Section (Slideshow), Stats Counter (Students, Teachers, Graduates, Years), Admin CMS (CRUD Operations), Admin Login Authentication, DataStore API (CRUD + Cache), Image Compression (compressImage), NepaliDate Engine (B.S. Conversion) (+6 more)
+### Community 1 - "Project Architecture & Docs"
+Cohesion: 0.16
+Nodes (28): AGENTS.md â€” Developer Instructions, Admin Object (Admin CRUD), App Object (Public Site Renderer), DataStore CRUD Interface, Login_portal.html â€” Exam Portal + Account Module, README.md â€” Project Readme, about.html â€” About Page, admin.html â€” Admin Dashboard (+20 more)
 
-### Community 2 - "Admin Admissions CRUD"
-Cohesion: 0.17
-Nodes (2): clearAllAdmissions(), showToast()
+### Community 2 - "School Calendar & Events"
+Cohesion: 0.09
+Nodes (31): Student Admissions & Registration, Celebrations (Annual, Children's Day, Education Day), Competitions (Speech, Quiz, Dance, Essay, Sports), Examinations (Terminal, Pre-board, SEE, Annual), Staff Meetings & Planning, Vacations (Dashain, Tihar, Annual), Annual Work Plan 2083 B.S., Community: Annual Work Plan & Notice Board (+23 more)
 
-### Community 3 - "Gallery & Lightbox"
-Cohesion: 0.22
-Nodes (5): renderGallery(), renderGalleryImages(), renderGalleryMarquee(), renderSplitHero(), setupAdmissionForm()
+### Community 3 - "Fee Management & Roles"
+Cohesion: 0.1
+Nodes (23): isAccountPrivileged(), ADMIN_NAV Array, bill_sequence Table, class_fees Table, Fee Collection Process, DESIGNATION_OPTIONS, Discount Model (position/category/custom), exam_portal_kv Table (+15 more)
 
-### Community 4 - "App Initialization & Renderers"
+### Community 4 - "Admin UI Helpers"
 Cohesion: 0.18
-Nodes (11): init(), renderAbout(), renderEvents(), renderFooter(), renderHeader(), renderNotices(), renderPrograms(), setupHeaderScroll() (+3 more)
+Nodes (3): clearAllAdmissions(), showToast(), Critical Script Load Order (supabase.js â†’ cache.js â†’ data.js â†’ main.js/admin.js)
 
-### Community 5 - "School Info Pages"
-Cohesion: 0.25
-Nodes (9): General Block, Principal Chhabilal Bhandari, Shree Saraswati Secondary School, Staff Section, Technical Block, Contact Information, Location Maps, Academic Programs (General & Technical) (+1 more)
+### Community 5 - "Design System & Brand"
+Cohesion: 0.18
+Nodes (11): DESIGN.md â€” Design System, PRODUCT.md â€” Brand & Product Voice, Color Strategy â€” Nepali Landscape (green hills, blue sky, red accents), Design Principle â€” Every Section Earns Its Place, No Filler, Design Principle â€” Photography is the Hero, Brand Strategy â€” Warm, Dignified, Grounded, Design Token â€” Gold (oklch 0.72 0.13 85), Design Token â€” Navy (oklch 0.29 0.045 260) (+3 more)
 
-### Community 6 - "Product & Documentation"
-Cohesion: 0.25
-Nodes (8): Admin Login (AGENTS.md), Data Layer Overview (AGENTS.md), Gallery Categories, Product Purpose & Brand Strategy, User Personas (Parents, Students, Admin), Voice & Tone Principles, Vision, Mission, Values, Gallery Section
+### Community 6 - "Exam Portal Helpers"
+Cohesion: 0.24
+Nodes (5): examCols(), examCountBytes(), examSelect(), log(), reset()
 
-### Community 7 - "Exam Portal System"
-Cohesion: 0.4
-Nodes (6): Class Ledger (A4/A3 Multi-Page Print), Exam & Gradesheet Management System, Global Sync Indicator (Loader Timer), Gradesheet Preview (Screen & Print), Nepal SEE-Style Grading Scale, Supabase Backend (Exam Portal)
+### Community 7 - "Data Seeding & Compression"
+Cohesion: 0.33
+Nodes (7): seedData(), seedGallery(), seedLocalGallery(), seedLocalStaff(), seedLocalTeachers(), seedStaff(), seedTeachers()
 
-### Community 8 - "Annual Work Plan & Notice Board"
-Cohesion: 0.47
-Nodes (6): Annual Work Plan 2083 B.S. (Monthly Activities), Annual Work Plan 2083 (Calendar), Notice Board, BS Year Calendar Constants (BS_YEAR, MONTH_ORDER, etc.), Annual Plan & BS Calendar Renderer, Notice List Page
-
-### Community 9 - "Teachers & Staff Display"
+### Community 8 - "Authentication & Authz"
 Cohesion: 0.5
-Nodes (4): getPlaceholderImage(), renderStaff(), renderTeachers(), renderTestimonials()
+Nodes (5): AUTH Object, Change Password Flow, Grade Scale (Nepal SEE-style), handleLogin(), STRUCT Object
 
-### Community 10 - "Admission Form Flow"
-Cohesion: 0.5
-Nodes (4): Admission Process, Classes Offered, Documents Required, Online Admission Form (6-Step)
-
-### Community 11 - "Design System"
-Cohesion: 0.67
-Nodes (4): Design Tokens (AGENTS.md), OKLCH Color System, Spacing, Elevation, Motion System, Typography Scale
-
-### Community 12 - "Stats Counters"
-Cohesion: 0.67
-Nodes (3): animateCounters(), renderStats(), startCounters()
-
-### Community 13 - "Supabase Client"
+### Community 9 - "Login Portal Page"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): Login Portal
 
-### Community 14 - "Events Timeline"
+### Community 10 - "Auth System"
 Cohesion: 1.0
-Nodes (1): Events Timeline
+Nodes (1): Authentication System
 
-### Community 15 - "Testimonials Slider"
+### Community 11 - "Fee Scope Model"
 Cohesion: 1.0
-Nodes (1): Testimonials Slider
+Nodes (1): Fee Scope Model (school/class/student)
+
+### Community 12 - "Fee Frequency Model"
+Cohesion: 1.0
+Nodes (1): Fee Frequency Model (monthly/yearly/event)
+
+### Community 13 - "Eco Club"
+Cohesion: 1.0
+Nodes (1): Eco Club
 
 ## Knowledge Gaps
-- **14 isolated node(s):** `Classes Offered`, `Documents Required`, `Admin Login (AGENTS.md)`, `Location Maps`, `Spacing, Elevation, Motion System` (+9 more)
+- **32 isolated node(s):** `DataStore CRUD Interface`, `App Object (Public Site Renderer)`, `Admin Object (Admin CRUD)`, `Design Token â€” Navy (oklch 0.29 0.045 260)`, `Design Token â€” Gold (oklch 0.72 0.13 85)` (+27 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Supabase Client`** (1 nodes): `supabase.js`
+- **Thin community `Login Portal Page`** (1 nodes): `Login Portal`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Events Timeline`** (1 nodes): `Events Timeline`
+- **Thin community `Auth System`** (1 nodes): `Authentication System`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Testimonials Slider`** (1 nodes): `Testimonials Slider`
+- **Thin community `Fee Scope Model`** (1 nodes): `Fee Scope Model (school/class/student)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Fee Frequency Model`** (1 nodes): `Fee Frequency Model (monthly/yearly/event)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Eco Club`** (1 nodes): `Eco Club`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `showToast()` connect `Admin Admissions CRUD` to `Nepali Calendar & Seed Data`?**
-  _High betweenness centrality (0.082) - this node is a cross-community bridge._
-- **Why does `renderAnnualPlan()` connect `Nepali Calendar & Seed Data` to `Gallery & Lightbox`, `App Initialization & Renderers`?**
-  _High betweenness centrality (0.076) - this node is a cross-community bridge._
-- **What connects `Classes Offered`, `Documents Required`, `Admin Login (AGENTS.md)` to the rest of the system?**
-  _14 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `AGENTS.md â€” Developer Instructions` connect `Project Architecture & Docs` to `Public Site Rendering`, `Admin UI Helpers`, `Data Seeding & Compression`?**
+  _High betweenness centrality (0.099) - this node is a cross-community bridge._
+- **Why does `setupAdmissionForm()` connect `Public Site Rendering` to `Exam Portal Helpers`?**
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+- **Why does `reset()` connect `Exam Portal Helpers` to `Public Site Rendering`?**
+  _High betweenness centrality (0.059) - this node is a cross-community bridge._
+- **What connects `DataStore CRUD Interface`, `App Object (Public Site Renderer)`, `Admin Object (Admin CRUD)` to the rest of the system?**
+  _32 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Public Site Rendering` be split into smaller, more focused modules?**
+  _Cohesion score 0.09 - nodes in this community are weakly interconnected._
+- **Should `School Calendar & Events` be split into smaller, more focused modules?**
+  _Cohesion score 0.09 - nodes in this community are weakly interconnected._
+- **Should `Fee Management & Roles` be split into smaller, more focused modules?**
+  _Cohesion score 0.1 - nodes in this community are weakly interconnected._

@@ -5857,15 +5857,14 @@ function getFeeAmount(fee, studentId, classId){
   return studentFeeAmount(studentId, fee.id);
 }
 
+var NEXT_BILL_CACHE = null;
 async function getNextBillNo(){
+  if(NEXT_BILL_CACHE){ var n = NEXT_BILL_CACHE; NEXT_BILL_CACHE++; return n; }
   var fy = currentFiscalYear();
-  /* Derive next bill from the highest existing bill_no in DB */
   var { data } = await supabaseClient.from('fee_collections').select('bill_no').eq('fiscal_year', fy).order('bill_no', {ascending: false}).limit(1).maybeSingle();
   var dbMax = data ? (data.bill_no || 0) : 0;
-  /* Also check local FEE_COLLS for any session-only numbers */
   var localMax = FEE_COLLS.reduce(function(m, c){ return c.fiscal_year === fy ? Math.max(m, c.bill_no || 0) : m; }, 0);
   var next = Math.max(dbMax, localMax) + 1;
-  /* Try to persist to bill_sequence table (best-effort) */
   if(BILL_SEQ && BILL_SEQ.fiscal_year === fy && !BILL_SEQ._dirty){
     await supabaseClient.from('bill_sequence').update({last_number: next}).eq('id', BILL_SEQ.id).then(function(r){
       if(r.error) console.warn('getNextBillNo seq update:', r.error.message);
@@ -5877,6 +5876,7 @@ async function getNextBillNo(){
     else if(!BILL_SEQ) BILL_SEQ = { fiscal_year: fy, last_number: next, _dirty: true };
     else BILL_SEQ.last_number = next;
   }
+  NEXT_BILL_CACHE = next + 1;
   return next;
 }
 
@@ -6006,6 +6006,12 @@ async function dbUpsertStudentFee(studentId, catId, amount, year){
   }
 }
 
+function discAmt(base, feeCat, studentId){
+  if(!studentId) return base;
+  var disc = getStudentDiscount(studentId);
+  if(!disc || !discountApplies(disc, feeCat)) return base;
+  return Math.max(0, base - (base * (disc.discount_percent||0) / 100));
+}
 async function collectFee(studentId, catId, amount, month, billNo){
   var fy = currentFiscalYear();
   var { data } = await supabaseClient.from('fee_collections').insert({
@@ -6014,6 +6020,15 @@ async function collectFee(studentId, catId, amount, month, billNo){
     collected_by: SESSION.role === 'teacher' ? SESSION.teacherId : null
   }).select().single();
   if(data) FEE_COLLS.unshift(data);
+  return data;
+}
+async function collectFeeBatch(rows){
+  var fy = currentFiscalYear();
+  var payload = rows.map(function(r){
+    return { student_id: r.studentId, fee_category_id: r.catId, amount: r.amount, bs_month: r.month, academic_year: fy, fiscal_year: fy, bill_no: r.billNo, collected_by: SESSION.role === 'teacher' ? SESSION.teacherId : null };
+  });
+  var { data } = await supabaseClient.from('fee_collections').insert(payload).select();
+  if(data) data.forEach(function(d){ FEE_COLLS.unshift(d); });
   return data;
 }
 
@@ -6647,8 +6662,6 @@ function renderCollectionForm(){
     discLabel = '<div style="font-size:12px;color:#2e7d32;font-weight:600;margin-bottom:8px;">Discount: ' + parts.join(' + ') + ' on ' + targetLabel + (disc.reason ? ' (' + esc(disc.reason) + ')' : '') + '</div>';
   }
 
-  function discAmt(base, feeCat){ if(!disc || !discountApplies(disc, feeCat)) return base; return Math.max(0, base - (base * (disc.discount_percent||0) / 100)); }
-
   var html = '<div style="margin-top:12px;">';
   html += discLabel;
   html += '<table class="fee-table" id="ac-col-table"><thead><tr><th>Fee</th><th>Amount</th><th>Months / Details</th></tr></thead><tbody>';
@@ -6660,7 +6673,7 @@ function renderCollectionForm(){
   FEE_CATS.forEach(function(f){
     var baseAmt = getFeeAmount(f, studentId, classId);
     if(!baseAmt) return;
-    var netAmt = discAmt(baseAmt, f);
+    var netAmt = discAmt(baseAmt, f, studentId);
     if(f.frequency === 'monthly') monthlyFees.push({cat: f, baseAmt: baseAmt, netAmt: netAmt});
     else if(f.frequency === 'yearly') yearlyFees.push({cat: f, baseAmt: baseAmt, netAmt: netAmt});
     else eventFees.push({cat: f, baseAmt: baseAmt, netAmt: netAmt});
@@ -6748,10 +6761,9 @@ async function processCollection(){
   var classId = student ? student.classId : null;
 
   var disc = getStudentDiscount(studentId);
-  function discAmt(base, feeCat){ if(!disc || !discountApplies(disc, feeCat)) return base; return Math.max(0, base - (base * (disc.discount_percent||0) / 100)); }
 
   FEE_CATS.forEach(function(f){
-    var amount = discAmt(getFeeAmount(f, studentId, classId), f);
+    var amount = discAmt(getFeeAmount(f, studentId, classId), f, studentId);
     if(!amount) return;
 
     if(f.frequency === 'monthly'){
@@ -6783,12 +6795,11 @@ async function processCollection(){
 
   showLoaderBar('coll-loader', 'Recording collection…');
   try {
-    for(var k = 0; k < collected.length; k++){
-      var item = collected[k];
-      if(item.catId) await collectFee(studentId, item.catId, item.amount, item.month, billNo);
-    }
+    var dbRows = collected.filter(function(i){ return i.catId; }).map(function(i){
+      return {studentId: studentId, catId: i.catId, amount: i.amount, month: i.month, billNo: billNo};
+    });
+    if(dbRows.length) await collectFeeBatch(dbRows);
     toast('Collection recorded. Bill #' + billNo);
-    await loadFeeData();
     showBill(studentId, collected, billNo);
     renderAccount();
   } finally { hideLoaderBar('coll-loader'); }
