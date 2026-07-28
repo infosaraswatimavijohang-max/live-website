@@ -876,6 +876,7 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 .admit-card .subjects td{padding:3px 6px;border-bottom:1px solid var(--line);color:var(--ink);}
 .admit-card .subjects tr:last-child td{border-bottom:none;}
 .admit-card .subjects .code{color:var(--ink-soft);font-family:var(--font-mono);font-size:10px;}
+.admit-card .subjects .sno{color:var(--ink-soft);font-size:10px;text-align:center;width:28px;}
 .admit-card .signature{margin-top:10px;padding-top:6px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:10px;color:var(--ink-soft);}
 .admit-card .signature span{text-align:center;}
 .admit-card .badge{position:absolute;top:8px;right:8px;background:var(--navy-deep);color:#fff;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;}
@@ -7199,9 +7200,12 @@ function generateAdmitCards(){
   var subjects = STRUCT.subjects.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return a.serialNo - b.serialNo || a.name.localeCompare(b.name); });
   if(!subjects.length){ toast('No subjects found for this class. Add subjects first.'); return; }
   var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
+  var useCode = cls && /(^|[\s-])(10|11|12)([\s-]|$)/.test(cls.name);
+  var colHeader = useCode ? 'Code' : 'S.No.';
   var half = Math.ceil(subjects.length / 2);
   var subjLeft = subjects.slice(0, half);
   var subjRight = subjects.slice(half);
+  var subjCell = function(sb, idx){ var val = useCode ? esc(sb.code) : (idx + 1); return '<td class="' + (useCode ? 'code' : 'sno') + '">' + val + '</td><td>' + esc(sb.name) + '</td>'; };
   var html = '<div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + students.length + ' admit cards generated</span><button class="btn btn-navy" onclick="printAdmitCards()" style="padding:8px 18px;font-size:14px;">🖨 Print All Admit Cards</button></div>';
   html += '<div class="admit-card-grid">';
   students.forEach(function(st){
@@ -7220,7 +7224,7 @@ function generateAdmitCards(){
     html += '<div class="row"><span class="label">Father</span><span class="value">' + esc(st.fatherName || '—') + '</span></div>';
     if(st.dob) html += '<div class="row"><span class="label">DOB</span><span class="value">' + esc(st.dob) + '</span></div>';
     html += '</div></div>';
-    html += '<div class="subjects"><div class="title">Subjects</div><div class="subj-cols"><div class="subj-col"><table><thead><tr><th>Code</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb){ return '<tr><td class="code">' + esc(sb.code) + '</td><td>' + esc(sb.name) + '</td></tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="subj-col"><table><thead><tr><th>Code</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb){ return '<tr><td class="code">' + esc(sb.code) + '</td><td>' + esc(sb.name) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
+    html += '<div class="subjects"><div class="title">Subjects</div><div class="subj-cols"><div class="subj-col"><table><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb, i){ return '<tr>' + subjCell(sb, i) + '</tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="subj-col"><table><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb, i){ return '<tr>' + subjCell(sb, subjLeft.length + i) + '</tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
     html += '<div class="signature"><span>Class Teacher<br>_________________</span><span>Exam Controller<br>_________________</span><span>Principal<br>_________________</span></div>';
     html += '</div>';
   });
@@ -7240,9 +7244,12 @@ function printAdmitCards(){
   var examDates = '';
   if(exam.startDate && exam.endDate) examDates = (exam.startDate === exam.endDate) ? exam.startDate : exam.startDate + ' to ' + exam.endDate;
   else if(exam.startDate) examDates = 'From ' + exam.startDate;
+  var useCode = cls && /(^|[\s-])(10|11|12)([\s-]|$)/.test(cls.name);
+  var colHeader = useCode ? 'Code' : 'S.No.';
   var half = Math.ceil(subjects.length / 2);
   var subjLeft = subjects.slice(0, half);
   var subjRight = subjects.slice(half);
+  var subjCell = function(sb, idx){ var val = useCode ? esc(sb.code) : (idx + 1); return '<td class="' + (useCode ? 'ac-code' : 'ac-sno') + '">' + val + '</td><td>' + esc(sb.name) + '</td>'; };
 
   var bodyHtml = '';
   students.forEach(function(st){
@@ -7257,7 +7264,7 @@ function printAdmitCards(){
     bodyHtml += '<tr><td class="ac-lbl">Father</td><td class="ac-val">' + esc(st.fatherName || '—') + '</td></tr>';
     if(st.dob) bodyHtml += '<tr><td class="ac-lbl">DOB</td><td class="ac-val">' + esc(st.dob) + '</td></tr>';
     bodyHtml += '</table></div></div>';
-    bodyHtml += '<div class="ac-subjects"><div class="ac-sub-lbl">Subjects</div><div class="ac-sub-cols"><div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>Code</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb){ return '<tr><td class="ac-code">' + esc(sb.code) + '</td><td>' + esc(sb.name) + '</td></tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>Code</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb){ return '<tr><td class="ac-code">' + esc(sb.code) + '</td><td>' + esc(sb.name) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
+    bodyHtml += '<div class="ac-subjects"><div class="ac-sub-lbl">Subjects</div><div class="ac-sub-cols"><div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb, i){ return '<tr>' + subjCell(sb, i) + '</tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb, i){ return '<tr>' + subjCell(sb, subjLeft.length + i) + '</tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
     bodyHtml += '<div class="ac-signatures"><div class="ac-sig">Class Teacher<br>_________________</div><div class="ac-sig">Exam Controller<br>_________________</div><div class="ac-sig">Principal<br>_________________</div></div>';
     bodyHtml += '</div>';
   });
@@ -7291,6 +7298,7 @@ function printAdmitCards(){
   win.document.write('.ac-sub-table td{padding:2px 4px;border-bottom:1px solid #dfe2ea;color:#1c1f2a;}');
   win.document.write('.ac-sub-table tr:last-child td{border-bottom:none;}');
   win.document.write('.ac-code{color:#5a6072;font-family:"Courier New",monospace;font-size:9px;}');
+  win.document.write('.ac-sno{color:#5a6072;font-size:9px;text-align:center;}');
   win.document.write('.ac-signatures{display:flex;justify-content:space-between;margin-top:8px;padding-top:5px;border-top:1px solid #dfe2ea;font-size:9px;color:#5a6072;text-align:center;}');
   win.document.write('.ac-sig{flex:1;}');
   win.document.write('@media print{body{background:#fff;padding:5px;}.ac-print-wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;}.ac-print-card{box-shadow:none;border-radius:0;width:96mm;padding:8mm 6mm;}}');
