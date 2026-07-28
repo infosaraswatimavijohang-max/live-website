@@ -2287,7 +2287,7 @@ const ADMIN_NAV = [
   {id:'account', label:'Account'},
   {id:'classes', label:'Classes & Subjects'},
   {id:'students', label:'Students'},
-  {id:'teachers', label:'Teachers & Permissions'},
+  {id:'teachers', label:'Teaching/Non-Teaching Staff'},
   {id:'exams', label:'Exams'},
   {id:'admit-cards', label:'Admit Cards'},
   {id:'marks-overview', label:'Marks Overview'},
@@ -2307,6 +2307,19 @@ const TEACHER_NAV_BASE = [
 // / renderClassLedger, which restrict the Class dropdown for this role).
 // Accountant designation and class teachers also get the Account tab.
 function getTeacherNav(){
+  var t = AUTH.teachers.find(function(x){ return x.id === SESSION.teacherId; });
+  var isNonTeaching = t && t.category === 'non-teaching';
+  var base = isNonTeaching
+    ? [
+        {id:'assignments', label:'Assignments'},
+        {id:'notes', label:'Notes/Notices'},
+      ]
+    : [
+        {id:'my-subjects', label:'My Subjects'},
+        {id:'enter-marks', label:'Enter Marks'},
+        {id:'assignments', label:'Assignments'},
+        {id:'notes', label:'Notes/Notices'},
+      ];
   var extra = [];
   if(isAccountPrivileged()) extra.push({id:'account', label:'Account'});
   if(isClassTeacherOfAny()){
@@ -2314,8 +2327,8 @@ function getTeacherNav(){
     extra.push({id:'class-ledger', label:'Class Ledger'});
     extra.push({id:'admit-cards', label:'Admit Cards'});
   }
-  if(!extra.length) return TEACHER_NAV_BASE;
-  return [...TEACHER_NAV_BASE, ...extra];
+  if(!extra.length) return base;
+  return [...base, ...extra];
 }
 const STUDENT_NAV = [
   {id:'my-result', label:'My Result'},
@@ -2369,7 +2382,7 @@ async function renderTab(){
     'account':['Finance','Account'],
     'classes':['Setup','Classes & Subjects'],
     'students':['Records','Students'],
-    'teachers':['Access Control','Teachers & Permissions'],
+    'teachers':['Access Control','Teaching/Non-Teaching Staff'],
     'exams':['Assessment','Exams'],
     'admit-cards':['Documents','Admit Cards'],
     'marks-overview':['Assessment','Marks Overview'],
@@ -2407,8 +2420,20 @@ async function renderTab(){
     }
     return currentTab==='gradesheets' ? renderGradesheets() : renderClassLedger();
   }
-  if(currentTab==='my-subjects') return renderMySubjects();
-  if(currentTab==='enter-marks') return renderEnterMarks();
+  if(currentTab==='my-subjects'){
+    if(SESSION.role === 'teacher'){
+      var t = AUTH.teachers.find(function(x){ return x.id === SESSION.teacherId; });
+      if(t && t.category === 'non-teaching'){ c.innerHTML = '<div class="empty"><b>Not available</b>Non-teaching staff do not have subject access.</div>'; return; }
+    }
+    return renderMySubjects();
+  }
+  if(currentTab==='enter-marks'){
+    if(SESSION.role === 'teacher'){
+      var t2 = AUTH.teachers.find(function(x){ return x.id === SESSION.teacherId; });
+      if(t2 && t2.category === 'non-teaching'){ c.innerHTML = '<div class="empty"><b>Not available</b>Non-teaching staff do not have marks access.</div>'; return; }
+    }
+    return renderEnterMarks();
+  }
   if(currentTab==='my-result') return renderMyResult();
   if(currentTab==='assignments') return renderAssignments();
   if(currentTab==='notes') return renderNotes();
@@ -2445,7 +2470,7 @@ function renderOverview(){
       <div style="font-size:13.5px;line-height:1.9;color:var(--ink-soft);">
         1. Add classes and subjects under <b style="color:var(--navy)">Classes & Subjects</b>.<br>
         2. Add students under <b style="color:var(--navy)">Students</b>.<br>
-        3. Create teacher accounts and grant subject permissions under <b style="color:var(--navy)">Teachers & Permissions</b>.<br>
+        3. Create teacher/staff accounts and grant subject permissions under <b style="color:var(--navy)">Teaching/Non-Teaching Staff</b>.<br>
         4. Create an exam and set full/pass marks under <b style="color:var(--navy)">Exams</b>.<br>
         5. Teachers enter marks from their own login; you can print gradesheets under <b style="color:var(--navy)">Gradesheets</b>.
       </div>
@@ -2983,8 +3008,8 @@ function printTeachersList(){
         <td>${subs}</td>
       </tr>`;
   }).join('');
-  const body = `<table><thead><tr><th>Name</th><th>Username</th><th>Password</th><th>Phone</th><th>Email</th><th>Assigned subjects</th></tr></thead><tbody>${rows || '<tr><td colspan="6">No teachers</td></tr>'}</tbody></table>`;
-  openPrintWindow('Teacher Accounts', body);
+  const body = `<table><thead><tr><th>Name</th><th>Username</th><th>Password</th><th>Phone</th><th>Email</th><th>Assigned subjects</th></tr></thead><tbody>${rows || '<tr><td colspan="6">No staff</td></tr>'}</tbody></table>`;
+  openPrintWindow('Staff Accounts', body);
 }
 /* Student/teacher photos are stored directly as base64 text in the
    photo_url column (see dbSaveStudentPhoto/dbSaveTeacherPhoto) — there's
@@ -3255,23 +3280,25 @@ async function submitEditStudent(id){
   }
 }
 
-/* ================= ADMIN: TEACHERS & PERMISSIONS ================= */
+/* ================= ADMIN: TEACHERS & PERMISSIONS / STAFF ================= */
 function renderTeachers(){
   const c = document.getElementById('content-area');
+  var nonTeachingTeachers = AUTH.teachers.filter(function(t){ return t.category === 'non-teaching'; });
+  var teachingTeachers = AUTH.teachers.filter(function(t){ return t.category !== 'non-teaching'; });
   c.innerHTML = `
     <div class="grid2">
       <div style="border:1px solid var(--line);border-radius:5px;margin-bottom:16px;grid-column:1 / -1;">
         <div class="collapse-head" onclick="toggleCollapse('add-teacher')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <h3 style="margin:0;">Add Teacher Account</h3>
-            <button type="button" class="btn btn-outline" onclick="event.stopPropagation();printTeachersList()">🖨 Print All Teachers</button>
+            <h3 style="margin:0;">Add Staff Account</h3>
+            <button type="button" class="btn btn-outline" onclick="event.stopPropagation();printTeachersList()">🖨 Print All Staff</button>
           </div>
           <span id="collapse-chevron-add-teacher" class="collapse-chevron">${isCollapsed('add-teacher') ? '▶' : '▼'}</span>
         </div>
         <div id="collapse-body-add-teacher" class="collapse-body ${isCollapsed('add-teacher') ? '' : 'open'}" style="padding:0 16px 16px;border-top:1px solid var(--line);">
           <div class="modal-section-label" style="margin-top:12px;">Account</div>
           <div class="grid3">
-            <div class="field"><label>Full name</label><input id="new-t-name" placeholder="Teacher's name"></div>
+            <div class="field"><label>Full name</label><input id="new-t-name" placeholder="Staff name"></div>
             <div class="field"><label>Username <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label><input id="new-t-user" placeholder="Defaults to first name"></div>
             <div class="field"><label>Password <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label><input id="new-t-pass" placeholder="Defaults to username"></div>
           </div>
@@ -3295,9 +3322,18 @@ function renderTeachers(){
             </div>
             <div class="field" style="grid-column:span 3;"><label>Address</label><input id="new-t-address"></div>
           </div>
-          <div class="modal-section-label">Class Teacher Of <span style="font-weight:400;color:var(--ink-soft);text-transform:none;letter-spacing:0;">(grants access to that class's Gradesheets &amp; Class Ledger)</span></div>
-          <div class="checkbox-grid" id="new-t-classteacher">
-            ${STRUCT.classes.map(cl=>`<div class="checkbox-row"><input type="checkbox" id="new-t-ct-${cl.id}" value="${cl.id}"><label for="new-t-ct-${cl.id}" style="font-weight:400;">${cl.name}</label></div>`).join('') || '<div class="hint">Add a class first</div>'}
+          <div class="checkbox-row" style="margin-top:10px;">
+            <input type="checkbox" id="new-t-nonteaching" onchange="document.getElementById('new-t-dept-wrap').style.display = this.checked ? 'block' : 'none'; document.getElementById('new-t-ct-section').style.display = this.checked ? 'none' : 'block';">
+            <label for="new-t-nonteaching" style="font-weight:600;">Non-Teaching Staff <span style="font-weight:400;color:var(--ink-soft);">(no subjects/marks access)</span></label>
+          </div>
+          <div id="new-t-dept-wrap" style="display:none;margin-top:8px;">
+            <div class="field"><label>Department</label><input id="new-t-dept" placeholder="e.g. Account, Library, Administration"></div>
+          </div>
+          <div id="new-t-ct-section">
+            <div class="modal-section-label">Class Teacher Of <span style="font-weight:400;color:var(--ink-soft);text-transform:none;letter-spacing:0;">(grants access to that class's Gradesheets &amp; Class Ledger)</span></div>
+            <div class="checkbox-grid" id="new-t-classteacher">
+              ${STRUCT.classes.map(cl=>`<div class="checkbox-row"><input type="checkbox" id="new-t-ct-${cl.id}" value="${cl.id}"><label for="new-t-ct-${cl.id}" style="font-weight:400;">${cl.name}</label></div>`).join('') || '<div class="hint">Add a class first</div>'}
+            </div>
           </div>
           <div class="loader-slider" id="t-add-loader"></div>
           <div class="modal-actions" style="justify-content:flex-start;margin-top:6px;">
@@ -3305,39 +3341,46 @@ function renderTeachers(){
           </div>
         </div>
       </div>
-      <div class="card">
-        <h3>Grant Subject Permission</h3>
-        <div class="field"><label>Teacher</label>
-          <select id="perm-teacher">
-            ${AUTH.teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('') || '<option value="">Add a teacher first</option>'}
-          </select>
-        </div>
-        <div class="field"><label>Class</label>
-          <select id="perm-class" onchange="refreshPermSubjectOptions()">
-            ${STRUCT.classes.map(cl=>`<option value="${cl.id}">${cl.name}</option>`).join('') || '<option value="">Add a class first</option>'}
-          </select>
-        </div>
-        <div class="field"><label>Subject</label>
-          <select id="perm-subject"></select>
-        </div>
-        <div class="field">
-          <label>Marks Type <span style="font-weight:400;color:var(--ink-soft);">(which marks this teacher enters)</span></label>
-          <div class="seg-tabs" id="perm-marktype-tabs">
-            <button type="button" class="seg-tab active" data-val="both" onclick="selectPermMarkType('both')">Both</button>
-            <button type="button" class="seg-tab" data-val="theory" onclick="selectPermMarkType('theory')">Theory only</button>
-            <button type="button" class="seg-tab" data-val="practical" onclick="selectPermMarkType('practical')">Practical only</button>
+      <div class="card" style="padding:12px 16px;">
+        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+          <div class="field" style="flex:1;min-width:130px;margin:0;">
+            <label>Teacher</label>
+            <select id="perm-teacher" style="padding:6px 8px;font-size:12px;">
+              ${teachingTeachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('') || '<option value="">Add a teacher first</option>'}
+            </select>
           </div>
-          <div class="hint" style="margin-top:6px;">Use Theory/Practical only when two different teachers split marks entry for the same subject (e.g. a theory teacher and a lab/practical teacher).</div>
+          <div class="field" style="flex:1;min-width:110px;margin:0;">
+            <label>Class</label>
+            <select id="perm-class" onchange="refreshPermSubjectOptions()" style="padding:6px 8px;font-size:12px;">
+              ${STRUCT.classes.map(cl=>`<option value="${cl.id}">${cl.name}</option>`).join('') || '<option value="">Add a class first</option>'}
+            </select>
+          </div>
+          <div class="field" style="flex:1;min-width:130px;margin:0;">
+            <label>Subject</label>
+            <select id="perm-subject" style="padding:6px 8px;font-size:12px;"></select>
+          </div>
+          <div class="field" style="margin:0;">
+            <label style="font-size:10px;white-space:nowrap;">Marks Type</label>
+            <div class="seg-tabs" id="perm-marktype-tabs" style="gap:2px;">
+              <button type="button" class="seg-tab active" data-val="both" onclick="selectPermMarkType('both')" style="padding:5px 10px;font-size:11px;">Both</button>
+              <button type="button" class="seg-tab" data-val="theory" onclick="selectPermMarkType('theory')" style="padding:5px 10px;font-size:11px;">Theory</button>
+              <button type="button" class="seg-tab" data-val="practical" onclick="selectPermMarkType('practical')" style="padding:5px 10px;font-size:11px;">Practical</button>
+            </div>
+          </div>
+          <button class="btn btn-gold" onclick="addPermission()" style="padding:6px 14px;font-size:12px;white-space:nowrap;">Grant</button>
         </div>
-        <button class="btn btn-gold" onclick="addPermission()">Grant Permission</button>
+        <div class="hint" style="margin-top:6px;font-size:10px;">Theory/Practical only when two teachers split marks entry for the same subject.</div>
       </div>
     </div>
     <div class="card">
-      <h3>Teacher Accounts</h3>
+      <h3>All Staff</h3>
       ${AUTH.teachers.length ? AUTH.teachers.map(t=>{
         const perms = PERMS.filter(p=>p.teacherId===t.id);
         const ctClasses = (t.classTeacherOf||[]).map(cid=>classNameOf(cid));
         const collapsed = isCollapsed('teacher-'+t.id);
+        var catBadge = t.category === 'non-teaching'
+          ? '<span class="pill" style="background:var(--ink-soft);color:#fff;font-size:9px;">Non-Teaching</span>'
+          : '<span class="pill" style="background:var(--navy);color:#fff;font-size:9px;">Teaching</span>';
         return `<div style="border:1px solid var(--line);border-radius:5px;margin-bottom:10px;">
           <div class="collapse-head" onclick="toggleCollapse('teacher-${t.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;gap:10px;">
             <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
@@ -3347,6 +3390,7 @@ function renderTeachers(){
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:1px;">
                   ${t.designation ? `<span style="color:var(--ink-soft);font-size:11px;">${t.designation}</span>` : ''}
                   ${ctClasses.length ? `<span class="pill pill-green" style="font-size:9px;">Class Teacher: ${ctClasses.join(', ')}</span>` : ''}
+                  ${catBadge}
                 </div>
               </div>
             </div>
@@ -3358,11 +3402,13 @@ function renderTeachers(){
               <span class="mono">${t.username}${t.mustChangePassword ? ' <span style="color:var(--gold);font-size:10px;">(default pwd)</span>' : ''}</span>
               <span style="color:var(--ink-soft);">Password</span>
               <span class="mono">${pwdToggleHtml(t)}</span>
+              ${t.department ? `<span style="color:var(--ink-soft);">Department</span><span class="mono">${esc(t.department)}</span>` : ''}
             </div>
+            ${t.category !== 'non-teaching' ? `
             <div style="margin:10px 0;">
               <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:6px;">Assigned subjects</div>
               <div class="tag-list">${perms.length ? perms.map(p=>`<span class="subj-tag">${subjLabelOf(p.subjectId)} · ${classNameOf(p.classId)}<span class="mtype ${p.markType||'both'}">${MARK_TYPE_LABEL[p.markType||'both']}</span> <a href="javascript:void(0)" onclick="removePermission('${p.teacherId}','${p.classId}','${p.subjectId}')" style="color:var(--red);margin-left:4px;">✕</a></span>`).join('') : '<span style="color:var(--ink-soft);font-size:12px;">No subjects assigned</span>'}</div>
-            </div>
+            </div>` : ''}
             <div style="display:flex;gap:8px;">
               <button class="btn-edit-outline" onclick="openTeacherDetailsModal('${t.id}')">Details</button>
               <button class="btn-edit-outline" onclick="openEditTeacherModal('${t.id}')">Edit</button>
@@ -3370,7 +3416,7 @@ function renderTeachers(){
             </div>
           </div>
         </div>`;
-      }).join('') : '<div class="empty"><b>No teacher accounts yet</b>Create one above.</div>'}
+      }).join('') : '<div class="empty"><b>No staff accounts yet</b>Create one above.</div>'}
     </div>`;
   PERM_MARKTYPE = 'both';
   refreshPermSubjectOptions();
@@ -3399,6 +3445,8 @@ function openTeacherDetailsModal(id){
         ${row('Email', t.email)}
         ${row('Qualification', t.qualification)}
         ${row('Designation', t.designation)}
+        ${row('Category', t.category === 'non-teaching' ? 'Non-Teaching Staff' : 'Teaching Staff')}
+        ${t.department ? row('Department', t.department) : ''}
         ${row('Class Teacher Of', (t.classTeacherOf||[]).map(cid=>classNameOf(cid)).join(', '))}
         ${row('Joining Date', t.joiningDate)}
         ${row('Address', t.address)}
@@ -3434,34 +3482,33 @@ async function addTeacher(){
   const joiningDate = document.getElementById('new-t-joined').value;
   const address = document.getElementById('new-t-address').value.trim();
   const photoInput = document.getElementById('new-t-photo');
-  const classTeacherOf = STRUCT.classes.map(cl=>cl.id).filter(id=>document.getElementById(`new-t-ct-${id}`)?.checked);
-  if(!name) return toast('Fill in the teacher\'s name');
-  // Username/password are optional here: leave them blank and the account
-  // defaults to first-name-as-username / first-name-as-password, same as a
-  // student defaults to first name / roll number — the teacher changes it
-  // on first login (see mustChangePassword below).
+  const isNonTeaching = document.getElementById('new-t-nonteaching').checked;
+  const department = isNonTeaching ? document.getElementById('new-t-dept').value.trim() : '';
+  const classTeacherOf = isNonTeaching ? [] : STRUCT.classes.map(cl=>cl.id).filter(id=>document.getElementById(`new-t-ct-${id}`)?.checked);
+  if(!name) return toast('Fill in the staff name');
   let finalUsername = username || uniqueTeacherUsername(name, null);
   if(usernameTaken(finalUsername)) return toast('That username is already taken');
   const finalPassword = password || finalUsername;
   const btn = document.getElementById('add-t-btn');
   setBtnBusy(btn, true, 'Creating…');
-  showLoaderBar('t-add-loader', 'Saving teacher…');
+  showLoaderBar('t-add-loader', 'Saving…');
   try{
     const newId = await dbInsertTeacher({name, phone, email, qualification, designation, joiningDate, address, classTeacherOf});
-    if(!newId) return; // error already shown by dbInsertTeacher
+    if(!newId) return;
     let photo = null;
     if(photoInput && photoInput.files && photoInput.files[0]){
       try { photo = await compressImageFile(photoInput.files[0]); }
-      catch(e){ /* ignore, add teacher without photo */ }
+      catch(e){ /* ignore, add without photo */ }
     }
     if(photo) await dbSaveTeacherPhoto(newId, photo);
     await dbUpdateTeacherDetails(newId, { username: finalUsername, password: finalPassword });
     AUTH.teachers.push({
       id:newId, name, username: finalUsername, password: finalPassword, mustChangePassword:true, previousPassword:null, photo,
       phone, email, qualification, designation, joiningDate, address, classTeacherOf,
+      category: isNonTeaching ? 'non-teaching' : 'teaching', department: department || null,
     });
     await persistAuth();
-    toast('Teacher account created — login: ' + finalUsername + ' / ' + finalPassword); renderTeachers();
+    toast('Staff account created — login: ' + finalUsername + ' / ' + finalPassword); renderTeachers();
   } finally {
     setBtnBusy(btn, false);
     hideLoaderBar('t-add-loader');
@@ -3473,16 +3520,17 @@ async function removeTeacher(id){
   AUTH.teachers = AUTH.teachers.filter(t=>t.id!==id);
   PERMS = PERMS.filter(p=>p.teacherId!==id);
   await persistAuth(); await sset('permissions', PERMS);
-  toast('Teacher removed'); renderTeachers();
+  toast('Staff account removed'); renderTeachers();
 }
 /* ---- edit modal: teachers ---- */
 function openEditTeacherModal(id){
   const t = AUTH.teachers.find(x=>x.id===id);
   if(!t) return;
+  var isNonTeaching = t.category === 'non-teaching';
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-overlay" id="edit-overlay">
       <div class="modal modal-wide">
-        <h3>Edit Teacher Account</h3>
+        <h3>Edit Staff Account</h3>
         <div class="modal-landscape">
           <div class="modal-photo-col">
             <div class="photo-compare">
@@ -3520,9 +3568,18 @@ function openEditTeacherModal(id){
               <div class="field"><label>Joining date</label><input type="date" id="edit-t-joined" value="${(t.joiningDate||'').replace(/"/g,'&quot;')}"></div>
               <div class="field"><label>Address</label><input id="edit-t-address" value="${(t.address||'').replace(/"/g,'&quot;')}"></div>
             </div>
-            <div class="modal-section-label">Class Teacher Of <span style="font-weight:400;color:var(--ink-soft);text-transform:none;letter-spacing:0;">(grants access to that class's Gradesheets &amp; Class Ledger)</span></div>
-            <div class="checkbox-grid" id="edit-t-classteacher">
-              ${STRUCT.classes.map(cl=>`<div class="checkbox-row"><input type="checkbox" id="edit-t-ct-${cl.id}" value="${cl.id}" ${(t.classTeacherOf||[]).includes(cl.id)?'checked':''}><label for="edit-t-ct-${cl.id}" style="font-weight:400;">${cl.name}</label></div>`).join('') || '<div class="hint">Add a class first</div>'}
+            <div class="checkbox-row" style="margin-top:10px;">
+              <input type="checkbox" id="edit-t-nonteaching" onchange="document.getElementById('edit-t-dept-wrap').style.display = this.checked ? 'block' : 'none'; document.getElementById('edit-t-ct-section').style.display = this.checked ? 'none' : 'block';" ${isNonTeaching ? 'checked' : ''}>
+              <label for="edit-t-nonteaching" style="font-weight:600;">Non-Teaching Staff <span style="font-weight:400;color:var(--ink-soft);">(no subjects/marks access)</span></label>
+            </div>
+            <div id="edit-t-dept-wrap" style="display:${isNonTeaching ? 'block' : 'none'};margin-top:8px;">
+              <div class="field"><label>Department</label><input id="edit-t-dept" value="${(t.department||'').replace(/"/g,'&quot;')}" placeholder="e.g. Account, Library, Administration"></div>
+            </div>
+            <div id="edit-t-ct-section" style="display:${isNonTeaching ? 'none' : 'block'};">
+              <div class="modal-section-label">Class Teacher Of <span style="font-weight:400;color:var(--ink-soft);text-transform:none;letter-spacing:0;">(grants access to that class's Gradesheets &amp; Class Ledger)</span></div>
+              <div class="checkbox-grid" id="edit-t-classteacher">
+                ${STRUCT.classes.map(cl=>`<div class="checkbox-row"><input type="checkbox" id="edit-t-ct-${cl.id}" value="${cl.id}" ${(t.classTeacherOf||[]).includes(cl.id)?'checked':''}><label for="edit-t-ct-${cl.id}" style="font-weight:400;">${cl.name}</label></div>`).join('') || '<div class="hint">Add a class first</div>'}
+              </div>
             </div>
             <div class="loader-slider" id="edit-t-loader"></div>
             <div class="login-error" id="edit-t-error"></div>
@@ -3553,15 +3610,14 @@ async function submitEditTeacher(id){
   const designation = desigSel === 'Other' ? document.getElementById('edit-t-desig-other').value.trim() : desigSel;
   const joiningDate = document.getElementById('edit-t-joined').value;
   const address = document.getElementById('edit-t-address').value.trim();
-  const classTeacherOf = STRUCT.classes.map(cl=>cl.id).filter(cid=>document.getElementById(`edit-t-ct-${cid}`)?.checked);
+  const isNonTeaching = document.getElementById('edit-t-nonteaching').checked;
+  const department = isNonTeaching ? document.getElementById('edit-t-dept').value.trim() : '';
+  const classTeacherOf = isNonTeaching ? [] : STRUCT.classes.map(cl=>cl.id).filter(cid=>document.getElementById(`edit-t-ct-${cid}`)?.checked);
 
   const btn = document.getElementById('edit-t-save-btn');
   setBtnBusy(btn, true, 'Saving…');
   showLoaderBar('edit-t-loader', 'Saving changes…');
   try{
-    // One diffed UPDATE covering name + details, instead of two separate
-    // writes (dbUpdateTeacherName then dbUpdateTeacherDetails) that always
-    // touched every column regardless of what actually changed.
     const updated = {
       full_name: name, username, phone: phone || null, email: email || null, qualification: qualification || null,
       designation: designation || null, joining_date: joiningDate || null, address: address || null,
@@ -3572,17 +3628,13 @@ async function submitEditTeacher(id){
       designation: t.designation || null, joining_date: t.joiningDate || null, address: t.address || null,
       class_teacher_of: t.classTeacherOf || [],
     };
-    // class_teacher_of is an array — diffFields only compares by reference,
-    // so compare its JSON form instead of letting a same-content-different-
-    // array-instance slip through diffFields untouched, or an actual change
-    // get skipped.
     const changed = diffFields(current, updated);
     if(JSON.stringify(current.class_teacher_of) !== JSON.stringify(updated.class_teacher_of)){
       changed.class_teacher_of = updated.class_teacher_of;
     } else {
       delete changed.class_teacher_of;
     }
-    if(pass) changed.password = pass; // only touch the password column when a new one was actually entered
+    if(pass) changed.password = pass;
     if(Object.keys(changed).length){
       const ok = await dbUpdateTeacherDetails(id, changed);
       if(!ok) return;
@@ -3592,6 +3644,8 @@ async function submitEditTeacher(id){
     if(pass){ t.previousPassword = t.password; t.password = pass; t.mustChangePassword = true; }
     t.phone = phone; t.email = email; t.qualification = qualification;
     t.designation = designation; t.joiningDate = joiningDate; t.address = address; t.classTeacherOf = classTeacherOf;
+    t.category = isNonTeaching ? 'non-teaching' : 'teaching';
+    t.department = department || null;
 
     if(photoInput && photoInput.files && photoInput.files[0]){
       try {
@@ -3600,7 +3654,7 @@ async function submitEditTeacher(id){
       } catch(e){ /* keep existing photo on failure */ }
     }
     await persistAuth();
-    closeModal(); toast('Teacher account updated'); renderTeachers();
+    closeModal(); toast('Staff account updated'); renderTeachers();
   } finally {
     setBtnBusy(btn, false);
     hideLoaderBar('edit-t-loader');
