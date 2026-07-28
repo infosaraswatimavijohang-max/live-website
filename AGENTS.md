@@ -4,8 +4,8 @@ Static HTML/CSS/JS site — no build process, no package.json.
 
 ## Running
 - **Public**: Open any `.html` in a browser. Google Maps iframes require `localhost` (fail on `file://`).
-- **Admin**: `admin.html` (login: `amitrazbanc` / `school1122@`)
-- **Exam Portal**: `Login_portal.html` — separate SPA, uses CDN supabase-js v2.
+- **Admin**: `admin.html` (login from `site_settings` table in Supabase)
+- **Exam Portal / Account**: `Login_portal.html` — separate SPA, uses CDN supabase-js v2.
 
 ## Script load order (critical)
 ```
@@ -18,7 +18,7 @@ supabase.js → cache.js → data.js → main.js (or admin.js)
 - **Primary**: Supabase REST API (raw `fetch`, **not** supabase-js client on public pages)
 - **Fallback**: localStorage with `sss_` prefix — all `DataStore` ops write through to both
 - **Reset**: DevTools → Application → clear `sss_*` and `sss_cache_*` keys
-- **Admin auth**: `sessionStorage` (`sss_admin_auth`), credentials from `site_settings` table
+- **Admin auth**: `sessionStorage` (`sss_admin_auth`), credentials from `site_settings` table (no hardcoded fallback)
 - **Auto-seed**: `seedData()` runs on `window.onload` (`data.js:654`) — checks if `site_settings` exists, seeds teachers/staff/gallery on subsequent loads
 
 ## Key files
@@ -32,7 +32,7 @@ supabase.js → cache.js → data.js → main.js (or admin.js)
 | `js/exam_helper.js` | Exam portal helpers (separate column map, cache, dedup) |
 | `css/style.css` | Public styles (all OKLCH tokens, Playfair Display + Noto Serif) |
 | `css/admin.css` | Admin dashboard styles |
-| `Login_portal.html` | Standalone exam portal (5669 lines, inline `<script>`) |
+| `Login_portal.html` | Standalone exam portal + Account module (~6800 lines, inline `<script>`) |
 
 ## Image handling
 - Admin uploads → `compressImage(file)` in `data.js:250` → WebP base64 at 800px/0.6 quality → stored inline (localStorage size limits apply)
@@ -43,6 +43,28 @@ supabase.js → cache.js → data.js → main.js (or admin.js)
 - Calendar rendered by `renderBsCalendar()` in `main.js` — date parsing via regex, `Last Wed & Thu` dynamically calculated
 - Color-coded types (9): Holiday, Exam, Meeting, Event, Celebration, Sports, Tour, Admin, Regular
 - Date parsing handles: `From X`, `X-Y` ranges, `Last Wed & Thu`, plain numbers — regular hyphens only (not en-dashes)
+
+## Fee Management (in Login_portal.html Account module)
+- **Fee categories**: three scopes (`school`/`class`/`student`), three frequencies (`monthly`/`yearly`/`event`)
+- **Amount resolution**: school→`fee_categories.amount`, class→`class_fees`, student→`student_fees`
+- **Collection**: Nepali month checkboxes, yearly checkboxes, event amount inputs; real-time total via `updateCollectionTotal()`
+- **Bill numbers**: auto-increment per fiscal year via `getNextBillNo()` — derived from max `bill_no` in `fee_collections` + local `FEE_COLLS`
+- **Discounts/scholarships**: `student_discounts` table with `discount_type` (position/category/custom), `discount_percent`, `discount_amount`, `applies_to` (all/monthly/yearly/event/specific fee category)
+- **Per-student detail**: expandable fee matrix per student, showing which months are paid/due per fee category
+- **Recent Collections**: searchable by bill no, class, student; batch delete via checkboxes
+- **Privileges**: admin + `designation: 'Accountant'` + class teachers; class teachers scoped to their own class(es)
+
+## SQL migrations (for fee management)
+| File | Tables created |
+|------|----------------|
+| `sql/006_fee_management.sql` | `fee_categories`, `class_fees`, `student_fees`, `fee_collections`, `bill_sequence`, `student_discounts` + RLS policies |
+
+Run `sql/006_fee_management.sql` in Supabase SQL Editor. Each table has `public_all` RLS policy.
+
+## Fee table STRUCT conventions (important)
+- STRUCT classes use `name` not `class_label`
+- STRUCT students use `name` (not `full_name`), `roll` (not `school_roll_no`), `classId` (not `class_id`)
+- These are the **exam portal** tables (different from public site's Supabase tables)
 
 ## Exam Portal (`Login_portal.html`)
 - Uses supabase-js v2 from CDN (different stack from public site)

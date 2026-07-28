@@ -8,12 +8,12 @@ const Admin = {
   },
 
   async checkLogin() {
-    try { if (typeof seedData === 'function') await seedData(); } catch(e) { console.warn('seedData error:', e); }
     const auth = sessionStorage.getItem('sss_admin_auth');
     if (auth === 'true') {
       this.isLoggedIn = true;
       document.getElementById('loginOverlay').classList.add('hidden');
       document.getElementById('adminDashboard').classList.remove('hidden');
+      try { if (typeof seedData === 'function') await seedData(); } catch(e) { console.warn('seedData error:', e); }
       await this.loadAllData();
     }
   },
@@ -32,13 +32,7 @@ const Admin = {
         return true;
       }
     } catch (e) {
-      if (username === 'amitrazbanc' && password === 'school1122@') {
-        this.isLoggedIn = true;
-        sessionStorage.setItem('sss_admin_auth', 'true');
-        document.getElementById('loginOverlay').classList.add('hidden');
-        document.getElementById('adminDashboard').classList.remove('hidden');
-        return true;
-      }
+      console.error('Login error:', e);
     }
     return false;
   },
@@ -46,8 +40,10 @@ const Admin = {
   logout() {
     this.isLoggedIn = false;
     sessionStorage.removeItem('sss_admin_auth');
-    document.getElementById('loginOverlay').classList.remove('hidden');
-    document.getElementById('adminDashboard').classList.add('hidden');
+    var lo = document.getElementById('loginOverlay');
+    var ad = document.getElementById('adminDashboard');
+    if(lo) lo.classList.remove('hidden');
+    if(ad) ad.classList.add('hidden');
   },
 
   setupNavigation() {

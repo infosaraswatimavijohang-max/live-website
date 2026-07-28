@@ -37,8 +37,6 @@ img{max-width:100%;height:auto;display:block}
 .container{max-width:1200px;margin:0 auto;padding:0 24px}
 
 /* Loading skeleton effect */
-.lazy-loading{background:var(--border);animation:skPulse 1.5s ease-in-out infinite}
-@keyframes skPulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
 /* Skip link */
 .skip-link{position:absolute;top:-100%;left:8px;padding:12px 20px;background:var(--navy);color:#fff;z-index:9999;border-radius:var(--radius);font-weight:700}
@@ -61,7 +59,7 @@ img{max-width:100%;height:auto;display:block}
 
 /* === HEADER === */
 .header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--surface);z-index:1000;border-bottom:1px solid var(--border);transition:background 0.35s var(--ease),box-shadow 0.35s var(--ease)}
-.header.scrolled{background:oklch(0.99 0.003 80 / 0.92);backdrop-filter:blur(8px);box-shadow:0 1px 12px oklch(0 0 0 / 0.06)}
+.header.scrolled{background:oklch(0.99 0.003 80 / 0.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 1px 12px oklch(0 0 0 / 0.06)}
 .header-container{max-width:1200px;margin:0 auto;padding:0 24px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .logo-section{display:flex;align-items:center;gap:12px;flex-shrink:0}
 .logo{width:44px;height:44px;border-radius:50%;object-fit:cover}
@@ -188,7 +186,7 @@ img{max-width:100%;height:auto;display:block}
 .mon-btn:hover{background:var(--teal-ghost);color:var(--teal-dark)}
 .mon-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
 
-.yp-body{display:flex;flex-direction:column;gap:6px;max-height:520px;overflow-y:auto;padding-right:6px}
+.yp-body{display:flex;flex-direction:column;gap:6px;max-height:520px;overflow-y:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:var(--teal) transparent}
 .yp-body::-webkit-scrollbar{width:5px}
 .yp-body::-webkit-scrollbar-thumb{background:var(--teal);border-radius:3px}
 .yp-card{display:flex;gap:14px;padding:12px 16px;background:var(--bg);border-radius:var(--radius);border-left:3px solid var(--border);align-items:flex-start}

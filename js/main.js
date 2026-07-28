@@ -98,19 +98,25 @@ var App = {
       slides[next].classList.add('active');
       currentIndex = next;
     }
-    setInterval(cycleSlides, 5000);
+    this._parallaxInterval = setInterval(cycleSlides, 5000);
 
     var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) return;
 
-    window.addEventListener('scroll', function () {
+    this._parallaxHandler = function () {
       var rect = hero.getBoundingClientRect();
       if (rect.bottom > 0 && rect.top < window.innerHeight) {
         var progress = Math.min(1, Math.max(0, -rect.top / (hero.offsetHeight * 0.5)));
         var scale = 1.05 + progress * 0.06;
         slides.forEach(function(s) { s.style.transform = 'scale(' + scale + ')'; });
       }
-    }, { passive: true });
+    };
+    window.addEventListener('scroll', this._parallaxHandler, { passive: true });
+  },
+
+  cleanupParallax() {
+    if (this._parallaxInterval) { clearInterval(this._parallaxInterval); this._parallaxInterval = null; }
+    if (this._parallaxHandler) { window.removeEventListener('scroll', this._parallaxHandler); this._parallaxHandler = null; }
   },
 
   setupHeaderScroll() {
@@ -492,8 +498,10 @@ var App = {
     }
     container.innerHTML = images.map(function (img, i) {
       var src = img.src || img.image_url || '';
-      var cap = (img.caption || '').replace(/'/g, '\\\'');
-      return '<div class="gallery-item" onclick="openLightbox(\'' + src + '\', \'' + cap + '\')"><img src="' + src + '" alt="' + (img.caption || 'Gallery') + '" loading="lazy"></div>';
+      var alt = (img.caption || 'Gallery').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      var dataSrc = src.replace(/'/g,'%27').replace(/"/g,'%22');
+      var dataCap = (img.caption || '').replace(/'/g,'%27').replace(/"/g,'%22');
+      return '<div class="gallery-item" onclick="openLightbox(\'' + dataSrc + '\',\'' + dataCap + '\')"><img src="' + src.replace(/"/g,'&quot;') + '" alt="' + alt + '" loading="lazy"></div>';
     }).join('');
   },
 
@@ -706,9 +714,9 @@ function getPlaceholderImage(name) {
 }
 
 function openLightbox(src, caption) {
-  document.getElementById('lightboxImg').src = src;
-  document.getElementById('lightboxImg').alt = caption || 'School gallery image';
-  document.getElementById('lightboxCaption').textContent = caption;
+  document.getElementById('lightboxImg').src = decodeURIComponent(src);
+  document.getElementById('lightboxImg').alt = decodeURIComponent(caption || '') || 'School gallery image';
+  document.getElementById('lightboxCaption').textContent = decodeURIComponent(caption || '') || '';
   document.getElementById('lightbox').classList.add('show');
 }
 

@@ -196,13 +196,15 @@ const supabase = (() => {
 
     async delete(table, id) {
       const url = buildUrl(table, { id });
-      await fetch(url, { method: 'DELETE', headers });
+      const raw = await fetch(url, { method: 'DELETE', headers });
+      if (!raw.ok) return { error: new Error('Supabase delete ' + table + ': ' + raw.statusText) };
       return { error: null };
     },
 
     async clear(table) {
       const url = SUPABASE_URL + '/rest/v1/' + table;
-      await fetch(url, { method: 'DELETE', headers: { ...headers, 'Prefer': 'return=minimal' } });
+      const raw = await fetch(url, { method: 'DELETE', headers: { ...headers, 'Prefer': 'return=minimal' } });
+      if (!raw.ok) return { error: new Error('Supabase clear ' + table + ': ' + raw.statusText) };
       return { error: null };
     },
 

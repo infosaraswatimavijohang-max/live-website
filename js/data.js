@@ -256,17 +256,20 @@ function compressImage(file, maxWidth, quality) {
       var img = new Image();
       img.onload = function () {
         var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(null); return; }
         var width = img.width;
         var height = img.height;
         if (width > maxWidth) { height = (height * maxWidth) / width; width = maxWidth; }
         canvas.width = width;
         canvas.height = height;
-        var ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/webp', quality));
       };
+      img.onerror = function () { resolve(null); };
       img.src = e.target.result;
     };
+    reader.onerror = function () { resolve(null); };
     reader.readAsDataURL(file);
   });
 }
@@ -363,7 +366,6 @@ async function seedData() {
     DataStore._cache = {};
     CacheManager.invalidateAll();
     localStorage.setItem('sss_seeded', 'true');
-    console.log('Seed data initialized in Supabase');
   } catch (e) {
     console.warn('Supabase seeding failed, using localStorage fallback', e);
     localStorage.setItem('sss_site_settings', JSON.stringify(settings));
@@ -377,7 +379,6 @@ async function seedData() {
     localStorage.setItem('sss_gallery', JSON.stringify(galleryData));
     localStorage.setItem('sss_marquee', JSON.stringify({ enabled: true, items: [{ text: 'Admissions Open' }], text: 'Welcome' }));
     localStorage.setItem('sss_seeded', 'true');
-    console.log('Seed data stored in localStorage');
   }
 }
 
@@ -424,13 +425,11 @@ var staffData = [
 async function seedTeachers() {
   try { await supabase.clear('teachers'); } catch(e) {}
   await supabase.insert('teachers', teacherData);
-  console.log('Teachers seeded');
 }
 
 async function seedStaff() {
   try { await supabase.clear('staff'); } catch(e) {}
   await supabase.insert('staff', staffData);
-  console.log('Staff seeded');
 }
 
 function seedLocalTeachers() {
@@ -509,7 +508,6 @@ var galleryData = [
 async function seedGallery() {
   try { await supabase.clear('gallery'); } catch(e) {}
   await supabase.insert('gallery', galleryData);
-  console.log('Gallery seeded');
 }
 
 function seedLocalGallery() {
