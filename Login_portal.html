@@ -5854,12 +5854,14 @@ async function renderAccount(){
       html += '<td><button class="btn btn-danger-outline btn-sm" onclick="deleteFeeCat(\'' + f.id + '\')">Remove</button></td></tr>';
     });
     html += '</tbody></table>';
-    html += '<div class="row-form" style="margin:0;">';
+    html += '<div class="row-form" style="margin:0;flex-wrap:wrap;">';
     html += '<div class="field"><input type="text" id="fcat-name" placeholder="Fee name" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"></div>';
     html += '<div class="field"><select id="fcat-freq" style="padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="monthly">Monthly</option><option value="yearly">Yearly</option><option value="event">Event</option></select></div>';
-    html += '<div class="field"><select id="fcat-scope" style="padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="school">Whole School</option><option value="class">Per Class</option><option value="student">Per Student</option></select></div>';
-    html += '<button class="btn btn-navy" onclick="addFeeCat()">+ Add</button>';
-    html += '</div></div></div>';
+    html += '<div class="field"><select id="fcat-scope" onchange="renderFeeCatExtraFields()" style="padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="school">Whole School</option><option value="class">Per Class</option><option value="student">Per Student</option></select></div>';
+    html += '</div>';
+    html += '<div id="fcat-extra-fields" style="margin-bottom:10px;"></div>';
+    html += '<button class="btn btn-navy" onclick="addFeeCat()">+ Add Fee Head</button>';
+    html += '</div></div>';
 
     /* ====== CLASS FEE STRUCTURE ====== */
     html += '<div class="fee-section"><h3>Class Fee Structure</h3>';
@@ -5925,18 +5927,74 @@ async function renderAccount(){
 
   c.innerHTML = html;
 
-  /* Auto-load class fee rows if admin */
-  if(canEdit) renderClassFeeRows();
+  /* Auto-load dynamic form fields and class fee rows */
+  if(canEdit){ renderFeeCatExtraFields(); renderClassFeeRows(); }
 }
 
 /* ---- Fee head CRUD ---- */
+function renderFeeCatExtraFields(){
+  var container = document.getElementById('fcat-extra-fields');
+  if(!container) return;
+  var scope = document.getElementById('fcat-scope').value;
+  var classes = accountAccessibleClasses();
+  var html = '';
+  if(scope === 'school'){
+    html += '<div class="row-form" style="margin:0;"><div class="field"><label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;">Amount (Rs) — applied to all students</label>';
+    html += '<input type="number" id="fcat-amount" placeholder="Amount" min="0" style="width:180px;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"></div></div>';
+  } else if(scope === 'class'){
+    html += '<div class="row-form" style="margin:0;">';
+    html += '<div class="field"><label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;">Class</label>';
+    html += '<select id="fcat-class" style="padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="">— Select Class —</option>';
+    classes.forEach(function(cls){ html += '<option value="' + cls.id + '">' + esc(cls.name) + '</option>'; });
+    html += '</select></div>';
+    html += '<div class="field"><label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;">Amount (Rs)</label>';
+    html += '<input type="number" id="fcat-amount" placeholder="Amount" min="0" style="width:140px;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"></div></div>';
+  } else if(scope === 'student'){
+    html += '<div class="row-form" style="margin:0;">';
+    html += '<div class="field"><label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;">Class</label>';
+    html += '<select id="fcat-class" onchange="renderFeeCatStudents()" style="padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="">— Select Class —</option>';
+    classes.forEach(function(cls){ html += '<option value="' + cls.id + '">' + esc(cls.name) + '</option>'; });
+    html += '</select></div>';
+    html += '<div class="field"><label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;">Student</label>';
+    html += '<select id="fcat-student" style="padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"><option value="">— Select Student —</option></select></div>';
+    html += '<div class="field"><label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;">Amount (Rs)</label>';
+    html += '<input type="number" id="fcat-amount" placeholder="Amount" min="0" style="width:140px;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;"></div></div>';
+  }
+  container.innerHTML = html;
+}
+function renderFeeCatStudents(){
+  var classId = document.getElementById('fcat-class').value;
+  var sel = document.getElementById('fcat-student');
+  sel.innerHTML = '<option value="">— Select Student —</option>';
+  if(!classId) return;
+  sortStudentsByRollThenName(STRUCT.students.filter(function(s){ return s.classId === classId; })).forEach(function(s){
+    sel.innerHTML += '<option value="' + s.id + '">' + (s.roll || '') + '. ' + esc(s.name) + '</option>';
+  });
+}
 async function addFeeCat(){
   var name = document.getElementById('fcat-name').value.trim();
   if(!name){ toast('Enter a fee name'); return; }
   var freq = document.getElementById('fcat-freq').value;
   var scope = document.getElementById('fcat-scope').value;
-  var d = await dbInsertFeeCategory({name, frequency: freq, scope: scope});
-  if(d){ FEE_CATS.push(d); toast('Fee head added'); renderAccount(); }
+  var amount = parseFloat(document.getElementById('fcat-amount')?.value) || 0;
+  var classId = document.getElementById('fcat-class')?.value || '';
+  var studentId = document.getElementById('fcat-student')?.value || '';
+
+  if(scope === 'class' && !classId){ toast('Select a class'); return; }
+  if(scope === 'student' && !studentId){ toast('Select a student'); return; }
+  if(scope === 'student' && !classId){ toast('Select a class first'); return; }
+
+  var d = await dbInsertFeeCategory({name, frequency: freq, scope: scope, amount: scope === 'school' ? amount : 0});
+  if(d){
+    FEE_CATS.push(d);
+    if(scope === 'class' && classId && amount > 0){
+      await dbUpsertClassFee(classId, d.id, amount, currentFiscalYear());
+    } else if(scope === 'student' && studentId && amount > 0){
+      await dbUpsertStudentFee(studentId, d.id, amount, currentFiscalYear());
+    }
+    toast('Fee head added');
+    renderAccount();
+  }
 }
 
 async function deleteFeeCat(id){
