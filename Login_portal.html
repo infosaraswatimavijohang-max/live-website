@@ -880,6 +880,52 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 .admit-card .signature span{text-align:center;}
 .admit-card .badge{position:absolute;top:8px;right:8px;background:var(--navy-deep);color:#fff;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;}
 @media print{.admit-card-grid{display:block;}.admit-card{page-break-after:always;border:none;border-radius:0;padding:20px;box-shadow:none;}}
+
+/* ==================== ID CARDS ==================== */
+.id-card-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px;}
+.id-card-controls .field{flex:1;min-width:180px;}
+.id-card-controls .field label{display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;}
+.id-card-controls .field select,.id-card-controls .field input{width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;}
+.id-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;padding:8px 0;}
+.id-card{width:210px;min-height:330px;border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.04);transition:box-shadow .25s;break-inside:avoid;display:flex;flex-direction:column;font-family:'Segoe UI',Arial,sans-serif;}
+.id-card:hover{box-shadow:0 8px 32px rgba(0,0,0,.12),0 2px 6px rgba(0,0,0,.06);}
+.id-card .id-top{text-align:center;padding:16px 14px 10px;position:relative;}
+.id-card .id-top .id-school-name{font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;line-height:1.3;}
+.id-card .id-top .id-school-sub{font-size:7px;opacity:.7;margin-top:1px;letter-spacing:.02em;}
+.id-card .id-top .id-seal{width:28px;height:28px;border-radius:50%;object-fit:contain;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto;}
+.id-card .id-photo-wrap{display:flex;justify-content:center;margin:6px 0 8px;}
+.id-card .id-photo{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2.5px solid;background:var(--paper);}
+.id-card .id-photo-placeholder{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;border:2.5px solid;background:var(--paper);}
+.id-card .id-name{text-align:center;font-size:13px;font-weight:700;line-height:1.2;padding:0 10px;}
+.id-card .id-role{text-align:center;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:0 10px;margin-top:2px;}
+.id-card .id-body{padding:10px 14px 12px;flex:1;}
+.id-card .id-body table{width:100%;border-collapse:collapse;font-size:9px;}
+.id-card .id-body table tr td{padding:2px 0;}
+.id-card .id-body .id-lbl{opacity:.6;width:52px;vertical-align:top;}
+.id-card .id-body .id-val{font-weight:500;}
+.id-card .id-footer{padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-size:7px;}
+.id-card .id-footer .id-number{font-family:'Courier New',monospace;font-weight:600;letter-spacing:.04em;}
+.id-card .id-footer .id-valid{opacity:.6;}
+.id-card .id-bar{height:3px;width:100%;flex-shrink:0;}
+.id-card.id-student{background:#fff;}
+.id-card.id-student .id-top{background:linear-gradient(180deg,oklch(0.72 0.13 85/0.12),transparent 80%);}
+.id-card.id-student .id-school-name{color:oklch(0.72 0.13 85);}
+.id-card.id-student .id-photo,.id-card.id-student .id-photo-placeholder{border-color:oklch(0.72 0.13 85);color:oklch(0.72 0.13 85);}
+.id-card.id-student .id-role{color:oklch(0.72 0.13 85);}
+.id-card.id-student .id-bar{background:linear-gradient(90deg,oklch(0.72 0.13 85),oklch(0.62 0.1 85));}
+.id-card.id-teacher{background:#fff;}
+.id-card.id-teacher .id-top{background:linear-gradient(180deg,oklch(0.55 0.12 175/0.12),transparent 80%);}
+.id-card.id-teacher .id-school-name{color:oklch(0.55 0.12 175);}
+.id-card.id-teacher .id-photo,.id-card.id-teacher .id-photo-placeholder{border-color:oklch(0.55 0.12 175);color:oklch(0.55 0.12 175);}
+.id-card.id-teacher .id-role{color:oklch(0.55 0.12 175);}
+.id-card.id-teacher .id-bar{background:linear-gradient(90deg,oklch(0.55 0.12 175),oklch(0.45 0.1 175));}
+.id-card.id-staff{background:#fff;}
+.id-card.id-staff .id-top{background:linear-gradient(180deg,oklch(0.29 0.045 260/0.1),transparent 80%);}
+.id-card.id-staff .id-school-name{color:oklch(0.29 0.045 260);}
+.id-card.id-staff .id-photo,.id-card.id-staff .id-photo-placeholder{border-color:oklch(0.29 0.045 260);color:oklch(0.29 0.045 260);}
+.id-card.id-staff .id-role{color:oklch(0.29 0.045 260);}
+.id-card.id-staff .id-bar{background:linear-gradient(90deg,oklch(0.29 0.045 260),oklch(0.22 0.04 260));}
+@media print{.id-card-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:0;}.id-card{box-shadow:none;border:1px solid #ddd;page-break-after:always;}}
 </style>
 <!-- The @page rule that controls print orientation/margins is set dynamically
      by JS (see setPrintPage() in the router) depending on which document
@@ -2295,6 +2341,9 @@ const ADMIN_NAV = [
   {id:'class-ledger', label:'Class Ledger'},
   {id:'assignments', label:'Assignments'},
    {id:'notes', label:'Notes/Notices'},
+  {id:'student-id-cards', label:'Student IDs'},
+  {id:'teacher-id-cards', label:'Teacher IDs'},
+  {id:'staff-id-cards', label:'Staff IDs'},
  ];
 const TEACHER_NAV_BASE = [
   {id:'my-subjects', label:'My Subjects'},
@@ -2326,6 +2375,7 @@ function getTeacherNav(){
     extra.push({id:'gradesheets', label:'Gradesheets'});
     extra.push({id:'class-ledger', label:'Class Ledger'});
     extra.push({id:'admit-cards', label:'Admit Cards'});
+    extra.push({id:'student-id-cards', label:'Student IDs'});
   }
   if(!extra.length) return base;
   return [...base, ...extra];
@@ -2393,6 +2443,9 @@ async function renderTab(){
     'my-result':['Examination','My Result'],
     'assignments':['Academics','Assignments'],
     'notes':['Resources','Notes/Notices'],
+    'student-id-cards':['Documents','Student ID Cards'],
+    'teacher-id-cards':['Access Control','Teacher ID Cards'],
+    'staff-id-cards':['Access Control','Staff ID Cards'],
   };
   document.getElementById('topbar-crumb').textContent = titles[currentTab][0];
   document.getElementById('topbar-title').textContent = titles[currentTab][1];
@@ -2408,6 +2461,9 @@ async function renderTab(){
   if(currentTab==='teachers') return renderTeachers();
   if(currentTab==='exams') return renderExams();
   if(currentTab==='admit-cards') return renderAdmitCards();
+  if(currentTab==='student-id-cards') return renderStudentIdCards();
+  if(currentTab==='teacher-id-cards') return renderTeacherIdCards();
+  if(currentTab==='staff-id-cards') return renderStaffIdCards();
   if(currentTab==='marks-overview') return renderMarksOverview();
   if(currentTab==='gradesheets' || currentTab==='class-ledger'){
     if(SESSION.role === 'student'){
@@ -7245,6 +7301,86 @@ function printAdmitCards(){
   setTimeout(function(){ win.focus(); win.print(); }, 200);
 }
 window.printAdmitCards = printAdmitCards;
+
+/* ==================== STUDENT ID CARDS ==================== */
+function idCardStudentHtml(st, cls){
+  var clName = cls ? esc(cls.name) : '—';
+  var initial = (st.name || '?')[0];
+  return '<div class="id-card id-student"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (st.photo ? '<img class="id-photo" src="' + st.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(st.name) + '</div><div class="id-role">Student</div><div class="id-body"><table><tr><td class="id-lbl">Class</td><td class="id-val">' + clName + '</td></tr><tr><td class="id-lbl">Roll</td><td class="id-val">' + esc(st.roll || '—') + '</td></tr><tr><td class="id-lbl">Father</td><td class="id-val">' + esc(st.fatherName || '—') + '</td></tr><tr><td class="id-lbl">DOB</td><td class="id-val">' + esc(st.dob || '—') + '</td></tr><tr><td class="id-lbl">Blood</td><td class="id-val">' + esc(st.bloodGroup || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-number">SSS-' + (new Date().getFullYear()) + '-' + String(st.roll || '000').padStart(3,'0') + '</span><span class="id-valid">Valid ' + new Date().getFullYear() + '</span></div><div class="id-bar"></div></div>';
+}
+
+async function renderStudentIdCards(){
+  var c = document.getElementById('content-area');
+  var classes = SESSION.role === 'admin' ? STRUCT.classes : STRUCT.classes.filter(function(cl){ return myClassTeacherClassIds().includes(cl.id); });
+  c.innerHTML = '<div class="card"><h3>Student ID Cards</h3><div class="hint" style="margin-bottom:14px;">Select a class to generate student ID cards.</div><div class="id-card-controls"><div class="field"><label>Class</label><select id="idc-select-class" style="width:100%;"><option value="">— Select Class —</option>' + classes.map(function(cl){ return '<option value="' + cl.id + '">' + esc(cl.name) + '</option>'; }).join('') + '</select></div><button class="btn btn-navy" onclick="generateStudentIdCards()">Generate</button></div><div id="idc-results"></div></div><div id="idc-print-area" style="display:none;"></div>';
+}
+window.renderStudentIdCards = renderStudentIdCards;
+
+function generateStudentIdCards(){
+  var classId = document.getElementById('idc-select-class')?.value;
+  if(!classId){ toast('Select a class.'); return; }
+  var students = STRUCT.students.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return (a.roll||'').localeCompare(b.roll||''); });
+  if(!students.length){ toast('No students in this class.'); return; }
+  var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
+  var html = '<div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + students.length + ' ID cards</span><button class="btn btn-navy" onclick="printIdCards(\'student\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button></div><div class="id-card-grid">';
+  students.forEach(function(st){ html += idCardStudentHtml(st, cls); });
+  html += '</div>';
+  document.getElementById('idc-results').innerHTML = html;
+}
+window.generateStudentIdCards = generateStudentIdCards;
+
+/* ==================== TEACHER ID CARDS ==================== */
+function idCardTeacherHtml(t){
+  var initial = (t.name || '?')[0];
+  return '<div class="id-card id-teacher"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Teacher') + '</div><div class="id-body"><table><tr><td class="id-lbl">Qualif.</td><td class="id-val">' + esc(t.qualification || '—') + '</td></tr><tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr><tr><td class="id-lbl">Email</td><td class="id-val">' + esc(t.email || '—') + '</td></tr><tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-number">TCH-' + String(t.id).slice(-4) + '</span><span class="id-valid">Valid ' + new Date().getFullYear() + '</span></div><div class="id-bar"></div></div>';
+}
+
+function renderTeacherIdCards(){
+  var c = document.getElementById('content-area');
+  var teachers = AUTH.teachers.filter(function(t){ return !t.category || t.category !== 'non-teaching'; }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  c.innerHTML = '<div class="card"><h3>Teacher ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + teachers.length + ' teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'teacher\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button></div><div class="id-card-grid">' + teachers.map(function(t){ return idCardTeacherHtml(t); }).join('') + '</div></div>';
+}
+window.renderTeacherIdCards = renderTeacherIdCards;
+
+/* ==================== STAFF ID CARDS ==================== */
+function idCardStaffHtml(t){
+  var initial = (t.name || '?')[0];
+  return '<div class="id-card id-staff"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Staff') + '</div><div class="id-body"><table>' + (t.department ? '<tr><td class="id-lbl">Dept.</td><td class="id-val">' + esc(t.department) + '</td></tr>' : '') + '<tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr><tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-number">STF-' + String(t.id).slice(-4) + '</span><span class="id-valid">Valid ' + new Date().getFullYear() + '</span></div><div class="id-bar"></div></div>';
+}
+
+function renderStaffIdCards(){
+  var c = document.getElementById('content-area');
+  var staff = AUTH.teachers.filter(function(t){ return t.category === 'non-teaching'; }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  c.innerHTML = '<div class="card"><h3>Staff ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + staff.length + ' non-teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'staff\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button></div><div class="id-card-grid">' + staff.map(function(t){ return idCardStaffHtml(t); }).join('') + '</div></div>';
+}
+window.renderStaffIdCards = renderStaffIdCards;
+
+/* ==================== ID CARD PRINT ==================== */
+function printIdCards(type){
+  var cards = [];
+  if(type === 'student'){
+    var classId = document.getElementById('idc-select-class')?.value;
+    if(!classId){ toast('Select a class first.'); return; }
+    var students = STRUCT.students.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return (a.roll||'').localeCompare(b.roll||''); });
+    var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
+    students.forEach(function(st){ cards.push(idCardStudentHtml(st, cls)); });
+  } else if(type === 'teacher'){
+    AUTH.teachers.filter(function(t){ return !t.category || t.category !== 'non-teaching'; }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardTeacherHtml(t)); });
+  } else if(type === 'staff'){
+    AUTH.teachers.filter(function(t){ return t.category === 'non-teaching'; }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardStaffHtml(t)); });
+  }
+  if(!cards.length){ toast('No cards to print.'); return; }
+  var win = window.open('', '_blank', 'width=500,height=600');
+  if(!win){ toast('Please allow pop-ups for printing.'); return; }
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + (type === 'student' ? 'Student' : type === 'teacher' ? 'Teacher' : 'Staff') + ' ID Cards</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:"Segoe UI",Arial,sans-serif;background:#eee;padding:15px;}.id-print-wrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}.id-card{width:210px;min-height:330px;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;font-family:"Segoe UI",Arial,sans-serif;}.id-card .id-top{text-align:center;padding:16px 14px 10px;}.id-card .id-top .id-school-name{font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;line-height:1.3;}.id-card .id-top .id-school-sub{font-size:7px;opacity:.7;margin-top:1px;}.id-card .id-top .id-seal{width:28px;height:28px;border-radius:50%;object-fit:contain;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto;}.id-card .id-photo-wrap{display:flex;justify-content:center;margin:6px 0 8px;}.id-card .id-photo{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2.5px solid;}.id-card .id-photo-placeholder{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;border:2.5px solid;}.id-card .id-name{text-align:center;font-size:13px;font-weight:700;line-height:1.2;padding:0 10px;}.id-card .id-role{text-align:center;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:0 10px;margin-top:2px;}.id-card .id-body{padding:10px 14px 12px;flex:1;}.id-card .id-body table{width:100%;border-collapse:collapse;font-size:9px;}.id-card .id-body table tr td{padding:2px 0;}.id-card .id-body .id-lbl{opacity:.6;width:52px;vertical-align:top;}.id-card .id-body .id-val{font-weight:500;}.id-card .id-footer{padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-size:7px;}.id-card .id-footer .id-number{font-family:"Courier New",monospace;font-weight:600;letter-spacing:.04em;}.id-card .id-footer .id-valid{opacity:.6;}.id-card .id-bar{height:3px;width:100%;flex-shrink:0;}');
+  win.document.write('.id-card.id-student .id-school-name,.id-card.id-student .id-role{color:oklch(0.72 0.13 85);}.id-card.id-student .id-photo,.id-card.id-student .id-photo-placeholder{border-color:oklch(0.72 0.13 85);color:oklch(0.72 0.13 85);}.id-card.id-student .id-top{background:linear-gradient(180deg,oklch(0.72 0.13 85/0.12),transparent 80%);}.id-card.id-student .id-bar{background:linear-gradient(90deg,oklch(0.72 0.13 85),oklch(0.62 0.1 85));}');
+  win.document.write('.id-card.id-teacher .id-school-name,.id-card.id-teacher .id-role{color:oklch(0.55 0.12 175);}.id-card.id-teacher .id-photo,.id-card.id-teacher .id-photo-placeholder{border-color:oklch(0.55 0.12 175);color:oklch(0.55 0.12 175);}.id-card.id-teacher .id-top{background:linear-gradient(180deg,oklch(0.55 0.12 175/0.12),transparent 80%);}.id-card.id-teacher .id-bar{background:linear-gradient(90deg,oklch(0.55 0.12 175),oklch(0.45 0.1 175));}');
+  win.document.write('.id-card.id-staff .id-school-name,.id-card.id-staff .id-role{color:oklch(0.29 0.045 260);}.id-card.id-staff .id-photo,.id-card.id-staff .id-photo-placeholder{border-color:oklch(0.29 0.045 260);color:oklch(0.29 0.045 260);}.id-card.id-staff .id-top{background:linear-gradient(180deg,oklch(0.29 0.045 260/0.1),transparent 80%);}.id-card.id-staff .id-bar{background:linear-gradient(90deg,oklch(0.29 0.045 260),oklch(0.22 0.04 260));}');
+  win.document.write('@media print{body{background:#fff;padding:5px;}.id-print-wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;}.id-card{box-shadow:none;border-radius:0;border:1px solid #ddd;}}</style></head><body><div class="id-print-wrap">' + cards.join('') + '</div></body></html>');
+  win.document.close();
+  setTimeout(function(){ win.focus(); win.print(); }, 200);
+}
+window.printIdCards = printIdCards;
 
 /* ---------------- init ---------------- */
 (async function init(){
