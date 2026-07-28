@@ -6222,20 +6222,33 @@ function renderClassFeeRows(){
   var students = sortStudentsByRollThenName(STRUCT.students.filter(function(s){ return s.classId === classId; }));
   if(students.length){
     html += '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">Student Fee Status</div>';
-    html += '<table class="fee-table"><thead><tr><th>Roll</th><th>Student</th><th>Total Fee (Rs)</th><th>Paid (Rs)</th><th>Balance (Rs)</th><th></th></tr></thead><tbody>';
+    html += '<div style="overflow-x:auto;">';
+    html += '<table class="fee-table" style="font-size:12px;"><thead><tr><th>Roll</th><th>Student</th><th style="font-size:10px;">Total<br>Fee</th><th style="font-size:10px;">Net<br>Fee</th><th style="font-size:10px;">Paid</th><th style="font-size:10px;">Bal</th>';
+    BS_MONTHS.forEach(function(m, mi){
+      html += '<th style="font-size:9px;padding:4px 3px;min-width:40px;text-align:center;font-weight:400;">' + m.substring(0,3) + '</th>';
+    });
+    html += '<th style="font-size:10px;">Status</th><th></th></tr></thead><tbody>';
     students.forEach(function(s){
       var totalF = studentTotalFees(s.id, classId);
+      var net = getDiscountedAmount(s.id, classId);
       var paidF = studentTotalPaid(s.id);
-      var bal = totalF - paidF;
+      var bal = net - paidF;
       var balClass = bal > 0 ? 'style="color:#d32f2f;font-weight:600;"' : 'style="color:#2e7d32;font-weight:600;"';
       html += '<tr><td>' + (s.roll || '—') + '</td><td>' + esc(s.name) + '</td>';
-      html += '<td>Rs ' + Number(totalF).toLocaleString() + '</td>';
-      html += '<td>Rs ' + Number(paidF).toLocaleString() + '</td>';
-      html += '<td ' + balClass + '>Rs ' + Number(bal).toLocaleString() + '</td>';
+      html += '<td style="text-align:right;">' + Number(totalF).toLocaleString() + '</td>';
+      html += '<td style="text-align:right;font-weight:600;">' + Number(net).toLocaleString() + '</td>';
+      html += '<td style="text-align:right;">' + Number(paidF).toLocaleString() + '</td>';
+      html += '<td ' + balClass + ' style="text-align:right;">' + Number(bal).toLocaleString() + '</td>';
+      BS_MONTHS.forEach(function(m, mi){
+        var mAmt = studentTotalPaidInMonth(s.id, mi + 1);
+        html += '<td style="text-align:right;font-size:11px;padding:4px 3px;' + (mAmt > 0 ? 'color:#2e7d32;' : 'color:var(--ink-soft);') + '">' + (mAmt > 0 ? Number(mAmt).toLocaleString() : '—') + '</td>';
+      });
+      html += '<td style="font-weight:600;color:' + (bal > 0 ? '#d32f2f' : '#2e7d32') + ';">' + (bal > 0 ? 'Due' : 'OK') + '</td>';
       html += '<td><button class="btn btn-sm" style="border:1px solid var(--teal);color:var(--teal);background:transparent;border-radius:3px;padding:2px 8px;font-size:11px;cursor:pointer;" onclick="toggleFeeDetail(\'' + s.id + '\',\'' + classId + '\')">Details</button></td></tr>';
-      html += '<tr id="fd-row-' + s.id + '" style="display:none;"><td colspan="6" style="padding:8px;background:#f9fafb;">' + feeDetailHtml(s.id, classId) + '</td></tr>';
+      html += '<tr id="fd-row-' + s.id + '" style="display:none;"><td colspan="20" style="padding:8px;background:#f9fafb;">' + feeDetailHtml(s.id, classId) + '</td></tr>';
     });
     html += '</tbody></table>';
+    html += '</div>';
     if(!schoolFees.length && !classFees.length){
       html += '<div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">No fee heads configured — all amounts are zero. Add fee heads above.</div>';
     }
@@ -6379,6 +6392,13 @@ function studentTotalPaid(studentId){
     if(c.student_id === studentId) paid += Number(c.amount) || 0;
   });
   return paid;
+}
+function studentTotalPaidInMonth(studentId, monthNum){
+  var total = 0;
+  FEE_COLLS.forEach(function(c){
+    if(c.student_id === studentId && c.bs_month === monthNum) total += Number(c.amount) || 0;
+  });
+  return total;
 }
 function studentPaidForFee(studentId, catId, month){
   return FEE_COLLS.some(function(c){
@@ -6709,68 +6729,75 @@ function printClassLedger(classId){
   var students = sortStudentsByRollThenName(STRUCT.students.filter(function(s){ return s.classId === classId; }));
   if(!students.length){ toast('No students in this class'); return; }
 
+  var perMonthTotals = [0,0,0,0,0,0,0,0,0,0,0,0];
   var totalFee = 0, totalPaid = 0, totalBal = 0, totalNet = 0;
   students.forEach(function(s){
     totalFee += studentTotalFees(s.id, classId);
     totalPaid += studentTotalPaid(s.id);
     totalNet += getDiscountedAmount(s.id, classId);
+    for(var mi = 0; mi < 12; mi++) perMonthTotals[mi] += studentTotalPaidInMonth(s.id, mi + 1);
   });
   totalBal = totalNet - totalPaid;
 
-  var html = '<div id="ledger-print-area" style="padding:12mm 10mm;font-family:Arial,sans-serif;max-width:320mm;margin:0 auto;">';
-  html += '<div style="text-align:center;margin-bottom:16px;">';
-  html += '<div style="font-size:18px;font-weight:700;color:#1a3a5c;">Shree Saraswati Secondary School</div>';
-  html += '<div style="font-size:11px;color:#666;">Satyawati-06 Johang, Gulmi</div>';
-  html += '<div style="font-size:14px;font-weight:700;color:#1a3a5c;margin-top:8px;">Class Fee Ledger</div>';
-  html += '<div style="font-size:12px;color:#666;">Class: <b>' + esc(cl) + '</b> &nbsp;|&nbsp; Fiscal Year: <b>' + fy + '</b> &nbsp;|&nbsp; Date: ' + formatDateShort(new Date()) + '</div>';
-  html += '<div style="font-size:11px;color:#888;margin-top:2px;">PAN: 201510843</div>';
+  var html = '<div id="ledger-print-area" style="padding:10mm 5mm;font-family:Arial,sans-serif;margin:0 auto;">';
+  html += '<div style="text-align:center;margin-bottom:12px;">';
+  html += '<div style="font-size:16px;font-weight:700;color:#1a3a5c;">Shree Saraswati Secondary School</div>';
+  html += '<div style="font-size:10px;color:#666;">Satyawati-06 Johang, Gulmi &nbsp;|&nbsp; PAN: 201510843</div>';
+  html += '<div style="font-size:13px;font-weight:700;color:#1a3a5c;margin-top:6px;">Class Fee Ledger</div>';
+  html += '<div style="font-size:11px;color:#666;">Class: <b>' + esc(cl) + '</b> &nbsp;|&nbsp; Fiscal Year: <b>' + fy + '</b> &nbsp;|&nbsp; Date: ' + formatDateShort(new Date()) + '</div>';
   html += '</div>';
 
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10.5px;border:1.5px solid #1a3a5c;">';
+  var monthAbbr = ['Bai','Jes','Asa','Shr','Bha','Ash','Kar','Man','Pou','Mag','Fal','Cha'];
+  html += '<table style="width:100%;border-collapse:collapse;font-size:8.5px;border:1.5px solid #1a3a5c;">';
   html += '<thead><tr style="background:#1a3a5c;color:#fff;">';
-  html += '<th style="padding:6px 5px;text-align:left;border:1px solid #1a3a5c;">#</th>';
-  html += '<th style="padding:6px 5px;text-align:left;border:1px solid #1a3a5c;">Roll</th>';
-  html += '<th style="padding:6px 5px;text-align:left;border:1px solid #1a3a5c;">Student Name</th>';
-  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Total Fee</th>';
-  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Discount</th>';
-  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Net Fee</th>';
-  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Paid</th>';
-  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Balance</th>';
-  html += '<th style="padding:6px 5px;text-align:center;border:1px solid #1a3a5c;">Status</th>';
+  html += '<th style="padding:4px 3px;text-align:left;border:1px solid #1a3a5c;">#</th>';
+  html += '<th style="padding:4px 3px;text-align:left;border:1px solid #1a3a5c;">Roll</th>';
+  html += '<th style="padding:4px 3px;text-align:left;border:1px solid #1a3a5c;">Student</th>';
+  monthAbbr.forEach(function(m){
+    html += '<th style="padding:4px 2px;text-align:center;border:1px solid #1a3a5c;font-size:7.5px;">' + m + '</th>';
+  });
+  html += '<th style="padding:4px 3px;text-align:right;border:1px solid #1a3a5c;">Total Fee</th>';
+  html += '<th style="padding:4px 3px;text-align:right;border:1px solid #1a3a5c;">Net Fee</th>';
+  html += '<th style="padding:4px 3px;text-align:right;border:1px solid #1a3a5c;">Paid</th>';
+  html += '<th style="padding:4px 3px;text-align:right;border:1px solid #1a3a5c;">Balance</th>';
+  html += '<th style="padding:4px 3px;text-align:center;border:1px solid #1a3a5c;">Status</th>';
   html += '</tr></thead><tbody>';
 
   students.forEach(function(s, i){
     var gross = studentTotalFees(s.id, classId);
     var net = getDiscountedAmount(s.id, classId);
-    var disc = getStudentDiscount(s.id);
     var paidF = studentTotalPaid(s.id);
     var bal = net - paidF;
-    var discLabel = disc ? ((disc.discount_percent > 0 ? disc.discount_percent + '%' : '') + (disc.discount_amount > 0 ? ' Rs ' + disc.discount_amount : '')).trim() : '—';
     var status = bal <= 0 ? 'Cleared' : 'Due';
     var statusColor = bal <= 0 ? '#2e7d32' : '#d32f2f';
 
     html += '<tr style="page-break-inside:avoid;">';
-    html += '<td style="padding:5px;border:1px solid #ccc;text-align:center;">' + (i + 1) + '</td>';
-    html += '<td style="padding:5px;border:1px solid #ccc;text-align:center;">' + esc(s.roll || '—') + '</td>';
-    html += '<td style="padding:5px;border:1px solid #ccc;">' + esc(s.name) + '</td>';
-    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;">' + Number(gross).toLocaleString() + '</td>';
-    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;">' + discLabel + '</td>';
-    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;font-weight:600;">' + Number(net).toLocaleString() + '</td>';
-    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;">' + Number(paidF).toLocaleString() + '</td>';
-    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;font-weight:600;color:' + statusColor + ';">' + Number(bal).toLocaleString() + '</td>';
-    html += '<td style="padding:5px;border:1px solid #ccc;text-align:center;font-weight:600;color:' + statusColor + ';">' + status + '</td>';
+    html += '<td style="padding:3px;border:1px solid #ccc;text-align:center;">' + (i + 1) + '</td>';
+    html += '<td style="padding:3px;border:1px solid #ccc;text-align:center;">' + esc(s.roll || '—') + '</td>';
+    html += '<td style="padding:3px;border:1px solid #ccc;">' + esc(s.name) + '</td>';
+    for(var mi = 0; mi < 12; mi++){
+      var mAmt = studentTotalPaidInMonth(s.id, mi + 1);
+      html += '<td style="padding:3px 2px;border:1px solid #ccc;text-align:right;font-size:8px;">' + (mAmt > 0 ? Number(mAmt).toLocaleString() : '—') + '</td>';
+    }
+    html += '<td style="padding:3px;border:1px solid #ccc;text-align:right;">' + Number(gross).toLocaleString() + '</td>';
+    html += '<td style="padding:3px;border:1px solid #ccc;text-align:right;font-weight:600;">' + Number(net).toLocaleString() + '</td>';
+    html += '<td style="padding:3px;border:1px solid #ccc;text-align:right;">' + Number(paidF).toLocaleString() + '</td>';
+    html += '<td style="padding:3px;border:1px solid #ccc;text-align:right;font-weight:600;color:' + statusColor + ';">' + Number(bal).toLocaleString() + '</td>';
+    html += '<td style="padding:3px;border:1px solid #ccc;text-align:center;font-weight:600;color:' + statusColor + ';font-size:8px;">' + status + '</td>';
     html += '</tr>';
   });
 
   /* Totals row */
   html += '<tr style="background:#f0f4f8;font-weight:700;">';
-  html += '<td colspan="3" style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">TOTAL</td>';
-  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalFee).toLocaleString() + '</td>';
-  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">—</td>';
-  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalNet).toLocaleString() + '</td>';
-  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalPaid).toLocaleString() + '</td>';
-  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;color:' + (totalBal > 0 ? '#d32f2f' : '#2e7d32') + ';">' + Number(totalBal).toLocaleString() + '</td>';
-  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:center;color:' + (totalBal > 0 ? '#d32f2f' : '#2e7d32') + ';">' + (totalBal > 0 ? 'Due' : 'Cleared') + '</td>';
+  html += '<td colspan="3" style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;">TOTAL</td>';
+  for(var mi = 0; mi < 12; mi++){
+    html += '<td style="padding:4px 2px;border:1.5px solid #1a3a5c;text-align:right;font-size:8px;">' + (perMonthTotals[mi] > 0 ? Number(perMonthTotals[mi]).toLocaleString() : '—') + '</td>';
+  }
+  html += '<td style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalFee).toLocaleString() + '</td>';
+  html += '<td style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalNet).toLocaleString() + '</td>';
+  html += '<td style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalPaid).toLocaleString() + '</td>';
+  html += '<td style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:right;color:' + (totalBal > 0 ? '#d32f2f' : '#2e7d32') + ';">' + Number(totalBal).toLocaleString() + '</td>';
+  html += '<td style="padding:4px 3px;border:1.5px solid #1a3a5c;text-align:center;color:' + (totalBal > 0 ? '#d32f2f' : '#2e7d32') + ';font-size:8px;">' + (totalBal > 0 ? 'Due' : 'Cleared') + '</td>';
   html += '</tr>';
 
   html += '</tbody></table>';
