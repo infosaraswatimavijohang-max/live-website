@@ -6259,6 +6259,11 @@ function renderClassFeeRows(){
     });
     html += '</tbody></table>';
 
+    /* Print ledger button */
+    html += '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">';
+    html += '<button class="btn btn-navy" onclick="printClassLedger(\'' + classId + '\')">🖨 Print Class Ledger</button>';
+    html += '</div>';
+
     /* Discounts & Scholarships manager */
     if(SESSION.role === 'admin' || isAccountant()){
       html += '<div style="height:16px;"></div>';
@@ -6695,6 +6700,119 @@ function showBill(studentId, items, billNo){
 
 function printBillArea(){
   window.print();
+}
+
+/* ================= CLASS FEE LEDGER (printable) ================= */
+function printClassLedger(classId){
+  var cl = className(classId);
+  var fy = currentFiscalYear();
+  var students = sortStudentsByRollThenName(STRUCT.students.filter(function(s){ return s.classId === classId; }));
+  if(!students.length){ toast('No students in this class'); return; }
+
+  var totalFee = 0, totalPaid = 0, totalBal = 0, totalNet = 0;
+  students.forEach(function(s){
+    totalFee += studentTotalFees(s.id, classId);
+    totalPaid += studentTotalPaid(s.id);
+    totalNet += getDiscountedAmount(s.id, classId);
+  });
+  totalBal = totalNet - totalPaid;
+
+  var html = '<div id="ledger-print-area" style="padding:12mm 10mm;font-family:Arial,sans-serif;max-width:320mm;margin:0 auto;">';
+  html += '<div style="text-align:center;margin-bottom:16px;">';
+  html += '<div style="font-size:18px;font-weight:700;color:#1a3a5c;">Shree Saraswati Secondary School</div>';
+  html += '<div style="font-size:11px;color:#666;">Satyawati-06 Johang, Gulmi</div>';
+  html += '<div style="font-size:14px;font-weight:700;color:#1a3a5c;margin-top:8px;">Class Fee Ledger</div>';
+  html += '<div style="font-size:12px;color:#666;">Class: <b>' + esc(cl) + '</b> &nbsp;|&nbsp; Fiscal Year: <b>' + fy + '</b> &nbsp;|&nbsp; Date: ' + formatDateShort(new Date()) + '</div>';
+  html += '<div style="font-size:11px;color:#888;margin-top:2px;">PAN: 201510843</div>';
+  html += '</div>';
+
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10.5px;border:1.5px solid #1a3a5c;">';
+  html += '<thead><tr style="background:#1a3a5c;color:#fff;">';
+  html += '<th style="padding:6px 5px;text-align:left;border:1px solid #1a3a5c;">#</th>';
+  html += '<th style="padding:6px 5px;text-align:left;border:1px solid #1a3a5c;">Roll</th>';
+  html += '<th style="padding:6px 5px;text-align:left;border:1px solid #1a3a5c;">Student Name</th>';
+  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Total Fee</th>';
+  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Discount</th>';
+  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Net Fee</th>';
+  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Paid</th>';
+  html += '<th style="padding:6px 5px;text-align:right;border:1px solid #1a3a5c;">Balance</th>';
+  html += '<th style="padding:6px 5px;text-align:center;border:1px solid #1a3a5c;">Status</th>';
+  html += '</tr></thead><tbody>';
+
+  students.forEach(function(s, i){
+    var gross = studentTotalFees(s.id, classId);
+    var net = getDiscountedAmount(s.id, classId);
+    var disc = getStudentDiscount(s.id);
+    var paidF = studentTotalPaid(s.id);
+    var bal = net - paidF;
+    var discLabel = disc ? ((disc.discount_percent > 0 ? disc.discount_percent + '%' : '') + (disc.discount_amount > 0 ? ' Rs ' + disc.discount_amount : '')).trim() : '—';
+    var status = bal <= 0 ? 'Cleared' : 'Due';
+    var statusColor = bal <= 0 ? '#2e7d32' : '#d32f2f';
+
+    html += '<tr style="page-break-inside:avoid;">';
+    html += '<td style="padding:5px;border:1px solid #ccc;text-align:center;">' + (i + 1) + '</td>';
+    html += '<td style="padding:5px;border:1px solid #ccc;text-align:center;">' + esc(s.roll || '—') + '</td>';
+    html += '<td style="padding:5px;border:1px solid #ccc;">' + esc(s.name) + '</td>';
+    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;">' + Number(gross).toLocaleString() + '</td>';
+    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;">' + discLabel + '</td>';
+    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;font-weight:600;">' + Number(net).toLocaleString() + '</td>';
+    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;">' + Number(paidF).toLocaleString() + '</td>';
+    html += '<td style="padding:5px;border:1px solid #ccc;text-align:right;font-weight:600;color:' + statusColor + ';">' + Number(bal).toLocaleString() + '</td>';
+    html += '<td style="padding:5px;border:1px solid #ccc;text-align:center;font-weight:600;color:' + statusColor + ';">' + status + '</td>';
+    html += '</tr>';
+  });
+
+  /* Totals row */
+  html += '<tr style="background:#f0f4f8;font-weight:700;">';
+  html += '<td colspan="3" style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">TOTAL</td>';
+  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalFee).toLocaleString() + '</td>';
+  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">—</td>';
+  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalNet).toLocaleString() + '</td>';
+  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;">' + Number(totalPaid).toLocaleString() + '</td>';
+  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:right;color:' + (totalBal > 0 ? '#d32f2f' : '#2e7d32') + ';">' + Number(totalBal).toLocaleString() + '</td>';
+  html += '<td style="padding:6px 5px;border:1.5px solid #1a3a5c;text-align:center;color:' + (totalBal > 0 ? '#d32f2f' : '#2e7d32') + ';">' + (totalBal > 0 ? 'Due' : 'Cleared') + '</td>';
+  html += '</tr>';
+
+  html += '</tbody></table>';
+
+  /* Fee structure reference */
+  html += '<div style="margin-top:12px;font-size:10px;color:#666;">';
+  html += '<b>Fee Structure:</b> ';
+  var feeParts = [];
+  FEE_CATS.forEach(function(f){
+    var amt = f.scope === 'school' ? ('Rs ' + Number(f.amount).toLocaleString()) : (f.scope === 'class' ? 'varies by class' : 'per student');
+    feeParts.push(esc(f.name) + ' (' + f.frequency + ', ' + amt + ')');
+  });
+  html += feeParts.join(' &nbsp;|&nbsp; ');
+  html += '</div>';
+
+  html += '<div style="margin-top:8px;font-size:10px;color:#999;text-align:center;border-top:1px solid #ddd;padding-top:6px;">';
+  html += 'This is a computer-generated report. Generated on ' + formatDateLong(new Date()) + '.';
+  html += '</div>';
+
+  html += '</div>';
+
+  /* Open in print modal */
+  var modal = '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
+  modal += '<div class="modal" style="max-width:900px;width:95%;">';
+  modal += '<div id="ledger-print-area-wrap">' + html.replace('id="ledger-print-area"', '') + '</div>';
+  modal += '<div class="modal-actions" style="margin-top:16px;">';
+  modal += '<button class="btn btn-outline" onclick="closeModal()">Close</button>';
+  modal += '<button class="btn btn-navy" onclick="printLedgerArea()">🖨 Print</button></div>';
+  modal += '</div></div>';
+  document.getElementById('modal-root').innerHTML = modal;
+}
+function printLedgerArea(){
+  var content = document.getElementById('ledger-print-area-wrap').innerHTML;
+  var win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write('<!DOCTYPE html><html><head><title>Class Fee Ledger</title><style>');
+  win.document.write('body{margin:0;padding:0;font-family:Arial,sans-serif;}');
+  win.document.write('@media print{@page{size:A4 landscape;margin:10mm;}body *{visibility:visible;}');
+  win.document.write('*{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;}}');
+  win.document.write('table{width:100%;border-collapse:collapse;}');
+  win.document.write('</style></head><body>' + content + '</body></html>');
+  win.document.close();
+  setTimeout(function(){ win.print(); }, 300);
 }
 
 function editCollection(id){
