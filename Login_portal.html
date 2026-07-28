@@ -879,6 +879,7 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 .admit-card .subjects .sno{color:var(--ink-soft);font-size:10px;text-align:center;width:28px;}
 .admit-card .signature{margin-top:10px;padding-top:6px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:10px;color:var(--ink-soft);}
 .admit-card .signature span{text-align:center;}
+.admit-card .signature img{max-height:22px;display:block;margin:0 auto 3px;}
 .admit-card .badge{position:absolute;top:8px;right:8px;background:var(--navy-deep);color:#fff;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;}
 @media print{.admit-card-grid{display:block;}.admit-card{page-break-after:always;border:none;border-radius:0;padding:20px;box-shadow:none;}}
 
@@ -7176,11 +7177,16 @@ async function renderAdmitCards(){
   c.innerHTML = `
     <div class="card">
       <h3>Generate Admit Cards</h3>
-      <div class="hint" style="margin-bottom:14px;">Select an exam and a class, then generate admit cards for all students. Each card includes the student\'s photo, personal details, and the list of exam subjects.</div>
+      <div class="hint" style="margin-bottom:14px;">Select an exam and a class, then generate admit cards for all students.</div>
       <div class="admit-card-controls">
         <div class="field"><label>Exam</label><select id="ac-select-exam" style="width:100%;">${EXAMS.map(function(e){ return '<option value="' + e.id + '">' + esc(e.name) + '</option>'; }).join('')}</select></div>
         <div class="field"><label>Class</label><select id="ac-select-class" style="width:100%;"><option value="">— Select Class —</option>${classes.map(function(cl){ return '<option value="' + cl.id + '">' + esc(cl.name) + '</option>'; }).join('')}</select></div>
         <button class="btn btn-navy" onclick="generateAdmitCards()">Generate</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('ct')">${AC_SIG_CT ? 'Change' : '+'} Class Teacher Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('ec')">${AC_SIG_EC ? 'Change' : '+'} Exam Coordinator Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('ht')">${AC_SIG_HT ? 'Change' : '+'} Head Teacher Sig</button>
       </div>
       <div id="ac-results"></div>
     </div>
@@ -7225,7 +7231,7 @@ function generateAdmitCards(){
     if(st.dob) html += '<div class="row"><span class="label">DOB</span><span class="value">' + esc(st.dob) + '</span></div>';
     html += '</div></div>';
     html += '<div class="subjects"><div class="title">Subjects</div><div class="subj-cols"><div class="subj-col"><table><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb, i){ return '<tr>' + subjCell(sb, i) + '</tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="subj-col"><table><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb, i){ return '<tr>' + subjCell(sb, subjLeft.length + i) + '</tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
-    html += '<div class="signature"><span>Class Teacher<br>_________________</span><span>Exam Controller<br>_________________</span><span>Principal<br>_________________</span></div>';
+    html += '<div class="signature"><span class="ac-sig-ct">' + acSigHtml('ct') + '</span><span class="ac-sig-ec">' + acSigHtml('ec') + '</span><span class="ac-sig-ht">' + acSigHtml('ht') + '</span></div>';
     html += '</div>';
   });
   html += '</div>';
@@ -7265,7 +7271,7 @@ function printAdmitCards(){
     if(st.dob) bodyHtml += '<tr><td class="ac-lbl">DOB</td><td class="ac-val">' + esc(st.dob) + '</td></tr>';
     bodyHtml += '</table></div></div>';
     bodyHtml += '<div class="ac-subjects"><div class="ac-sub-lbl">Subjects</div><div class="ac-sub-cols"><div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb, i){ return '<tr>' + subjCell(sb, i) + '</tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb, i){ return '<tr>' + subjCell(sb, subjLeft.length + i) + '</tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
-    bodyHtml += '<div class="ac-signatures"><div class="ac-sig">Class Teacher<br>_________________</div><div class="ac-sig">Exam Controller<br>_________________</div><div class="ac-sig">Principal<br>_________________</div></div>';
+    bodyHtml += '<div class="ac-signatures"><div class="ac-sig ac-sig-ct">' + acSigHtml('ct') + '</div><div class="ac-sig ac-sig-ec">' + acSigHtml('ec') + '</div><div class="ac-sig ac-sig-ht">' + acSigHtml('ht') + '</div></div>';
     bodyHtml += '</div>';
   });
 
@@ -7301,6 +7307,7 @@ function printAdmitCards(){
   win.document.write('.ac-sno{color:#5a6072;font-size:9px;text-align:center;}');
   win.document.write('.ac-signatures{display:flex;justify-content:space-between;margin-top:8px;padding-top:5px;border-top:1px solid #dfe2ea;font-size:9px;color:#5a6072;text-align:center;}');
   win.document.write('.ac-sig{flex:1;}');
+  win.document.write('.ac-sig img{max-height:22px;display:block;margin:0 auto 2px;}');
   win.document.write('@media print{body{background:#fff;padding:5px;}.ac-print-wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;}.ac-print-card{box-shadow:none;border-radius:0;width:96mm;padding:8mm 6mm;}}');
   win.document.write('</style></head><body>');
   win.document.write('<div class="ac-print-wrap">');
@@ -7311,6 +7318,54 @@ function printAdmitCards(){
   setTimeout(function(){ win.focus(); win.print(); }, 200);
 }
 window.printAdmitCards = printAdmitCards;
+
+/* ==================== ADMIT CARD SIGNATURES ==================== */
+var AC_SIG_CT = null, AC_SIG_EC = null, AC_SIG_HT = null;
+
+function acSigHtml(role){
+  var key = role === 'ct' ? AC_SIG_CT : role === 'ec' ? AC_SIG_EC : AC_SIG_HT;
+  var label = role === 'ct' ? 'Class Teacher' : role === 'ec' ? 'Exam Coordinator' : 'Head Teacher';
+  if(key) return '<img src="' + key + '" style="height:20px;display:block;margin:0 auto 2px;">' + label;
+  return label + '<br>_________________';
+}
+
+function loadAcSigs(){
+  var c = localStorage.getItem('sss_ac_sig_ct'); if(c) AC_SIG_CT = c;
+  var e = localStorage.getItem('sss_ac_sig_ec'); if(e) AC_SIG_EC = e;
+  var h = localStorage.getItem('sss_ac_sig_ht'); if(h) AC_SIG_HT = h;
+}
+
+function pickAcSig(role){
+  var id = '_ac_sig_file_' + role;
+  var existing = document.getElementById(id);
+  if(!existing){
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.id = id; inp.accept = 'image/*';
+    inp.style.display = 'none';
+    inp.onchange = function(){ acAttachSig(role, this.files[0]); };
+    document.body.appendChild(inp);
+    existing = inp;
+  }
+  existing.value = '';
+  existing.click();
+}
+
+function acAttachSig(role, file){
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var dataUrl = e.target.result;
+    if(role === 'ct'){ AC_SIG_CT = dataUrl; localStorage.setItem('sss_ac_sig_ct', dataUrl); }
+    else if(role === 'ec'){ AC_SIG_EC = dataUrl; localStorage.setItem('sss_ac_sig_ec', dataUrl); }
+    else { AC_SIG_HT = dataUrl; localStorage.setItem('sss_ac_sig_ht', dataUrl); }
+    /* Update displayed admit cards */
+    document.querySelectorAll('.ac-sig-ct').forEach(function(el){ el.innerHTML = acSigHtml('ct'); });
+    document.querySelectorAll('.ac-sig-ec').forEach(function(el){ el.innerHTML = acSigHtml('ec'); });
+    document.querySelectorAll('.ac-sig-ht').forEach(function(el){ el.innerHTML = acSigHtml('ht'); });
+    toast((role === 'ct' ? 'Class Teacher' : role === 'ec' ? 'Exam Coordinator' : 'Head Teacher') + ' signature attached');
+  };
+  reader.readAsDataURL(file);
+}
 
 /* ==================== STUDENT ID CARDS ==================== */
 var ID_SIG = null;
@@ -7457,7 +7512,7 @@ window.printIdCards = printIdCards;
 
 /* ---------------- init ---------------- */
 (async function init(){
-  loadIdSig(); loadIdValidity();
+  loadIdSig(); loadIdValidity(); loadAcSigs();
   document.querySelectorAll('img[src="LOGO_PLACEHOLDER"]').forEach(img => img.src = LOGO_DATA);
   INITIAL_LOAD_PROMISE = loadAll();
   await INITIAL_LOAD_PROMISE;
