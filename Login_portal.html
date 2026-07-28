@@ -2357,7 +2357,7 @@ const TEACHER_NAV_BASE = [
 // Accountant designation and class teachers also get the Account tab.
 function getTeacherNav(){
   var t = AUTH.teachers.find(function(x){ return x.id === SESSION.teacherId; });
-  var isNonTeaching = t && t.category === 'non-teaching';
+  var isNonTeaching = t && isNonTeachingStaff(t);
   var base = isNonTeaching
     ? [
         {id:'assignments', label:'Assignments'},
@@ -7330,6 +7330,13 @@ function generateStudentIdCards(){
 window.generateStudentIdCards = generateStudentIdCards;
 
 /* ==================== TEACHER ID CARDS ==================== */
+function isNonTeachingStaff(t){
+  if(t.category === 'non-teaching') return true;
+  if(t.category === 'teaching') return false;
+  var ntDesignations = ['Accountant','Librarian','Office Assistant','Cook','Sweeper','Peon'];
+  return ntDesignations.indexOf(t.designation) !== -1;
+}
+
 function idCardTeacherHtml(t){
   var initial = (t.name || '?')[0];
   return '<div class="id-card id-teacher"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Teacher') + '</div><div class="id-body"><table><tr><td class="id-lbl">Qualif.</td><td class="id-val">' + esc(t.qualification || '—') + '</td></tr><tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr><tr><td class="id-lbl">Email</td><td class="id-val">' + esc(t.email || '—') + '</td></tr><tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-number">TCH-' + String(t.id).slice(-4) + '</span><span class="id-valid">Valid ' + new Date().getFullYear() + '</span></div><div class="id-bar"></div></div>';
@@ -7337,7 +7344,7 @@ function idCardTeacherHtml(t){
 
 function renderTeacherIdCards(){
   var c = document.getElementById('content-area');
-  var teachers = AUTH.teachers.filter(function(t){ return !t.category || t.category !== 'non-teaching'; }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  var teachers = AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
   c.innerHTML = '<div class="card"><h3>Teacher ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + teachers.length + ' teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'teacher\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button></div><div class="id-card-grid">' + teachers.map(function(t){ return idCardTeacherHtml(t); }).join('') + '</div></div>';
 }
 window.renderTeacherIdCards = renderTeacherIdCards;
@@ -7350,7 +7357,7 @@ function idCardStaffHtml(t){
 
 function renderStaffIdCards(){
   var c = document.getElementById('content-area');
-  var staff = AUTH.teachers.filter(function(t){ return t.category === 'non-teaching'; }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  var staff = AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
   c.innerHTML = '<div class="card"><h3>Staff ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + staff.length + ' non-teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'staff\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button></div><div class="id-card-grid">' + staff.map(function(t){ return idCardStaffHtml(t); }).join('') + '</div></div>';
 }
 window.renderStaffIdCards = renderStaffIdCards;
@@ -7365,9 +7372,9 @@ function printIdCards(type){
     var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
     students.forEach(function(st){ cards.push(idCardStudentHtml(st, cls)); });
   } else if(type === 'teacher'){
-    AUTH.teachers.filter(function(t){ return !t.category || t.category !== 'non-teaching'; }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardTeacherHtml(t)); });
+    AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardTeacherHtml(t)); });
   } else if(type === 'staff'){
-    AUTH.teachers.filter(function(t){ return t.category === 'non-teaching'; }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardStaffHtml(t)); });
+    AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardStaffHtml(t)); });
   }
   if(!cards.length){ toast('No cards to print.'); return; }
   var win = window.open('', '_blank', 'width=500,height=600');
