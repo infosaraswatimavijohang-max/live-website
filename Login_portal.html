@@ -5211,7 +5211,7 @@ async function buildClassLedgerHTML(examId, classId){
         </div>
       </div>
       <div class="no-print" style="text-align:center;margin-top:20px;">
-        <button class="btn btn-gold" onclick="printClassLedger()">Print Ledger</button>
+        <button class="btn btn-gold" onclick="printLedgerPreview()">Print Ledger</button>
       </div>
     </div>
   `;
@@ -5280,7 +5280,7 @@ function clSuggestFitScale(){
   clSetScale(pct);
   toast(`Scale set to ${pct}% to fit ${CL_RESOLVED_PAPER.paper} ${CL_RESOLVED_PAPER.orientation} width without cutting columns`);
 }
-function printClassLedger(){
+function printLedgerPreview(){
   applyClScale(); // make sure the set scale is actually on the element before printing
   setPrintPage(CL_RESOLVED_PAPER.orientation, CL_RESOLVED_PAPER.paper);
   setTimeout(()=> window.print(), 30);
