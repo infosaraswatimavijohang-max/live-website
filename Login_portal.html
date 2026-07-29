@@ -428,7 +428,7 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 .gs-subj-rank{font-family:var(--font-mono);font-size:15.5px;font-weight:700;color:#3c4152;}
 .gs-subj-remark{font-size:14.5px;font-weight:600;color:#3c4152;font-style:italic;}
 .gs-sign{display:flex;justify-content:space-between;margin-top:46px;flex-wrap:wrap;row-gap:26px;column-gap:14px;}
-.gs-sign div{text-align:center;font-size:12px;font-weight:700;color:#0d1226;width:140px;border-top:1.5px solid var(--ink);padding-top:6px;}
+.gs-sign div{text-align:center;font-size:12px;font-weight:700;color:#0d1226;width:140px;padding-top:6px;}
 /* When the optional Department In-charge / Department Coordinator lines
    are switched on, the signature row has 4-5 entries instead of 3. Rather
    than let it wrap onto an extra row (which can push the whole gradesheet
@@ -598,7 +598,7 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 /* Signature labels scale up with the rest of the A3 ledger instead of
    staying at the small fixed size shared with the single-student
    gradesheet. */
-.ledger-doc .gs-sign div{font-size:calc(var(--lg-meta) - 1px);color:#000;border-top-color:#000;border-top-width:2px;}
+.ledger-doc .gs-sign div{font-size:calc(var(--lg-meta) - 1px);color:#000;}
 
 /* ---- ledger table: professional exam-board typography ----
    S.No./Roll/marks/GP right- or center-aligned per spec; names & subject
@@ -2502,7 +2502,6 @@ async function renderTab(){
 /* ================= ADMIN: OVERVIEW ================= */
 function renderOverview(){
   const c = document.getElementById('content-area');
-  const mon = window.examMonitor ? examMonitor.getReport() : null;
   c.innerHTML = `
     <div class="card no-print" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div style="font-size:13px;color:var(--ink-soft);">Classes, subjects, teachers and students are pulled live from your Supabase database tables. If you've added or changed records directly in the database, sync to refresh this portal.</div>
@@ -2516,15 +2515,6 @@ function renderOverview(){
       <div class="stat"><div class="num">${EXAMS.length}</div><div class="lbl">Exams Created</div></div>
       <div class="stat"><div class="num">${PERMS.length}</div><div class="lbl">Permissions Granted</div></div>
     </div>
-    ${mon ? `<div class="card">
-      <h3>Network Usage <span style="font-weight:400;color:var(--ink-soft);font-size:12px;text-transform:none;letter-spacing:0;">(this session)</span></h3>
-      <div style="display:flex;gap:24px;flex-wrap:wrap;">
-        <div class="stat" style="flex:1;min-width:120px;"><div class="num">${mon.requests}</div><div class="lbl">API Requests</div></div>
-        <div class="stat" style="flex:1;min-width:120px;"><div class="num">${mon.bytesDownKB} KB</div><div class="lbl">Data Downloaded</div></div>
-        <div style="display:flex;align-items:center;"><button class="btn btn-outline btn-sm" onclick="if(window.examMonitor){examMonitor.reset();renderOverview();}">Reset</button></div>
-      </div>
-      <div class="hint" style="margin-top:8px;">Tracking Supabase queries made through this session. Resets on page reload or when you press Reset.</div>
-    </div>` : ''}
     <div class="card">
       <h3>Getting started</h3>
       <div style="font-size:13.5px;line-height:1.9;color:var(--ink-soft);">
@@ -4253,6 +4243,13 @@ function renderGradesheets(){
           <div class="checkbox-row"><input type="checkbox" id="gs-s-${o.key}" ${GS_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleGsSetting('${o.key}', this.checked)"><label for="gs-s-${o.key}" style="font-weight:400;">${o.label}</label></div>
         `).join('')}
       </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('ct')">${AC_SIG_CT ? 'Change' : '+'} Class Teacher Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('ec')">${AC_SIG_EC ? 'Change' : '+'} Exam Coordinator Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('di')">${AC_SIG_DI ? 'Change' : '+'} Dept In-charge Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('dc')">${AC_SIG_DC ? 'Change' : '+'} Dept Coordinator Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('ht')">${AC_SIG_HT ? 'Change' : '+'} Head Teacher Sig</button>
+      </div>
     </div>
     <div id="print-area"></div>
   `;
@@ -4702,11 +4699,11 @@ async function buildGradesheetHTML(examId, studentId){
         </div>
         ${remarksHtml}
         <div class="gs-sign ${signClass}">
-          <div>Class Teacher</div>
-          <div>Examination In-charge</div>
-          ${showDeptIncharge ? '<div>Department In-charge</div>' : ''}
-          ${showDeptCoordinator ? '<div>Department Coordinator</div>' : ''}
-          <div>Head Teacher</div>
+          <div class="ac-sig-ct">${acSigHtml('ct')}</div>
+          <div class="ac-sig-ec">${acSigHtml('ec')}</div>
+          ${showDeptIncharge ? '<div class="ac-sig-di">' + acSigHtml('di') + '</div>' : ''}
+          ${showDeptCoordinator ? '<div class="ac-sig-dc">' + acSigHtml('dc') + '</div>' : ''}
+          <div class="ac-sig-ht">${acSigHtml('ht')}</div>
         </div>
         <div class="gs-scale">Grading scale: A+ above 90-100 (4.0) · A above 80-90 (3.6) · B+ above 70-80 (3.2) · B above 60-70 (2.8) · C+ above 50-60 (2.4) · C above 40-50 (2.0) · D above 35-40 (1.6) · NG below 35 (Not Graded). Overall Class Rank is calculated among students in the same class who passed every subject of this examination. Rank in Subject is calculated among students in the same class who passed that specific subject.</div>
         </div>
@@ -4871,6 +4868,13 @@ function renderClassLedger(){
         ${CL_SIGNATURE_OPTIONS.map(o=>`
           <div class="checkbox-row"><input type="checkbox" id="cl-s-${o.key}" ${CL_SETTINGS[o.key] ? 'checked' : ''} onchange="toggleClSetting('${o.key}', this.checked)"><label for="cl-s-${o.key}" style="font-weight:400;">${o.label}</label></div>
         `).join('')}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('ct')">${AC_SIG_CT ? 'Change' : '+'} Class Teacher Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('ec')">${AC_SIG_EC ? 'Change' : '+'} Exam Coordinator Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('di')">${AC_SIG_DI ? 'Change' : '+'} Dept In-charge Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('dc')">${AC_SIG_DC ? 'Change' : '+'} Dept Coordinator Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('ht')">${AC_SIG_HT ? 'Change' : '+'} Head Teacher Sig</button>
       </div>
       <div class="hint">Shows every student in the selected class as one row, with marks for every subject, so the whole class's result can be reviewed and signed off at once. For large classes the ledger flows across multiple pages, repeating the column headers on every page and never splitting a student's row. When a class has more subjects than the "Subjects per block" setting, the ledger breaks into stacked blocks instead of one very narrow table — each block repeats Roll No. and Student Name, and only the last block carries the totals/GPA/rank columns, so the sheet stays readable and fills out the full A3 page. Use the Print Scale control above the preview if a block still needs to be scaled down slightly so no column runs past the edge of the page.</div>
     </div>
@@ -5150,11 +5154,11 @@ async function buildClassLedgerHTML(examId, classId){
           ${top3Html}
           <div class="ledger-scale">Grading scale: A+ above 90-100 (4.0) · A above 80-90 (3.6) · B+ above 70-80 (3.2) · B above 60-70 (2.8) · C+ above 50-60 (2.4) · C above 40-50 (2.0) · D above 35-40 (1.6) · NG below 35 (Not Graded). Rank is calculated among students in the class who passed every subject of this examination.</div>
           <div class="gs-sign">
-            <div>Class Teacher</div>
-            <div>Exam Coordinator</div>
-            ${showDeptIncharge ? '<div>Department In-charge</div>' : ''}
-            ${showDeptCoordinator ? '<div>Department Coordinator</div>' : ''}
-            <div>Head Teacher</div>
+            <div class="ac-sig-ct">${acSigHtml('ct')}</div>
+            <div class="ac-sig-ec">${acSigHtml('ec')}</div>
+            ${showDeptIncharge ? '<div class="ac-sig-di">' + acSigHtml('di') + '</div>' : ''}
+            ${showDeptCoordinator ? '<div class="ac-sig-dc">' + acSigHtml('dc') + '</div>' : ''}
+            <div class="ac-sig-ht">${acSigHtml('ht')}</div>
           </div>
         </div>
       </div>
@@ -7186,7 +7190,13 @@ async function renderAdmitCards(){
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
         <button class="btn btn-outline btn-sm" onclick="pickAcSig('ct')">${AC_SIG_CT ? 'Change' : '+'} Class Teacher Sig</button>
         <button class="btn btn-outline btn-sm" onclick="pickAcSig('ec')">${AC_SIG_EC ? 'Change' : '+'} Exam Coordinator Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('di')">${AC_SIG_DI ? 'Change' : '+'} Dept In-charge Sig</button>
+        <button class="btn btn-outline btn-sm" onclick="pickAcSig('dc')">${AC_SIG_DC ? 'Change' : '+'} Dept Coordinator Sig</button>
         <button class="btn btn-outline btn-sm" onclick="pickAcSig('ht')">${AC_SIG_HT ? 'Change' : '+'} Head Teacher Sig</button>
+      </div>
+      <div class="hint" style="margin-top:10px;margin-bottom:6px;">Choose whose signature to display on admit cards:</div>
+      <div class="row-form" style="margin-top:0;margin-bottom:0;">
+        ${AC_SIGNATURE_OPTIONS.map(function(o){ return '<div class="checkbox-row"><input type="checkbox" id="ac-s-' + o.key + '" ' + (AC_SETTINGS[o.key] ? 'checked' : '') + ' onchange="toggleAcSetting(\'' + o.key + '\', this.checked)"><label for="ac-s-' + o.key + '" style="font-weight:400;">' + o.label + '</label></div>'; }).join('')}
       </div>
       <div id="ac-results"></div>
     </div>
@@ -7231,7 +7241,13 @@ function generateAdmitCards(){
     if(st.dob) html += '<div class="row"><span class="label">DOB</span><span class="value">' + esc(st.dob) + '</span></div>';
     html += '</div></div>';
     html += '<div class="subjects"><div class="title">Subjects</div><div class="subj-cols"><div class="subj-col"><table><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb, i){ return '<tr>' + subjCell(sb, i) + '</tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="subj-col"><table><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb, i){ return '<tr>' + subjCell(sb, subjLeft.length + i) + '</tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
-    html += '<div class="signature"><span class="ac-sig-ct">' + acSigHtml('ct') + '</span><span class="ac-sig-ec">' + acSigHtml('ec') + '</span><span class="ac-sig-ht">' + acSigHtml('ht') + '</span></div>';
+    var sigHtml = '';
+    if(AC_SETTINGS.showCtSig) sigHtml += '<span class="ac-sig-ct">' + acSigHtml('ct') + '</span>';
+    if(AC_SETTINGS.showEcSig) sigHtml += '<span class="ac-sig-ec">' + acSigHtml('ec') + '</span>';
+    if(AC_SETTINGS.showDiSig) sigHtml += '<span class="ac-sig-di">' + acSigHtml('di') + '</span>';
+    if(AC_SETTINGS.showDcSig) sigHtml += '<span class="ac-sig-dc">' + acSigHtml('dc') + '</span>';
+    if(AC_SETTINGS.showHtSig) sigHtml += '<span class="ac-sig-ht">' + acSigHtml('ht') + '</span>';
+    html += '<div class="signature">' + sigHtml + '</div>';
     html += '</div>';
   });
   html += '</div>';
@@ -7271,7 +7287,13 @@ function printAdmitCards(){
     if(st.dob) bodyHtml += '<tr><td class="ac-lbl">DOB</td><td class="ac-val">' + esc(st.dob) + '</td></tr>';
     bodyHtml += '</table></div></div>';
     bodyHtml += '<div class="ac-subjects"><div class="ac-sub-lbl">Subjects</div><div class="ac-sub-cols"><div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjLeft.map(function(sb, i){ return '<tr>' + subjCell(sb, i) + '</tr>'; }).join('') + '</tbody></table></div>' + (subjRight.length ? '<div class="ac-sub-col"><table class="ac-sub-table"><thead><tr><th>' + colHeader + '</th><th>Subject</th></tr></thead><tbody>' + subjRight.map(function(sb, i){ return '<tr>' + subjCell(sb, subjLeft.length + i) + '</tr>'; }).join('') + '</tbody></table></div>' : '') + '</div></div>';
-    bodyHtml += '<div class="ac-signatures"><div class="ac-sig ac-sig-ct">' + acSigHtml('ct') + '</div><div class="ac-sig ac-sig-ec">' + acSigHtml('ec') + '</div><div class="ac-sig ac-sig-ht">' + acSigHtml('ht') + '</div></div>';
+    var psigHtml = '';
+    if(AC_SETTINGS.showCtSig) psigHtml += '<div class="ac-sig ac-sig-ct">' + acSigHtml('ct') + '</div>';
+    if(AC_SETTINGS.showEcSig) psigHtml += '<div class="ac-sig ac-sig-ec">' + acSigHtml('ec') + '</div>';
+    if(AC_SETTINGS.showDiSig) psigHtml += '<div class="ac-sig ac-sig-di">' + acSigHtml('di') + '</div>';
+    if(AC_SETTINGS.showDcSig) psigHtml += '<div class="ac-sig ac-sig-dc">' + acSigHtml('dc') + '</div>';
+    if(AC_SETTINGS.showHtSig) psigHtml += '<div class="ac-sig ac-sig-ht">' + acSigHtml('ht') + '</div>';
+    bodyHtml += '<div class="ac-signatures">' + psigHtml + '</div>';
     bodyHtml += '</div>';
   });
 
@@ -7320,19 +7342,42 @@ function printAdmitCards(){
 window.printAdmitCards = printAdmitCards;
 
 /* ==================== ADMIT CARD SIGNATURES ==================== */
-var AC_SIG_CT = null, AC_SIG_EC = null, AC_SIG_HT = null;
+var AC_SIG_CT = null, AC_SIG_EC = null, AC_SIG_HT = null, AC_SIG_DI = null, AC_SIG_DC = null;
+
+var AC_DEFAULT_SETTINGS = {
+  showCtSig: true, showEcSig: true, showDiSig: false, showDcSig: false, showHtSig: true,
+};
+var AC_SIGNATURE_OPTIONS = [
+  {key:'showCtSig', label:'Class Teacher'},
+  {key:'showEcSig', label:'Exam Coordinator'},
+  {key:'showDiSig', label:'Department In-charge'},
+  {key:'showDcSig', label:'Department Coordinator'},
+  {key:'showHtSig', label:'Head Teacher'},
+];
+var AC_SETTINGS = { ...AC_DEFAULT_SETTINGS };
+async function loadAcSettings(){
+  AC_SETTINGS = { ...AC_DEFAULT_SETTINGS, ...(await sget('admitcard-settings') || {}) };
+}
+async function toggleAcSetting(key, checked){
+  AC_SETTINGS[key] = checked;
+  await sset('admitcard-settings', AC_SETTINGS);
+  var wrap = document.getElementById('ac-results');
+  if(wrap && wrap.innerHTML.trim()) generateAdmitCards();
+}
 
 function acSigHtml(role){
-  var key = role === 'ct' ? AC_SIG_CT : role === 'ec' ? AC_SIG_EC : AC_SIG_HT;
-  var label = role === 'ct' ? 'Class Teacher' : role === 'ec' ? 'Exam Coordinator' : 'Head Teacher';
-  if(key) return '<img src="' + key + '" style="height:20px;display:block;margin:0 auto 2px;">' + label;
-  return label + '<br>_________________';
+  var key = role === 'ct' ? AC_SIG_CT : role === 'ec' ? AC_SIG_EC : role === 'ht' ? AC_SIG_HT : role === 'di' ? AC_SIG_DI : AC_SIG_DC;
+  var label = role === 'ct' ? 'Class Teacher' : role === 'ec' ? 'Exam Coordinator' : role === 'ht' ? 'Head Teacher' : role === 'di' ? 'Department In-charge' : 'Department Coordinator';
+  if(key) return '<img src="' + key + '" style="height:20px;display:block;margin:0 auto 3px;"><div style="border-bottom:1px solid #bbb;margin:0 4px 4px;"></div>' + label;
+  return '_________________<br>' + label;
 }
 
 function loadAcSigs(){
   var c = localStorage.getItem('sss_ac_sig_ct'); if(c) AC_SIG_CT = c;
   var e = localStorage.getItem('sss_ac_sig_ec'); if(e) AC_SIG_EC = e;
   var h = localStorage.getItem('sss_ac_sig_ht'); if(h) AC_SIG_HT = h;
+  var i = localStorage.getItem('sss_ac_sig_di'); if(i) AC_SIG_DI = i;
+  var d = localStorage.getItem('sss_ac_sig_dc'); if(d) AC_SIG_DC = d;
 }
 
 function pickAcSig(role){
@@ -7357,12 +7402,16 @@ function acAttachSig(role, file){
     var dataUrl = e.target.result;
     if(role === 'ct'){ AC_SIG_CT = dataUrl; localStorage.setItem('sss_ac_sig_ct', dataUrl); }
     else if(role === 'ec'){ AC_SIG_EC = dataUrl; localStorage.setItem('sss_ac_sig_ec', dataUrl); }
-    else { AC_SIG_HT = dataUrl; localStorage.setItem('sss_ac_sig_ht', dataUrl); }
-    /* Update displayed admit cards */
+    else if(role === 'ht'){ AC_SIG_HT = dataUrl; localStorage.setItem('sss_ac_sig_ht', dataUrl); }
+    else if(role === 'di'){ AC_SIG_DI = dataUrl; localStorage.setItem('sss_ac_sig_di', dataUrl); }
+    else { AC_SIG_DC = dataUrl; localStorage.setItem('sss_ac_sig_dc', dataUrl); }
+    /* Update displayed admit cards, gradesheets, ledgers */
     document.querySelectorAll('.ac-sig-ct').forEach(function(el){ el.innerHTML = acSigHtml('ct'); });
     document.querySelectorAll('.ac-sig-ec').forEach(function(el){ el.innerHTML = acSigHtml('ec'); });
     document.querySelectorAll('.ac-sig-ht').forEach(function(el){ el.innerHTML = acSigHtml('ht'); });
-    toast((role === 'ct' ? 'Class Teacher' : role === 'ec' ? 'Exam Coordinator' : 'Head Teacher') + ' signature attached');
+    document.querySelectorAll('.ac-sig-di').forEach(function(el){ el.innerHTML = acSigHtml('di'); });
+    document.querySelectorAll('.ac-sig-dc').forEach(function(el){ el.innerHTML = acSigHtml('dc'); });
+    toast((role === 'ct' ? 'Class Teacher' : role === 'ec' ? 'Exam Coordinator' : role === 'ht' ? 'Head Teacher' : role === 'di' ? 'Department In-charge' : 'Department Coordinator') + ' signature attached');
   };
   reader.readAsDataURL(file);
 }
@@ -7370,6 +7419,49 @@ function acAttachSig(role, file){
 /* ==================== STUDENT ID CARDS ==================== */
 var ID_SIG = null;
 var ID_VALIDITY = '';
+
+var ID_FIELDS = null;
+
+function loadIdFields(){
+  try { var s = JSON.parse(localStorage.getItem('sss_id_fields')); if(s) ID_FIELDS = s; } catch(e) {}
+  if(!ID_FIELDS) ID_FIELDS = {
+    student: {class:1, roll:1, iemis:1, father:1, mother:1, dob:1, contact:1, gender:0, address:1, blood:0, username:0},
+    teacher: {qualif:1, phone:1, email:1, joined:1, designation:1, address:0, username:0},
+    staff: {dept:1, phone:1, joined:1, designation:1, address:0, username:0}
+  };
+}
+function saveIdFields(){ try { localStorage.setItem('sss_id_fields', JSON.stringify(ID_FIELDS)); } catch(e) {} }
+
+function idFieldCheckboxes(type){
+  var labels = {
+    student: {class:'Class', roll:'Roll', iemis:'IEMIS', father:'Father', mother:'Mother', dob:'DOB', gender:'Gender', contact:'Contact', address:'Address', blood:'Blood', username:'Username'},
+    teacher: {qualif:'Qualification', phone:'Phone', email:'Email', designation:'Designation', joined:'Joined', address:'Address', username:'Username'},
+    staff: {dept:'Department', phone:'Phone', designation:'Designation', joined:'Joined', address:'Address', username:'Username'}
+  };
+  var f = ID_FIELDS[type] || {};
+  return Object.keys(labels[type]).map(function(k){
+    var c = f[k] ? 'checked' : '';
+    return '<label style="font-size:12px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:3px 6px;border:1px solid var(--line);border-radius:4px;background:var(--paper);"><input type="checkbox" ' + c + ' onchange="toggleIdField(\'' + type + '\')"> ' + labels[type][k] + '</label>';
+  }).join('');
+}
+
+function toggleIdField(type){
+  var labels = {
+    student: {class:1, roll:1, iemis:1, father:1, mother:1, dob:1, gender:1, contact:1, address:1, blood:1, username:1},
+    teacher: {qualif:1, phone:1, email:1, designation:1, joined:1, address:1, username:1},
+    staff: {dept:1, phone:1, designation:1, joined:1, address:1, username:1}
+  };
+  var f = ID_FIELDS[type] || {};
+  document.querySelectorAll('#idc-fields-' + type + ' input[type=checkbox]').forEach(function(cb, i){
+    var key = Object.keys(labels[type])[i];
+    if(key) f[key] = cb.checked ? 1 : 0;
+  });
+  ID_FIELDS[type] = f;
+  saveIdFields();
+  if(type === 'student') { var sel=document.getElementById('idc-select-class'); if(sel&&sel.value) generateStudentIdCards(); }
+  else if(type === 'teacher') { var g=document.getElementById('idc-teacher-grid'); if(g) g.innerHTML=teacherCardsHtml(); }
+  else if(type === 'staff') { var g=document.getElementById('idc-staff-grid'); if(g) g.innerHTML=staffCardsHtml(); }
+}
 
 function idCardSignatureHtml(){
   var img = ID_SIG ? '<img src="' + ID_SIG + '" style="height:18px;display:block;margin:0 auto;">' : '<span class="id-sig-placeholder"></span>';
@@ -7407,17 +7499,48 @@ function attachSignature(file){
   reader.readAsDataURL(file);
 }
 
-function idCardStudentHtml(st, cls){
+function idCardStudentHtml(st, cls, fields){
   var clName = cls ? esc(cls.name) : '—';
   var initial = (st.name || '?')[0];
   var validText = ID_VALIDITY ? 'Valid till: ' + ID_VALIDITY + ' BS' : 'Valid ' + new Date().getFullYear();
-  return '<div class="id-card id-student"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (st.photo ? '<img class="id-photo" src="' + st.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(st.name) + '</div><div class="id-role">Student</div><div class="id-body"><table><tr><td class="id-lbl">Class</td><td class="id-val">' + clName + '</td></tr><tr><td class="id-lbl">Roll</td><td class="id-val">' + esc(st.roll || '—') + '</td></tr><tr><td class="id-lbl">Father</td><td class="id-val">' + esc(st.fatherName || '—') + '</td></tr><tr><td class="id-lbl">DOB</td><td class="id-val">' + esc(st.dob || '—') + '</td></tr><tr><td class="id-lbl">Blood</td><td class="id-val">' + esc(st.bloodGroup || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+  var rows = '';
+  if(!fields || fields.class) rows += '<tr><td class="id-lbl">Class</td><td class="id-val">' + clName + '</td></tr>';
+  if(!fields || fields.roll) rows += '<tr><td class="id-lbl">Roll</td><td class="id-val">' + esc(st.roll || '—') + '</td></tr>';
+  if(!fields || fields.iemis) rows += '<tr><td class="id-lbl">IEMIS</td><td class="id-val">' + esc(st.emisId || '—') + '</td></tr>';
+  if(!fields || fields.father) rows += '<tr><td class="id-lbl">Father</td><td class="id-val">' + esc(st.fatherName || '—') + '</td></tr>';
+  if(!fields || fields.mother) rows += '<tr><td class="id-lbl">Mother</td><td class="id-val">' + esc(st.motherName || '—') + '</td></tr>';
+  if(!fields || fields.dob) rows += '<tr><td class="id-lbl">DOB</td><td class="id-val">' + esc(st.dob || '—') + '</td></tr>';
+  if(!fields || fields.gender) rows += '<tr><td class="id-lbl">Gender</td><td class="id-val">' + esc(st.gender || '—') + '</td></tr>';
+  if(!fields || fields.contact) rows += '<tr><td class="id-lbl">Contact</td><td class="id-val">' + esc(st.guardianContact || '—') + '</td></tr>';
+  if(!fields || fields.address) rows += '<tr><td class="id-lbl">Address</td><td class="id-val">' + esc(st.address || '—') + '</td></tr>';
+  if(!fields || fields.blood) rows += '<tr><td class="id-lbl">Blood</td><td class="id-val">' + esc(st.bloodGroup || '—') + '</td></tr>';
+  if(!fields || fields.username) rows += '<tr><td class="id-lbl">Username</td><td class="id-val">' + esc(st.username || '—') + '</td></tr>';
+  return '<div class="id-card id-student"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (st.photo ? '<img class="id-photo" src="' + st.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(st.name) + '</div><div class="id-role">Student</div><div class="id-body"><table>' + rows + '</table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+}
+
+function studentCardsHtml(){
+  var classId = document.getElementById('idc-select-class')?.value;
+  if(!classId) return '';
+  var students = STRUCT.students.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return (a.roll||'').localeCompare(b.roll||''); });
+  var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
+  var fields = ID_FIELDS.student || {};
+  return students.map(function(st){ return idCardStudentHtml(st, cls, fields); }).join('');
+}
+
+function teacherCardsHtml(){
+  var fields = ID_FIELDS.teacher || {};
+  return AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).map(function(t){ return idCardTeacherHtml(t, fields); }).join('');
+}
+
+function staffCardsHtml(){
+  var fields = ID_FIELDS.staff || {};
+  return AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).map(function(t){ return idCardStaffHtml(t, fields); }).join('');
 }
 
 async function renderStudentIdCards(){
   var c = document.getElementById('content-area');
   var classes = SESSION.role === 'admin' ? STRUCT.classes : STRUCT.classes.filter(function(cl){ return myClassTeacherClassIds().includes(cl.id); });
-  c.innerHTML = '<div class="card"><h3>Student ID Cards</h3><div class="hint" style="margin-bottom:14px;">Select a class to generate student ID cards.</div><div class="id-card-controls"><div class="field"><label>Class</label><select id="idc-select-class" style="width:100%;"><option value="">— Select Class —</option>' + classes.map(function(cl){ return '<option value="' + cl.id + '">' + esc(cl.name) + '</option>'; }).join('') + '</select></div><button class="btn btn-navy" onclick="generateStudentIdCards()">Generate</button><div class="field" style="flex:0 0 130px;"><label>Validity (BS)</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div id="idc-results"></div></div><div id="idc-print-area" style="display:none;"></div>';
+  c.innerHTML = '<div class="card"><h3>Student ID Cards</h3><div class="hint" style="margin-bottom:14px;">Select a class to generate student ID cards.</div><div class="id-card-controls"><div class="field"><label>Class</label><select id="idc-select-class" style="width:100%;"><option value="">— Select Class —</option>' + classes.map(function(cl){ return '<option value="' + cl.id + '">' + esc(cl.name) + '</option>'; }).join('') + '</select></div><button class="btn btn-navy" onclick="generateStudentIdCards()">Generate</button><div class="field" style="flex:0 0 130px;"><label>Validity (BS)</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="idc-fields-student">' + idFieldCheckboxes('student') + '</div><div id="idc-results"></div></div><div id="idc-print-area" style="display:none;"></div>';
 }
 window.renderStudentIdCards = renderStudentIdCards;
 
@@ -7427,8 +7550,9 @@ function generateStudentIdCards(){
   var students = STRUCT.students.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return (a.roll||'').localeCompare(b.roll||''); });
   if(!students.length){ toast('No students in this class.'); return; }
   var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
+  var fields = ID_FIELDS.student || {};
   var html = '<div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + students.length + ' ID cards</span><button class="btn btn-navy" onclick="printIdCards(\'student\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button></div><div class="id-card-grid">';
-  students.forEach(function(st){ html += idCardStudentHtml(st, cls); });
+  students.forEach(function(st){ html += idCardStudentHtml(st, cls, fields); });
   html += '</div>';
   document.getElementById('idc-results').innerHTML = html;
 }
@@ -7442,30 +7566,45 @@ function isNonTeachingStaff(t){
   return ntDesignations.indexOf(t.designation) !== -1;
 }
 
-function idCardTeacherHtml(t){
+function idCardTeacherHtml(t, fields){
   var initial = (t.name || '?')[0];
   var validText = ID_VALIDITY ? 'Valid till: ' + ID_VALIDITY + ' BS' : 'Valid ' + new Date().getFullYear();
-  return '<div class="id-card id-teacher"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Teacher') + '</div><div class="id-body"><table><tr><td class="id-lbl">Qualif.</td><td class="id-val">' + esc(t.qualification || '—') + '</td></tr><tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr><tr><td class="id-lbl">Email</td><td class="id-val">' + esc(t.email || '—') + '</td></tr><tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+  var rows = '';
+  if(!fields || fields.designation) rows += '<tr><td class="id-lbl">Designation</td><td class="id-val">' + esc(t.designation || '—') + '</td></tr>';
+  if(!fields || fields.qualif) rows += '<tr><td class="id-lbl">Qualif.</td><td class="id-val">' + esc(t.qualification || '—') + '</td></tr>';
+  if(!fields || fields.phone) rows += '<tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr>';
+  if(!fields || fields.email) rows += '<tr><td class="id-lbl">Email</td><td class="id-val">' + esc(t.email || '—') + '</td></tr>';
+  if(!fields || fields.joined) rows += '<tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr>';
+  if(!fields || fields.address) rows += '<tr><td class="id-lbl">Address</td><td class="id-val">' + esc(t.address || '—') + '</td></tr>';
+  if(!fields || fields.username) rows += '<tr><td class="id-lbl">Username</td><td class="id-val">' + esc(t.username || '—') + '</td></tr>';
+  return '<div class="id-card id-teacher"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Teacher') + '</div><div class="id-body"><table>' + rows + '</table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
 }
 
 function renderTeacherIdCards(){
   var c = document.getElementById('content-area');
   var teachers = AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
-  c.innerHTML = '<div class="card"><h3>Teacher ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + teachers.length + ' teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'teacher\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div class="id-card-grid">' + teachers.map(function(t){ return idCardTeacherHtml(t); }).join('') + '</div></div>';
+  c.innerHTML = '<div class="card"><h3>Teacher ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + teachers.length + ' teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'teacher\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="idc-fields-teacher">' + idFieldCheckboxes('teacher') + '</div><div class="id-card-grid" id="idc-teacher-grid">' + teacherCardsHtml() + '</div></div>';
 }
 window.renderTeacherIdCards = renderTeacherIdCards;
 
 /* ==================== STAFF ID CARDS ==================== */
-function idCardStaffHtml(t){
+function idCardStaffHtml(t, fields){
   var initial = (t.name || '?')[0];
   var validText = ID_VALIDITY ? 'Valid till: ' + ID_VALIDITY + ' BS' : 'Valid ' + new Date().getFullYear();
-  return '<div class="id-card id-staff"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Staff') + '</div><div class="id-body"><table>' + (t.department ? '<tr><td class="id-lbl">Dept.</td><td class="id-val">' + esc(t.department) + '</td></tr>' : '') + '<tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr><tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr></table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+  var rows = '';
+  if((!fields || fields.dept) && t.department) rows += '<tr><td class="id-lbl">Dept.</td><td class="id-val">' + esc(t.department) + '</td></tr>';
+  if(!fields || fields.designation) rows += '<tr><td class="id-lbl">Designation</td><td class="id-val">' + esc(t.designation || '—') + '</td></tr>';
+  if(!fields || fields.phone) rows += '<tr><td class="id-lbl">Phone</td><td class="id-val">' + esc(t.phone || '—') + '</td></tr>';
+  if(!fields || fields.joined) rows += '<tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr>';
+  if(!fields || fields.address) rows += '<tr><td class="id-lbl">Address</td><td class="id-val">' + esc(t.address || '—') + '</td></tr>';
+  if(!fields || fields.username) rows += '<tr><td class="id-lbl">Username</td><td class="id-val">' + esc(t.username || '—') + '</td></tr>';
+  return '<div class="id-card id-staff"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Staff') + '</div><div class="id-body"><table>' + rows + '</table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
 }
 
 function renderStaffIdCards(){
   var c = document.getElementById('content-area');
   var staff = AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
-  c.innerHTML = '<div class="card"><h3>Staff ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + staff.length + ' non-teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'staff\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div class="id-card-grid">' + staff.map(function(t){ return idCardStaffHtml(t); }).join('') + '</div></div>';
+  c.innerHTML = '<div class="card"><h3>Staff ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + staff.length + ' non-teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'staff\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="idc-fields-staff">' + idFieldCheckboxes('staff') + '</div><div class="id-card-grid" id="idc-staff-grid">' + staffCardsHtml() + '</div></div>';
 }
 window.renderStaffIdCards = renderStaffIdCards;
 
@@ -7491,11 +7630,14 @@ function printIdCards(type){
     if(!classId){ toast('Select a class first.'); return; }
     var students = STRUCT.students.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return (a.roll||'').localeCompare(b.roll||''); });
     var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
-    students.forEach(function(st){ cards.push(idCardStudentHtml(st, cls)); });
+    var sf = ID_FIELDS.student || {};
+    students.forEach(function(st){ cards.push(idCardStudentHtml(st, cls, sf)); });
   } else if(type === 'teacher'){
-    AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardTeacherHtml(t)); });
+    var tf = ID_FIELDS.teacher || {};
+    AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardTeacherHtml(t, tf)); });
   } else if(type === 'staff'){
-    AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardStaffHtml(t)); });
+    var sf2 = ID_FIELDS.staff || {};
+    AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardStaffHtml(t, sf2)); });
   }
   if(!cards.length){ toast('No cards to print.'); return; }
   var win = window.open('', '_blank', 'width=500,height=600');
@@ -7512,7 +7654,7 @@ window.printIdCards = printIdCards;
 
 /* ---------------- init ---------------- */
 (async function init(){
-  loadIdSig(); loadIdValidity(); loadAcSigs();
+  loadIdSig(); loadIdValidity(); loadIdFields(); loadAcSigs(); await loadAcSettings();
   document.querySelectorAll('img[src="LOGO_PLACEHOLDER"]').forEach(img => img.src = LOGO_DATA);
   INITIAL_LOAD_PROMISE = loadAll();
   await INITIAL_LOAD_PROMISE;
