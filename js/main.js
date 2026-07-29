@@ -13,7 +13,8 @@ var App = {
       this.setupScrollReveal();
       this.setupHeaderScroll();
       this.setupParallax();
-      document.getElementById('currentYear').textContent = new Date().getFullYear();
+      var cy = document.getElementById('currentYear');
+      if (cy) cy.textContent = new Date().getFullYear();
 
       const settings = await DataStore.get('SETTINGS');
       this._settings = settings || {};
@@ -591,12 +592,14 @@ var App = {
           document.querySelectorAll('.nav-link').forEach(function (l) { l.classList.remove('active'); });
           this.classList.add('active');
         }
-        document.getElementById('navMenu').classList.remove('open');
+        var navEl = document.getElementById('navMenu');
+        if (navEl) navEl.classList.remove('open');
       });
     });
     var menuToggle = document.getElementById('menuToggle');
     var navMenu = document.getElementById('navMenu');
     if (menuToggle) menuToggle.addEventListener('click', function () {
+      if (!navMenu) return;
       navMenu.classList.toggle('open');
       var expanded = navMenu.classList.contains('open');
       menuToggle.setAttribute('aria-expanded', expanded);
@@ -711,8 +714,8 @@ var App = {
         delete data.studentPhoto; delete data.birthCertificate; delete data.bleCertificate;
         var files = await Promise.all([
           photoFile ? fileToDataUrl(photoFile) : null,
-          document.getElementById('birthCertificate').files[0] ? fileToDataUrl(document.getElementById('birthCertificate').files[0]) : null,
-          document.getElementById('bleCertificate').files[0] ? fileToDataUrl(document.getElementById('bleCertificate').files[0]) : null
+          (document.getElementById('birthCertificate') || {}).files ? fileToDataUrl(document.getElementById('birthCertificate').files[0]) : null,
+          (document.getElementById('bleCertificate') || {}).files ? fileToDataUrl(document.getElementById('bleCertificate').files[0]) : null
         ]);
         var application = {
           id: 'app_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -749,20 +752,26 @@ function getPlaceholderImage(name) {
 
 function openLightbox(src, caption, index) {
   var lb = document.getElementById('lightbox');
-  lb.classList.add('show');
+  if (!lb) return;
   lb.dataset.index = index || 0;
   var imgEl = document.getElementById('lightboxImg');
-  imgEl.src = decodeURIComponent(src);
-  imgEl.alt = decodeURIComponent(caption || '') || 'School gallery image';
-  document.getElementById('lightboxCaption').textContent = decodeURIComponent(caption || '') || '';
+  if (imgEl) {
+    imgEl.src = decodeURIComponent(src);
+    imgEl.alt = decodeURIComponent(caption || '') || 'School gallery image';
+  }
+  var capEl = document.getElementById('lightboxCaption');
+  if (capEl) capEl.textContent = decodeURIComponent(caption || '') || '';
   document.body.style.overflow = 'hidden';
   var hasNav = window._galleryImages && window._galleryImages.length > 1;
-  document.getElementById('lbPrev').style.display = hasNav ? '' : 'none';
-  document.getElementById('lbNext').style.display = hasNav ? '' : 'none';
+  var prev = document.getElementById('lbPrev');
+  var next = document.getElementById('lbNext');
+  if (prev) prev.style.display = hasNav ? '' : 'none';
+  if (next) next.style.display = hasNav ? '' : 'none';
 }
 
 function closeLightbox() {
-  document.getElementById('lightbox').classList.remove('show');
+  var lb = document.getElementById('lightbox');
+  if (lb) lb.classList.remove('show');
   document.body.style.overflow = '';
 }
 
@@ -770,6 +779,7 @@ function navigateLightbox(dir) {
   var images = window._galleryImages || [];
   if (images.length < 2) return;
   var lb = document.getElementById('lightbox');
+  if (!lb) return;
   var idx = parseInt(lb.dataset.index || '0');
   var next = idx + dir;
   if (next < 0) next = images.length - 1;

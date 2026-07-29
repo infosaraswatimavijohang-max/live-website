@@ -48,17 +48,19 @@ const CacheManager = {
       if (typeof SUPABASE_MONITOR !== 'undefined') SUPABASE_MONITOR.logCacheHit();
       return cached.data;
     }
-    const stored = localStorage.getItem(this.PREFIX + key);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (parsed && now < parsed.expires) {
-          this._store[key] = parsed;
-          if (typeof SUPABASE_MONITOR !== 'undefined') SUPABASE_MONITOR.logCacheHit();
-          return parsed.data;
-        }
-      } catch (e) {}
-    }
+    try {
+      const stored = localStorage.getItem(this.PREFIX + key);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed && now < parsed.expires) {
+            this._store[key] = parsed;
+            if (typeof SUPABASE_MONITOR !== 'undefined') SUPABASE_MONITOR.logCacheHit();
+            return parsed.data;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {}
     if (typeof SUPABASE_MONITOR !== 'undefined') SUPABASE_MONITOR.logCacheMiss();
     return null;
   },
@@ -80,19 +82,22 @@ const CacheManager = {
 
   invalidate(key) {
     delete this._store[key];
-    localStorage.removeItem(this.PREFIX + key);
+    try { localStorage.removeItem(this.PREFIX + key); } catch (e) {}
   },
 
   invalidateAll() {
     this._store = {};
-    const keys = Object.keys(localStorage);
-    for (const k of keys) {
-      if (k.startsWith(this.PREFIX)) localStorage.removeItem(k);
-    }
+    try {
+      const keys = Object.keys(localStorage);
+      for (const k of keys) {
+        if (k.startsWith(this.PREFIX)) localStorage.removeItem(k);
+      }
+    } catch (e) {}
   },
 
   _garbageCollect() {
-    const keys = Object.keys(localStorage);
+    try {
+      const keys = Object.keys(localStorage);
     const cacheKeys = keys.filter(k => k.startsWith(this.PREFIX));
     const entries = cacheKeys.map(k => {
       try { return { key: k, entry: JSON.parse(localStorage.getItem(k)) }; } catch (e) { return null; }
@@ -104,6 +109,7 @@ const CacheManager = {
       const short = key.slice(this.PREFIX.length);
       delete this._store[short];
     }
+    } catch (e) {}
   },
 
   async remember(key, fetcher, ttl) {
@@ -115,18 +121,22 @@ const CacheManager = {
   },
 
   get size() {
-    let total = 0;
-    const keys = Object.keys(localStorage);
-    for (const k of keys) {
-      if (k.startsWith(this.PREFIX)) {
-        total += (localStorage.getItem(k) || '').length;
+    try {
+      let total = 0;
+      const keys = Object.keys(localStorage);
+      for (const k of keys) {
+        if (k.startsWith(this.PREFIX)) {
+          total += (localStorage.getItem(k) || '').length;
+        }
       }
-    }
-    return total;
+      return total;
+    } catch (e) { return 0; }
   },
 
   get entryCount() {
-    const keys = Object.keys(localStorage);
-    return keys.filter(k => k.startsWith(this.PREFIX)).length;
+    try {
+      const keys = Object.keys(localStorage);
+      return keys.filter(k => k.startsWith(this.PREFIX)).length;
+    } catch (e) { return 0; }
   }
 };

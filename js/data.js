@@ -117,7 +117,7 @@ const DataStore = {
       localStorage.setItem(this.PREFIX + key, JSON.stringify(value));
     } catch (e) {
       console.warn('Supabase write fallback to localStorage for ' + key, e);
-      localStorage.setItem(this.PREFIX + key, JSON.stringify(value));
+      try { localStorage.setItem(this.PREFIX + key, JSON.stringify(value)); } catch (e2) {}
     }
   },
 

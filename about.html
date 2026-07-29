@@ -28,6 +28,7 @@
   <meta name="twitter:title" content="About Us | Shree Saraswati Secondary School, Gulmi">
   <meta name="twitter:description" content="School history, vision, mission, and principal message — Shree Saraswati Secondary School, Johang, Gulmi.">
   <meta name="twitter:image" content="https://saraswatisecschool.edu.np/assets/images/General%20Block.webp">
+  <script>if(localStorage.getItem('sss_theme')==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://fonts.googleapis.com">
@@ -90,7 +91,7 @@
       <a href="Login_portal.html" target="_blank" rel="noopener" class="nav-link">Login Portal</a>
       <a href="contact.html" class="nav-link">Contact</a>
     </nav>
-    <div class="nav-right"><button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-controls="navMenu" aria-expanded="false"><i class="fas fa-bars"></i></button></div>
+    <div class="nav-right"><button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle dark mode"><i class="fas fa-moon"></i></button><button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-controls="navMenu" aria-expanded="false"><i class="fas fa-bars"></i></button></div>
   </div>
 </header>
 
@@ -200,6 +201,7 @@
     </div>
   </div>
 </footer>
+<script>function toggleTheme(){var d=document.documentElement,a=d.getAttribute('data-theme'),n=a==='dark'?'light':'dark';d.setAttribute('data-theme',n);localStorage.setItem('sss_theme',n);document.querySelectorAll('.theme-toggle i').forEach(function(e){e.className=n==='dark'?'fas fa-sun':'fas fa-moon'})}!function(){document.querySelectorAll('.theme-toggle i').forEach(function(e){e.className=document.documentElement.getAttribute('data-theme')==='dark'?'fas fa-sun':'fas fa-moon'})}()</script>
 <script>document.getElementById('currentYear').textContent=new Date().getFullYear()</script>
 <script src="js/supabase.js"></script>
 <script src="js/cache.js"></script>
