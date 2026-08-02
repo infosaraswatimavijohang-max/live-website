@@ -460,8 +460,14 @@ var App = {
     }
     var cards = [];
     holidays.forEach(function (h) { cards.push({ key: h.day, holiday: true, html: holidayCard(h) }); });
-    items.forEach(function (a) { cards.push({ key: startDay(a.date), holiday: false, html: programCard(a) }); });
-    cards.sort(function (x, y) { return x.key - y.key || (x.holiday ? -1 : 1); });
+    var itemKeys = items.map(function (a) { return startDay(a.date); });
+    var nextKey = 99;
+    for (var k = itemKeys.length - 1; k >= 0; k--) {
+      if (itemKeys[k] < 99) nextKey = itemKeys[k];
+      else if (nextKey < 99) itemKeys[k] = nextKey;
+    }
+    items.forEach(function (a, i) { cards.push({ key: itemKeys[i], holiday: false, html: programCard(a) }); });
+    cards.sort(function (x, y) { return x.key - y.key || (x.holiday === y.holiday ? 0 : (x.holiday ? -1 : 1)); });
     container.innerHTML = cards.map(function (c) { return c.html; }).join('');
   },
 
