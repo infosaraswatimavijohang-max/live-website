@@ -16,36 +16,36 @@
 
 DO $$ BEGIN
   IF to_regclass('public.admissions') IS NOT NULL THEN
-    EXECUTE 'ALTER TABLE admissions ADD COLUMN IF NOT EXISTS dob_bs TEXT';
+    EXECUTE 'ALTER TABLE public.admissions ADD COLUMN IF NOT EXISTS dob_bs TEXT';
   END IF;
 END $$;
 
 DO $$ BEGIN
   IF to_regclass('public.notices') IS NOT NULL THEN
-    EXECUTE 'ALTER TABLE notices ADD COLUMN IF NOT EXISTS date_bs TEXT';
+    EXECUTE 'ALTER TABLE public.notices ADD COLUMN IF NOT EXISTS date_bs TEXT';
   END IF;
 END $$;
 
 DO $$ BEGIN
   IF to_regclass('public.events') IS NOT NULL THEN
-    EXECUTE 'ALTER TABLE events ADD COLUMN IF NOT EXISTS date_bs TEXT';
+    EXECUTE 'ALTER TABLE public.events ADD COLUMN IF NOT EXISTS date_bs TEXT';
   END IF;
 END $$;
 
 DO $$ BEGIN
   IF to_regclass('public.students') IS NOT NULL THEN
-    EXECUTE 'ALTER TABLE students ADD COLUMN IF NOT EXISTS dob_bs TEXT';
+    EXECUTE 'ALTER TABLE public.students ADD COLUMN IF NOT EXISTS dob_bs TEXT';
   END IF;
 END $$;
 
 DO $$ BEGIN
   IF to_regclass('public.teachers') IS NOT NULL THEN
-    EXECUTE 'ALTER TABLE teachers ADD COLUMN IF NOT EXISTS joining_date_bs TEXT';
+    EXECUTE 'ALTER TABLE public.teachers ADD COLUMN IF NOT EXISTS joining_date_bs TEXT';
   END IF;
 END $$;
 
 DO $$ BEGIN
   IF to_regclass('public.assignments') IS NOT NULL THEN
-    EXECUTE 'ALTER TABLE assignments ADD COLUMN IF NOT EXISTS due_date_bs TEXT';
+    EXECUTE 'ALTER TABLE public.assignments ADD COLUMN IF NOT EXISTS due_date_bs TEXT';
   END IF;
 END $$;
