@@ -8,11 +8,44 @@
 -- existing `exams.subject_marks` JSONB blob (_startDateBs,
 -- _endDateBs, _publishFromBs, _publishUntilBs) so no columns are
 -- needed on the `exams` table.
+--
+-- Each ALTER is guarded with a to_regclass check so a table that
+-- doesn't exist in this project is skipped instead of aborting the
+-- whole script with error 42P01. The script is safe to re-run.
 -- ============================================================
 
-ALTER TABLE admissions   ADD COLUMN IF NOT EXISTS dob_bs       TEXT;
-ALTER TABLE notices      ADD COLUMN IF NOT EXISTS date_bs      TEXT;
-ALTER TABLE events       ADD COLUMN IF NOT EXISTS date_bs      TEXT;
-ALTER TABLE students     ADD COLUMN IF NOT EXISTS dob_bs       TEXT;
-ALTER TABLE teachers     ADD COLUMN IF NOT EXISTS joining_date_bs TEXT;
-ALTER TABLE assignments  ADD COLUMN IF NOT EXISTS due_date_bs  TEXT;
+DO $$ BEGIN
+  IF to_regclass('public.admissions') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE admissions ADD COLUMN IF NOT EXISTS dob_bs TEXT';
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF to_regclass('public.notices') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE notices ADD COLUMN IF NOT EXISTS date_bs TEXT';
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF to_regclass('public.events') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE events ADD COLUMN IF NOT EXISTS date_bs TEXT';
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF to_regclass('public.students') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE students ADD COLUMN IF NOT EXISTS dob_bs TEXT';
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF to_regclass('public.teachers') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE teachers ADD COLUMN IF NOT EXISTS joining_date_bs TEXT';
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF to_regclass('public.assignments') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE assignments ADD COLUMN IF NOT EXISTS due_date_bs TEXT';
+  END IF;
+END $$;
