@@ -4,7 +4,7 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 
 ## Running
 
-- **Public pages**: Open any `.html` in a browser. Google Maps iframes require `localhost` (fail on `file://`).
+- **Public pages**: Open any `.html` directly in a browser (no build step). Contact/about maps are static `maps.app.goo.gl` links — **not** iframes. When Supabase is unreachable, `DataStore` falls back to `sss_` localStorage, so pages still render.
 - **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:324-325`).
 - **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~7400-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
 
@@ -15,7 +15,7 @@ supabase.js → cache.js → data.js → main.js (or admin.js)
 ```
 
 - `index.html` loads all four with `defer` — the only page that does.
-- `about.html`, `admissions.html`, `contact.html` load all four **synchronously** at end of `<body>`.
+- `about.html`, `admissions.html`, `contact.html`, `admin.html` load all four **synchronously** at end of `<body>` (`admin.html` ends with `admin.js` instead of `main.js`).
 - **Exception**: `notices.html` loads only `supabase.js + cache.js + data.js` (no `main.js`) with an inline fetch script using `DataStore` + `ANNUAL_PLAN` directly.
 - `Login_portal.html` loads only `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js` + `js/exam_helper.js`.
 
@@ -59,6 +59,7 @@ Admin uploads → `compressImage(file, 800, 0.6)` → WebP base64 → stored inl
 - Teal `oklch(0.55 0.12 175)`: primary interactive accent — links, active states, CTAs
 - Gold `oklch(0.72 0.13 85)`: warm accent for `btn-primary`, hero highlights, stars
 - Prefer OKLCH tokens from `:root` over hex. Spacing base: 8px. Transitions: `0.35s cubic-bezier(0.22, 1, 0.36, 1)`.
+- Dark mode: `[data-theme="dark"]` on `<html>` redefines the tokens (`style.css:29`). Theme persisted in `sss_theme` localStorage, initialized by an inline script at the top of every public page. Keep new colors working under both token sets.
 - Full guidelines: `DESIGN.md` | Brand/voice: `PRODUCT.md`
 
 ## Layout
@@ -68,9 +69,12 @@ Admin uploads → `compressImage(file, 800, 0.6)` → WebP base64 → stored inl
 
 ## Annual Work Plan & Calendar (BS 2083)
 
-- Source: `Details/Annual_Work_Plan_2083.xlsx` → `ANNUAL_PLAN` object in `data.js:517`. Months keyed by Nepali name, matched by `MONTH_ORDER` array (`data.js:613`).
+- Source: `Details/Annual_Work_Plan_2083.xlsx` → `ANNUAL_PLAN` object in `data.js`. Months keyed by Nepali name, matched by `MONTH_ORDER` array.
 - Calendar rendered by `renderBsCalendar()` in `main.js`. 9 color-coded types: Holiday, Exam, Meeting, Event, Celebration, Sports, Tour, Admin, Regular.
 - Date parsing handles: `From X`, `X-Y` ranges, `Last Wed & Thu`, plain numbers — regular hyphens, not en-dashes.
+- **BS 2083 month lengths** (`BS_MONTH_DAYS`, `data.js`): `[31,31,32,31,31,31,30,29,30,29,30,30]` (365 days) — verified against hamro patro. Anchors: Baisakh 1 = Apr 14 2026, Jestha 1 = May 15, Ashadh 1 = Jun 15, Shrawan 1 = Jul 17, Bhadra 1 = Aug 17, Ashwin 1 = Sep 17, Kartik 1 = Oct 18, Mangsir 1 = Nov 17, Poush 1 = Dec 16, Magh 1 = Jan 15 2027, Falgun 1 = Feb 13, Chaitra 1 = Mar 15.
+- **Public holidays**: `BS_HOLIDAYS` object in `data.js` (keyed by Nepali month name → `{day, name}`), sourced from hamro patro's 2083 holiday list. `renderBsCalendar()` merges them into cells as `cal-holiday` (badge shows festival name), and `showMonthActivities()` lists them at the top of the plan panel. To change which holidays appear, edit `BS_HOLIDAYS`.
+- `NepaliDate.convertToBS()` (used by `main.js` event timeline) and `bsDateFromAd()` are both anchored to Baisakh 1 2083 = Apr 14 2026 and agree with hamro patro for the 2083 academic year.
 
 ## SQL migrations
 
@@ -89,6 +93,7 @@ Each fee table has `public_all` RLS policy. Two other SQL files are one-time dat
 
 - Uses supabase-js v2 CDN (not the raw fetch client from public pages).
 - Separate DB tables: `classes, subjects, teachers, students, exams, marks, images, assignments, notes`.
+- On every load it syncs those relational tables into an `exam_portal_kv` table (`structure` + `auth` blobs); the app reads STRUCT from that blob. Photos are deliberately stripped before persisting (`persistStructure()`), so cached rows are image-less.
 - Own auth (username/password per student/teacher), own caching (`examCache`), own column maps (`EXAM_COLUMNS` in `exam_helper.js`).
 - **STRUCT naming differs from DB columns**: classes use `name` not `class_label`, students use `name`/`roll`/`classId` not `full_name`/`school_roll_no`/`class_id`. Inline code maps between them via `EXAM_COLUMNS`.
 - Inline `<script>` is ~7400 lines — prefer targeted edits over bulk rewrites.
@@ -103,7 +108,7 @@ Each fee table has `public_all` RLS policy. Two other SQL files are one-time dat
 
 ## Domain
 
-`saraswatisecschool.edu.np` — set in `CNAME` + Google Search Console verification in `index.html`.
+`saraswatisecschool.edu.np` — set in `CNAME` + canonical tag in `index.html`. Note: the `google-site-verification` meta (`index.html:16`) is still the placeholder `YOUR_GOOGLE_VERIFICATION_CODE`.
 
 ## Notes
 

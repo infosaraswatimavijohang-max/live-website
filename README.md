@@ -66,6 +66,7 @@ Run in Supabase SQL Editor in order:
 - Source: `Details/Annual_Work_Plan_2083.xlsx` → `ANNUAL_PLAN` in `data.js`
 - Calendar rendered by `renderBsCalendar()` in `main.js`
 - Color-coded types (9): Holiday, Exam, Meeting, Event, Celebration, Sports, Tour, Admin, Regular
+- Month lengths (`BS_MONTH_DAYS`) verified against hamro patro; `BS_HOLIDAYS` overlays hamro patro's public holidays on the calendar
 
 ## Design Tokens
 - **Navy**: headers, nav, footer, structure

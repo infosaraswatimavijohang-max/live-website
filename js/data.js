@@ -199,7 +199,7 @@ const DataStore = {
 };
 
 const NepaliDate = {
-  months: ['Baisakh', 'Jestha', 'Asar', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'],
+  months: ['Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'],
   days: ['Aaitbaar', 'Sombar', 'Mangalbar', 'Budhbar', 'Bihibar', 'Shukrabar', 'Shanibar'],
 
   today() {
@@ -209,34 +209,16 @@ const NepaliDate = {
   },
 
   convertToBS(date) {
-    const d = date || new Date();
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1;
-    const day = d.getDate();
-    const bsYear = year + 57;
-    const bsMonths = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29];
-    const startBSDate = new Date(year, month - 1, day);
-    const refDate = new Date(2014, 3, 14);
-    const daysDiff = Math.floor((startBSDate - refDate) / (1000 * 60 * 60 * 24));
-    let totalDays = daysDiff;
-    let nYear = bsYear;
-    let nMonth = 1;
-    let nDay = 1;
-    if (totalDays < 0) {
-      for (let m = 0; m < 9; m++) totalDays += bsMonths[m];
-      nMonth = 10;
-      nDay = 1 + totalDays;
-      if (nDay > bsMonths[nMonth - 1]) { nDay = totalDays - bsMonths[9]; nMonth = 11; }
-    } else {
-      let daysInYear = 0;
-      for (let m = 0; m < 12; m++) daysInYear += bsMonths[m];
-      while (totalDays >= daysInYear) { totalDays -= daysInYear; nYear++; }
-      for (let m = 0; m < 12; m++) {
-        if (totalDays < bsMonths[m]) { nMonth = m + 1; nDay = totalDays + 1; break; }
-        totalDays -= bsMonths[m];
-      }
-    }
-    return { year: nYear, month: nMonth, day: nDay };
+    const d = date ? new Date(date) : new Date();
+    const DAY = 86400000;
+    const anchor = new Date(2026, 3, 14); // Baisakh 1, 2083
+    let diff = Math.floor((d.getTime() - anchor.getTime()) / DAY);
+    let year = BS_YEAR;
+    if (diff < 0) { year--; diff += 365; }
+    let month = 0;
+    while (month < 12 && diff >= BS_MONTH_DAYS[month]) { diff -= BS_MONTH_DAYS[month]; month++; }
+    if (month >= 12) { year++; month = 0; }
+    return { year: year, month: month + 1, day: diff + 1 };
   },
 
   formatDate(dateStr) {
@@ -612,8 +594,87 @@ var ANNUAL_PLAN = {
 };
 var MONTH_ORDER = ['Baisakh','Jestha','Ashadh','Shrawan','Bhadra','Ashwin','Kartik','Mangsir','Poush','Magh','Falgun','Chaitra'];
 
+/* BS 2083 public holidays / festivals (source: hamro patro — nepali.hamropatro.com) */
+var BS_HOLIDAYS = {
+  'Baisakh': [
+    { day: 1, name: 'Nepali New Year / Biska Jatra' },
+    { day: 18, name: 'Buddha Jayanti / Labour Day' }
+  ],
+  'Jestha': [
+    { day: 14, name: 'Bakar Eid' },
+    { day: 15, name: 'Republic Day' }
+  ],
+  'Ashadh': [
+    { day: 6, name: 'Bhoto Jatra / Sithi Nakha' }
+  ],
+  'Shrawan': [
+    { day: 1, name: 'Saune Sankranti' },
+    { day: 13, name: 'Guru Purnima' },
+    { day: 26, name: 'Gathamug Chahre' }
+  ],
+  'Bhadra': [
+    { day: 12, name: 'Janai Purnima / Raksha Bandhan' },
+    { day: 13, name: 'Gaijatra' },
+    { day: 19, name: 'Krishna Janmashtami' },
+    { day: 29, name: 'Haritalika Teej' }
+  ],
+  'Ashwin': [
+    { day: 3, name: 'Constitution Day' },
+    { day: 9, name: 'Indra Jatra' },
+    { day: 18, name: 'Jitiya Parva' },
+    { day: 25, name: 'Ghatasthapana (Dashain starts)' },
+    { day: 31, name: 'Fulpati (Dashain)' }
+  ],
+  'Kartik': [
+    { day: 1, name: 'Maha Ashtami' },
+    { day: 2, name: 'Dashain Holiday' },
+    { day: 3, name: 'Maha Nawami' },
+    { day: 4, name: 'Vijaya Dashami (Dashain Tika)' },
+    { day: 5, name: 'Papakunsa Ekadashi' },
+    { day: 6, name: 'Dashain Holiday' },
+    { day: 20, name: 'Kag Tihar' },
+    { day: 22, name: 'Laxmi Puja / Kukur Tihar' },
+    { day: 23, name: 'Gai Puja (Tihar)' },
+    { day: 24, name: 'Govardhan Puja / Mha Puja' },
+    { day: 25, name: 'Bhai Tika' },
+    { day: 26, name: 'Tihar Holiday' },
+    { day: 29, name: 'Chhath Parva' }
+  ],
+  'Mangsir': [
+    { day: 8, name: 'Guru Nanak Jayanti' },
+    { day: 17, name: 'Intl. Day of Disabled Persons' }
+  ],
+  'Poush': [
+    { day: 9, name: 'Udhauli Parva / Yomari Punhi' },
+    { day: 10, name: 'Christmas Day' },
+    { day: 15, name: 'Tamu Lhosar' },
+    { day: 27, name: 'Prithivi Jayanti' }
+  ],
+  'Magh': [
+    { day: 1, name: 'Makar Sankranti' },
+    { day: 16, name: 'Sahid Diwas' },
+    { day: 24, name: 'Sonam Lhochhar' },
+    { day: 28, name: 'Saraswati Puja / Basanta Panchami' }
+  ],
+  'Falgun': [
+    { day: 7, name: 'Prajatantra Diwas' },
+    { day: 22, name: 'Maha Shivaratri' },
+    { day: 24, name: 'Intl. Women\'s Day' },
+    { day: 25, name: 'Gyalpo Lhosar' }
+  ],
+  'Chaitra': [
+    { day: 7, name: 'Fagu Purnima / Holi' },
+    { day: 8, name: 'Fagu Purnima (Terai)' },
+    { day: 23, name: 'Ghode Jatra' }
+  ]
+};
+
 var BS_YEAR = 2083;
-var BS_MONTH_DAYS = [30, 31, 31, 32, 32, 31, 31, 30, 29, 30, 29, 31];
+/* BS 2083 month lengths verified against hamro patro:
+   Baisakh 1 = Apr 14 2026, Jestha 1 = May 15, Ashadh 1 = Jun 15, Shrawan 1 = Jul 17,
+   Bhadra 1 = Aug 17, Ashwin 1 = Sep 17, Kartik 1 = Oct 18, Mangsir 1 = Nov 17,
+   Poush 1 = Dec 16, Magh 1 = Jan 15 2027, Falgun 1 = Feb 13, Chaitra 1 = Mar 15. */
+var BS_MONTH_DAYS = [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30];
 var BS_WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var BS_OFFSET = -8;
 
@@ -622,7 +683,13 @@ function bsDateFromAd(adDate) {
   var adMs = ad.getTime();
   var bs2083Start = new Date('2026-04-14T00:00:00').getTime();
   var diffDays = Math.floor((adMs - bs2083Start) / 86400000);
-  if (diffDays < 0) return { year: 2082, month: 11, day: 1 + diffDays + BS_MONTH_DAYS[11] };
+  if (diffDays < 0) {
+    var idx = -1 - diffDays;
+    var m = 11;
+    while (m >= 0 && idx >= BS_MONTH_DAYS[m]) { idx -= BS_MONTH_DAYS[m]; m--; }
+    if (m < 0) return { year: 2081, month: 11, day: idx + 1 };
+    return { year: 2082, month: m, day: BS_MONTH_DAYS[m] - idx };
+  }
   var m = 0, d = diffDays;
   while (m < 12 && d >= BS_MONTH_DAYS[m]) { d -= BS_MONTH_DAYS[m]; m++; }
   if (m >= 12) return { year: 2084, month: 0, day: 1 };

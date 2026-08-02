@@ -326,6 +326,7 @@ var App = {
     var enDays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     var monthName = bsMonthsFull[monthIdx];
     var planItems = ANNUAL_PLAN[monthName] || [];
+    var holidays = (typeof BS_HOLIDAYS !== 'undefined' && BS_HOLIDAYS[monthName]) || [];
     function typeClass(activity) {
       if (/vacation|holiday/i.test(activity)) return 'cal-holiday';
       if (/exam|test|terminal|pre-board|examination/i.test(activity)) return 'cal-exam';
@@ -369,8 +370,13 @@ var App = {
       var pts = dateStr.match(/(\d+)/g);
       if (pts) mark(parseInt(pts[0]));
     });
+    holidays.forEach(function (h) {
+      if (h.day < 1 || h.day > BS_MONTH_DAYS[monthIdx]) return;
+      if (!dayTypes[h.day]) dayTypes[h.day] = [];
+      dayTypes[h.day].push({ type: 'cal-holiday', label: h.name, pos: '', fest: true });
+    });
     container.innerHTML =
-      '<div class="cal-head"><span class="cal-month">' + monthName + ' ' + BS_YEAR + '</span><span class="cal-head-sub">' + planItems.length + ' activities</span></div>' +
+      '<div class="cal-head"><span class="cal-month">' + monthName + ' ' + BS_YEAR + '</span><span class="cal-head-sub">' + planItems.length + ' activities' + (holidays.length ? ' · ' + holidays.length + ' holidays' : '') + '</span></div>' +
       '<div class="cal-dows">' + enDays.map(function (d) { return '<span class="cal-dow">' + d + '</span>'; }).join('') + '</div>' +
       '<div class="cal-grid">' + grid.map(function (week) {
         return week.map(function (c) {
@@ -396,8 +402,12 @@ var App = {
           }
           var tip = dt ? dt.map(function(x){ return x.label; }).join('; ') : '';
           var tl = typeLabels[topType] || { abbr: '', icon: '', label: '', cls: '' };
-          var badgeHtml = dt && tl.abbr ? '<span class="cal-badge ' + tl.cls + '">' + tl.icon + ' ' + tl.label + '</span>' : '';
-          return '<span class="' + cls + '"' + (tip ? ' title="' + tip + '"' : '') + '>' + badgeHtml + '<span class="cal-bs">' + c.bs + '</span><span class="cal-ad">' + c.ad.split('/')[0] + ' ' + adMonths[parseInt(c.ad.split('/')[1])-1] + '</span></span>';
+          var festName = dt ? dt.filter(function(x){ return x.fest; }).map(function(x){ return x.label; }).join(' / ') : '';
+          var badgeHtml = '';
+          if (dt && (festName || tl.abbr)) {
+            badgeHtml = '<span class="cal-badge ' + (festName ? 'cal-badge-holiday' : tl.cls) + '"' + (festName && tip ? ' title="' + tip + '"' : '') + '>' + (tl.icon ? tl.icon + ' ' : '') + (festName || tl.label) + '</span>';
+          }
+          return '<span class="' + cls + '"' + (tip && !festName ? ' title="' + tip + '"' : '') + '>' + badgeHtml + '<span class="cal-bs">' + c.bs + '</span><span class="cal-ad">' + c.ad.split('/')[0] + ' ' + adMonths[parseInt(c.ad.split('/')[1])-1] + '</span></span>';
         }).join('');
       }).join('') + '</div>' +
       '<div class="cal-legend"><span><span class="leg-dot leg-holiday"></span>Holiday</span><span><span class="leg-dot leg-exam"></span>Exam</span><span><span class="leg-dot leg-meeting"></span>Meeting</span><span><span class="leg-dot leg-competition"></span>Event</span><span><span class="leg-dot leg-celebration"></span>Celebration</span><span><span class="leg-dot leg-sports"></span>Sports</span></div>';
@@ -407,11 +417,19 @@ var App = {
     var container = document.getElementById('ypBody');
     if (!container) return;
     var items = ANNUAL_PLAN[month] || [];
-    if (!items.length) {
+    var holidays = (typeof BS_HOLIDAYS !== 'undefined' && BS_HOLIDAYS[month]) || [];
+    if (!items.length && !holidays.length) {
       container.innerHTML = '<p class="yp-empty">No activities for ' + month + '.</p>';
       return;
     }
-    container.innerHTML = items.map(function (a) {
+    var holidayCards = holidays.map(function (h) {
+      var sfx = 'th';
+      if (h.day % 10 === 1 && h.day % 100 !== 11) sfx = 'st';
+      else if (h.day % 10 === 2 && h.day % 100 !== 12) sfx = 'nd';
+      else if (h.day % 10 === 3 && h.day % 100 !== 13) sfx = 'rd';
+      return '<div class="yp-card yp-holiday"><span class="yp-date">' + h.day + sfx + '</span><div class="yp-body-inner"><span class="yp-activity">' + h.name + '</span><span class="yp-meta">Public Holiday</span></div></div>';
+    }).join('');
+    container.innerHTML = holidayCards + items.map(function (a) {
       var act = a.activity;
       var cls = 'yp-card';
       if (/vacation|holiday/i.test(act)) cls += ' yp-holiday';
@@ -541,7 +559,7 @@ var App = {
     if (!container) return;
     container.innerHTML = events.map(function (e, i) {
       var date = new Date(e.date);
-      var months = ['Baisakh', 'Jestha', 'Asar', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
+      var months = ['Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
       var bs = NepaliDate.convertToBS ? NepaliDate.convertToBS(date) : { day: date.getDate(), month: date.getMonth() + 1 };
       return '<div class="event-item"><span class="event-dot"></span><div class="event-date">' + bs.day + ' ' + months[bs.month - 1] + '</div><h3 class="event-title">' + (e.title || '') + '</h3><p class="event-desc">' + (e.description || '') + '</p></div>';
     }).join('');
