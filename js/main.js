@@ -760,6 +760,7 @@ var App = {
         var formData = new FormData(form);
         var data = Object.fromEntries(formData.entries());
         delete data.studentPhoto; delete data.birthCertificate; delete data.bleCertificate;
+        data.dob_bs = data.dob ? adToBsStr(data.dob) : '';
         var files = await Promise.all([
           photoFile ? fileToDataUrl(photoFile) : null,
           (document.getElementById('birthCertificate') || {}).files ? fileToDataUrl(document.getElementById('birthCertificate').files[0]) : null,

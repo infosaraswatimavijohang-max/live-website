@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="js/exam_helper.js"></script>
+<script src="js/bs_calendar.js"></script>
 <style>
 @font-face { font-family: 'system'; }
 :root{
@@ -977,6 +978,8 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 .id-card.id-staff .id-role{color:oklch(0.29 0.045 260);}
 .id-card.id-staff .id-bar{background:linear-gradient(90deg,oklch(0.29 0.045 260),oklch(0.22 0.04 260));}
 @media print{.id-card-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:0;}.id-card{box-shadow:none;border:1px solid #ddd;page-break-after:always;}}
+.bs-date-display{display:block;font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
+.bs-date-display.bs-date-display-empty{display:none;}
 </style>
 <!-- The @page rule that controls print orientation/margins is set dynamically
      by JS (see setPrintPage() in the router) depending on which document
@@ -1354,6 +1357,7 @@ async function persistAuth(){
 async function dbInsertStudent({name, roll, classId, dob, gender, fatherName, motherName, guardianContact, bloodGroup, address, emisId}){
   const payload = { full_name: name, school_roll_no: roll, class_id: classId };
   if(dob) payload.dob = dob;
+  if(dob) payload.dob_bs = adToBsStr(dob);
   if(gender) payload.gender = gender;
   if(fatherName) payload.father_name = fatherName;
   if(motherName) payload.mother_name = motherName;
@@ -1361,13 +1365,14 @@ async function dbInsertStudent({name, roll, classId, dob, gender, fatherName, mo
   if(bloodGroup) payload.blood_group = bloodGroup;
   if(address) payload.address = address;
   if(emisId) payload.student_id = emisId;
-  const { data, error } = await supabaseClient
-    .from('students')
-    .insert(payload)
-    .select('id')
-    .single();
-  if(error){ console.error('insert student failed', error); toast('Could not save the student to the database.'); return null; }
-  return data.id;
+  let res = await supabaseClient.from('students').insert(payload).select('id').single();
+  // If the dob_bs column isn't there yet (migration not applied), retry without it.
+  if(res.error && payload.dob_bs && /column .* does not exist/i.test((res.error.message || '') + (res.error.details || ''))){
+    delete payload.dob_bs;
+    res = await supabaseClient.from('students').insert(payload).select('id').single();
+  }
+  if(res.error){ console.error('insert student failed', res.error); toast('Could not save the student to the database.'); return null; }
+  return res.data.id;
 }
 async function dbUpdateStudent(id, {name, roll, classId}){
   const { error } = await supabaseClient
@@ -1398,6 +1403,7 @@ async function dbInsertTeacher({name, phone, email, qualification, designation, 
   if(qualification) payload.qualification = qualification;
   if(designation) payload.designation = designation;
   if(joiningDate) payload.joining_date = joiningDate;
+  if(joiningDate) payload.joining_date_bs = adToBsStr(joiningDate);
   if(address) payload.address = address;
   // class_teacher_of is a jsonb array of class ids on the `teachers` table
   // (see the ALTER TABLE note near the top of this file). Being listed as
@@ -1405,13 +1411,14 @@ async function dbInsertTeacher({name, phone, email, qualification, designation, 
   // Class Ledger tabs for this teacher — see isClassTeacherOfAny() and
   // teacherClassIds() below.
   if(classTeacherOf && classTeacherOf.length) payload.class_teacher_of = classTeacherOf;
-  const { data, error } = await supabaseClient
-    .from('teachers')
-    .insert(payload)
-    .select('id')
-    .single();
-  if(error){ console.error('insert teacher failed', error); toast('Could not save the teacher to the database.'); return null; }
-  return data.id;
+  let res = await supabaseClient.from('teachers').insert(payload).select('id').single();
+  // If the joining_date_bs column isn't there yet (migration not applied), retry without it.
+  if(res.error && payload.joining_date_bs && /column .* does not exist/i.test((res.error.message || '') + (res.error.details || ''))){
+    delete payload.joining_date_bs;
+    res = await supabaseClient.from('teachers').insert(payload).select('id').single();
+  }
+  if(res.error){ console.error('insert teacher failed', res.error); toast('Could not save the teacher to the database.'); return null; }
+  return res.data.id;
 }
 async function dbUpdateTeacherName(id, name){
   const { error } = await supabaseClient
@@ -1445,12 +1452,26 @@ function diffFields(current, updated){
   return out;
 }
 async function dbUpdateStudentDetails(id, fields){
-  const { error } = await supabaseClient.from('students').update(fields).eq('id', id);
+  let update = fields;
+  let { error } = await supabaseClient.from('students').update(update).eq('id', id);
+  if(error && /column .* does not exist/i.test((error.message || '') + (error.details || '')) && /_bs$/.test(JSON.stringify(Object.keys(update)))){
+    const cleaned = {};
+    for(const k in update){ if(!/_bs$/.test(k)) cleaned[k] = update[k]; }
+    if(Object.keys(cleaned).length){ ({ error } = await supabaseClient.from('students').update(cleaned).eq('id', id)); }
+    else { error = null; }
+  }
   if(error){ console.error('update student details failed', error); toast('Could not save extra details — the database table may be missing these columns. See setup notes.'); return false; }
   return true;
 }
 async function dbUpdateTeacherDetails(id, fields){
-  const { error } = await supabaseClient.from('teachers').update(fields).eq('id', id);
+  let update = fields;
+  let { error } = await supabaseClient.from('teachers').update(update).eq('id', id);
+  if(error && /column .* does not exist/i.test((error.message || '') + (error.details || '')) && /_bs$/.test(JSON.stringify(Object.keys(update)))){
+    const cleaned = {};
+    for(const k in update){ if(!/_bs$/.test(k)) cleaned[k] = update[k]; }
+    if(Object.keys(cleaned).length){ ({ error } = await supabaseClient.from('teachers').update(cleaned).eq('id', id)); }
+    else { error = null; }
+  }
   if(error){ console.error('update teacher details failed', error); toast('Could not save extra details — the database table may be missing these columns. See setup notes.'); return false; }
   return true;
 }
@@ -1545,6 +1566,10 @@ async function dbInsertExam({name, startDate, endDate, resultDate, resultTime, p
   if(publishFromTime) subjectMarks._publishFromTime = publishFromTime;
   if(publishUntil) subjectMarks._publishUntil = publishUntil;
   if(publishUntilTime) subjectMarks._publishUntilTime = publishUntilTime;
+  if(startDate) subjectMarks._startDateBs = adToBsStr(startDate);
+  if(endDate) subjectMarks._endDateBs = adToBsStr(endDate);
+  if(publishFrom) subjectMarks._publishFromBs = adToBsStr(publishFrom);
+  if(publishUntil) subjectMarks._publishUntilBs = adToBsStr(publishUntil);
   subjectMarks._published = published !== false;
   if(publishClasses && publishClasses.length) subjectMarks._publishClasses = publishClasses;
   const { data, error } = await supabaseClient
@@ -1629,17 +1654,24 @@ async function loadAssignments(){
 }
 async function dbInsertAssignment({title, description, classId, subjectId, dueDate, fileUrl, fileName}){
   let lastError = null;
+  let bsDropped = false;
   for(const col of ['file_url','file_data']){
     const payload = {
       title, description: description || '', class_id: classId, subject_id: subjectId,
       teacher_id: SESSION.role === 'teacher' ? SESSION.teacherId : null,
       due_date: dueDate || null,
     };
+    if(dueDate) payload.due_date_bs = adToBsStr(dueDate);
+    if(bsDropped) delete payload.due_date_bs;
     payload[col] = fileUrl || '';
     if(fileName) payload.file_name = fileName;
     const { data, error } = await supabaseClient.from('assignments').insert(payload).select('id').single();
     if(!error) return data.id;
     lastError = error;
+    // Retry without the due_date_bs column first, then fall back to file_data,
+    // so older schemas keep working before the migration is applied.
+    const missingCol = /column .* does not exist/i.test((error.message || '') + (error.details || ''));
+    if(missingCol && !bsDropped && payload.due_date_bs){ bsDropped = true; continue; }
     if(!error.message || !error.message.match(/column|does not exist/i)) break;
   }
   console.error('insert assignment failed', lastError); toast('Could not save assignment: ' + (lastError.message || lastError.details || JSON.stringify(lastError))); return null;
@@ -1845,6 +1877,7 @@ async function syncFromRelationalTables(showToast){
       mustChangePassword: typeof old.mustChangePassword === 'boolean' ? old.mustChangePassword : true,
       previousPassword: old.previousPassword || null,
       dob: s.dob || old.dob || '',
+      dobBs: s.dob_bs || old.dobBs || '',
       emisId: s.student_id || old.emisId || '',
       gender: s.gender || old.gender || '',
       fatherName: s.father_name || old.fatherName || '',
@@ -1873,6 +1906,7 @@ async function syncFromRelationalTables(showToast){
       qualification: t.qualification || old.qualification || '',
       designation: t.designation || old.designation || '',
       joiningDate: t.joining_date || old.joiningDate || '',
+      joiningDateBs: t.joining_date_bs || old.joiningDateBs || '',
       // Array of class ids this teacher is the class teacher of. Prefer the
       // freshly-fetched value (an admin may have just changed it elsewhere),
       // falling back to the in-memory value so a mid-flight sync can't wipe
@@ -3221,7 +3255,7 @@ async function addStudent(){
     await dbUpdateStudentDetails(newId, { username, password: defaultPassword });
     STRUCT.students.push({
       id:newId, name, roll, classId, photo, username, password:defaultPassword, mustChangePassword:true, previousPassword:null,
-      dob, gender, fatherName, motherName, guardianContact, bloodGroup, address, emisId,
+      dob, dobBs: dob ? adToBsStr(dob) : '', gender, fatherName, motherName, guardianContact, bloodGroup, address, emisId,
     });
     await persistStructure();
     toast('Student added — login: ' + username + ' / ' + roll); renderStudents();
@@ -3345,13 +3379,13 @@ async function submitEditStudent(id){
     // covering every column every time, whether it changed or not).
     const updated = {
       full_name: name, school_roll_no: roll, class_id: classId,
-      dob: dob || null, gender: gender || null, father_name: fatherName || null,
+      dob: dob || null, dob_bs: dob ? adToBsStr(dob) : null, gender: gender || null, father_name: fatherName || null,
       mother_name: motherName || null, guardian_contact: guardianContact || null,
       blood_group: bloodGroup || null, address: address || null, student_id: emisId || null,
     };
     const current = {
       full_name: s.name, school_roll_no: s.roll, class_id: s.classId,
-      dob: s.dob || null, gender: s.gender || null, father_name: s.fatherName || null,
+      dob: s.dob || null, dob_bs: s.dobBs || null, gender: s.gender || null, father_name: s.fatherName || null,
       mother_name: s.motherName || null, guardian_contact: s.guardianContact || null,
       blood_group: s.bloodGroup || null, address: s.address || null, student_id: s.emisId || null,
     };
@@ -3368,7 +3402,7 @@ async function submitEditStudent(id){
       } catch(e){ /* keep existing photo on failure */ }
     }
     s.name = name; s.roll = roll; s.classId = classId;
-    s.dob = dob; s.emisId = emisId; s.gender = gender; s.fatherName = fatherName; s.motherName = motherName;
+    s.dob = dob; s.dobBs = dob ? adToBsStr(dob) : ''; s.emisId = emisId; s.gender = gender; s.fatherName = fatherName; s.motherName = motherName;
     s.guardianContact = guardianContact; s.bloodGroup = bloodGroup; s.address = address;
     await persistStructure();
     closeModal(); toast('Student updated'); renderStudents();
@@ -3602,7 +3636,7 @@ async function addTeacher(){
     await dbUpdateTeacherDetails(newId, { username: finalUsername, password: finalPassword });
     AUTH.teachers.push({
       id:newId, name, username: finalUsername, password: finalPassword, mustChangePassword:true, previousPassword:null, photo,
-      phone, email, qualification, designation, joiningDate, address, classTeacherOf,
+      phone, email, qualification, designation, joiningDate, joiningDateBs: joiningDate ? adToBsStr(joiningDate) : '', address, classTeacherOf,
       category: isNonTeaching ? 'non-teaching' : 'teaching', department: department || null,
     });
     await persistAuth();
@@ -3718,12 +3752,12 @@ async function submitEditTeacher(id){
   try{
     const updated = {
       full_name: name, username, phone: phone || null, email: email || null, qualification: qualification || null,
-      designation: designation || null, joining_date: joiningDate || null, address: address || null,
+      designation: designation || null, joining_date: joiningDate || null, joining_date_bs: joiningDate ? adToBsStr(joiningDate) : null, address: address || null,
       class_teacher_of: classTeacherOf,
     };
     const current = {
       full_name: t.name, username: t.username || null, phone: t.phone || null, email: t.email || null, qualification: t.qualification || null,
-      designation: t.designation || null, joining_date: t.joiningDate || null, address: t.address || null,
+      designation: t.designation || null, joining_date: t.joiningDate || null, joining_date_bs: t.joiningDateBs || null, address: t.address || null,
       class_teacher_of: t.classTeacherOf || [],
     };
     const changed = diffFields(current, updated);
@@ -3741,7 +3775,7 @@ async function submitEditTeacher(id){
     t.name = name; t.username = username;
     if(pass){ t.previousPassword = t.password; t.password = pass; t.mustChangePassword = true; }
     t.phone = phone; t.email = email; t.qualification = qualification;
-    t.designation = designation; t.joiningDate = joiningDate; t.address = address; t.classTeacherOf = classTeacherOf;
+    t.designation = designation; t.joiningDate = joiningDate; t.joiningDateBs = joiningDate ? adToBsStr(joiningDate) : ''; t.address = address; t.classTeacherOf = classTeacherOf;
     t.category = isNonTeaching ? 'non-teaching' : 'teaching';
     t.department = department || null;
 
@@ -4025,7 +4059,10 @@ async function updateExamConductedDates(examId, startValue, endValue){
   if(!ex) return;
   if(startValue !== null) ex.startDate = startValue || '';
   if(endValue !== null) ex.endDate = endValue || '';
-  const ok = await dbUpdateExam(examId, {startDate: ex.startDate, endDate: ex.endDate});
+  if(!ex.subjectMarks) ex.subjectMarks = {};
+  if(startValue !== null) ex.subjectMarks._startDateBs = ex.startDate ? adToBsStr(ex.startDate) : '';
+  if(endValue !== null) ex.subjectMarks._endDateBs = ex.endDate ? adToBsStr(ex.endDate) : '';
+  const ok = await dbUpdateExam(examId, {startDate: ex.startDate, endDate: ex.endDate, subjectMarks: ex.subjectMarks});
   if(!ok) return;
   toast('Exam dates updated'); renderExams();
 }
@@ -4054,9 +4091,9 @@ async function updateExamPublishDates(examId, field, value){
   const ex = EXAMS.find(e=>e.id===examId);
   if(!ex) return;
   if(!ex.subjectMarks) ex.subjectMarks = {};
-  if(field === 'fromDate'){ ex.publishFrom = value || ''; ex.subjectMarks._publishFrom = ex.publishFrom; }
+  if(field === 'fromDate'){ ex.publishFrom = value || ''; ex.subjectMarks._publishFrom = ex.publishFrom; ex.subjectMarks._publishFromBs = ex.publishFrom ? adToBsStr(ex.publishFrom) : ''; }
   if(field === 'fromTime'){ ex.publishFromTime = value || ''; ex.subjectMarks._publishFromTime = ex.publishFromTime; }
-  if(field === 'untilDate'){ ex.publishUntil = value || ''; ex.subjectMarks._publishUntil = ex.publishUntil; }
+  if(field === 'untilDate'){ ex.publishUntil = value || ''; ex.subjectMarks._publishUntil = ex.publishUntil; ex.subjectMarks._publishUntilBs = ex.publishUntil ? adToBsStr(ex.publishUntil) : ''; }
   if(field === 'untilTime'){ ex.publishUntilTime = value || ''; ex.subjectMarks._publishUntilTime = ex.publishUntilTime; }
   const ok = await dbUpdateExam(examId, {publishFrom: ex.publishFrom, subjectMarks: ex.subjectMarks});
   if(!ok) return;

@@ -306,6 +306,8 @@ const Admin = {
       priority: document.getElementById('noticePriority').value,
       attachment_url: document.getElementById('noticeAttachment').value
     };
+    var noticeDate = notice.date;
+    notice.date_bs = noticeDate ? adToBsStr(noticeDate) : '';
     if (this._editingNoticeId) {
       await DataStore.update('NOTICES', this._editingNoticeId, notice);
       showToast('Notice updated in Supabase!');
@@ -553,6 +555,8 @@ const Admin = {
     var title = document.getElementById('eventTitle').value;
     if (!title) { showToast('Please enter event title', 'error'); return; }
     var ev = { title: title, date: document.getElementById('eventDate').value, description: document.getElementById('eventDescription').value };
+    var evDate = ev.date;
+    ev.date_bs = evDate ? adToBsStr(evDate) : '';
     var fileInput = document.getElementById('eventImage');
     if (fileInput.files[0]) ev.image_url = await compressImage(fileInput.files[0]);
     await DataStore.push('EVENTS', ev);
@@ -670,13 +674,16 @@ const Admin = {
 
 function setVal(id, val) {
   var el = document.getElementById(id);
-  if (el) el.value = val || '';
+  if (el) { el.value = val || ''; if (el.type === 'date' && window.updateBsDate) updateBsDate(el); }
 }
 
 function clearForm(ids) {
   ids.forEach(function (id) {
     var el = document.getElementById(id);
-    if (el) el.value = '';
+    if (el) {
+      el.value = '';
+      if (el.type === 'date' && window.updateBsDate) updateBsDate(el);
+    }
   });
 }
 

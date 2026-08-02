@@ -46,6 +46,7 @@ Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. 
 | `js/main.js` | Renders public site (`App` object, lazy sections via `IntersectionObserver`) |
 | `js/admin.js` | Admin CRUD (`Admin` object) |
 | `js/exam_helper.js` | Exam portal helpers (`EXAM_COLUMNS`, `examCache`, column mapping) |
+| `js/bs_calendar.js` | General AD↔BS converter (BS 1975–2099) + auto BS display. Loaded by `index.html`, `admin.html`, `Login_portal.html` |
 | `css/style.css` | OKLCH tokens at `:root` (lines 3-27). `--header-h:72px` controls `scroll-padding-top` for anchor targets. Playfair Display + Noto Serif |
 | `css/admin.css` | Admin dashboard styles |
 
@@ -76,6 +77,13 @@ Admin uploads → `compressImage(file, 800, 0.6)` → WebP base64 → stored inl
 - **Public holidays**: `BS_HOLIDAYS` object in `data.js` (keyed by Nepali month name → `{day, name}`), sourced from hamro patro's 2083 holiday list. `renderBsCalendar()` merges them into cells as `cal-holiday` (badge shows festival name), and `showMonthActivities()` lists them at the top of the plan panel. To change which holidays appear, edit `BS_HOLIDAYS`.
 - `NepaliDate.convertToBS()` (used by `main.js` event timeline) and `bsDateFromAd()` are both anchored to Baisakh 1 2083 = Apr 14 2026 and agree with hamro patro for the 2083 academic year.
 
+## BS (Nepali) date fields
+
+- Every `<input type="date">` on `index.html`, `admin.html`, and `Login_portal.html` automatically shows a read-only BS date span under it (`js/bs_calendar.js`). `initBsDateDisplays()` uses a `MutationObserver` so dynamically-rendered inputs (exam rows, modals) get decorated too. The AD field stays the source of truth — the BS display is derived, never edited.
+- Converter: `adToBs()` / `bsToAd()` cover BS 1975–2099 from the `BS_YEARS` month-length table in `bs_calendar.js` (epoch Baisakh 1 2000 BS = Apr 14 1943 AD). The 2083-only `BS_MONTH_DAYS`/`bsDateFromAd()` in `data.js` are separate and untouched.
+- Persistence: BS values are saved alongside the AD values — `dob_bs` on `admissions`/`students`, `date_bs` on `notices`/`events`, `joining_date_bs` on `teachers`, `due_date_bs` on `assignments` (see `sql/007_bs_date_columns.sql`); exam dates ride inside the existing `exams.subject_marks` JSONB blob (`_startDateBs`, `_endDateBs`, `_publishFromBs`, `_publishUntilBs`). Exam-portal inserts/updates retry without the `_bs` column if the migration hasn't been applied yet, so nothing breaks pre-migration.
+- If a form sets a date input's value programmatically (e.g. admin edit), call `updateBsDate(inputEl)` after — `setVal()`/`clearForm()` in `admin.js` already do.
+
 ## SQL migrations
 
 Run in Supabase SQL Editor in numeric order:
@@ -86,6 +94,7 @@ Run in Supabase SQL Editor in numeric order:
 | `sql/002_required_columns.sql` | Required column additions |
 | `sql/004_assignments_notes_queries.sql` | Assignments, notes, queries |
 | `sql/006_fee_management.sql` | `fee_categories`, `class_fees`, `student_fees`, `fee_collections`, `bill_sequence`, `student_discounts` + RLS |
+| `sql/007_bs_date_columns.sql` | BS date columns: `admissions.dob_bs`, `notices.date_bs`, `events.date_bs`, `students.dob_bs`, `teachers.joining_date_bs`, `assignments.due_date_bs` |
 
 Each fee table has `public_all` RLS policy. Two other SQL files are one-time data migrations (student/teacher photo updates), not schema changes.
 

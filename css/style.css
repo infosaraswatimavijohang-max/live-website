@@ -474,6 +474,8 @@ img{max-width:100%;height:auto;display:block}
 .form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:0.9375rem;background:var(--surface);transition:border-color 0.25s}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--teal)}
 .form-group textarea{resize:vertical;min-height:80px}
+.bs-date-display{display:block;font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-top:4px;line-height:1.4}
+.bs-date-display.bs-date-display-empty{display:none}
 .file-upload input[type=file]{padding:8px 0;border:none;background:none}
 .file-hint{font-size:0.75rem;color:var(--text-muted);margin-top:4px}
 .form-submit{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px;justify-content:flex-end}
