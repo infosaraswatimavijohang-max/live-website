@@ -261,6 +261,24 @@ function _scanBsDateInputs(root) {
   }
 }
 
+function _attachIfNeeded(el) {
+  if (el && el.dataset && !el.dataset.bsAttached && el.matches && el.matches('input[type="date"]')) _attachBsDateDisplay(el);
+}
+
+/* Scan only the nodes added by a mutation (plus their descendants) instead of
+   re-scanning the whole document on every DOM change. The exam portal re-renders
+   large subtrees frequently, so this keeps the observer cost proportional to the
+   newly-added content. */
+function _scanBsDateInputsInNodes(nodes) {
+  for (var i = 0; i < nodes.length; i++) {
+    var node = nodes[i];
+    if (node.nodeType !== 1) continue;
+    _attachIfNeeded(node);
+    var inner = node.querySelectorAll ? node.querySelectorAll('input[type="date"]') : [];
+    for (var j = 0; j < inner.length; j++) _attachIfNeeded(inner[j]);
+  }
+}
+
 /* Auto-decorate every <input type="date"> on the page, including ones added
    later by JS (modals, rendered exam rows, etc.), so no caller has to wire up
    anything — the BS date simply appears under/next to the field. */
@@ -269,8 +287,14 @@ function initBsDateDisplays() {
   if (typeof document === 'undefined' || !document.body) return;
   _scanBsDateDisplays();
   if (_bsObserver) return;
-  _bsObserver = new MutationObserver(function () {
-    _scanBsDateDisplays();
+  _bsObserver = new MutationObserver(function (mutations) {
+    var added = [];
+    for (var i = 0; i < mutations.length; i++) {
+      var nodes = mutations[i].addedNodes;
+      for (var j = 0; j < nodes.length; j++) added.push(nodes[j]);
+    }
+    if (!added.length) return;
+    _scanBsDateInputsInNodes(added);
   });
   _bsObserver.observe(document.body, { childList: true, subtree: true });
 }

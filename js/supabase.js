@@ -124,6 +124,32 @@ const supabase = (() => {
     return { data, error };
   }
 
+  /* PostgREST reports missing columns in the response body (e.g. PGRST204
+     "Could not find the 'dob_bs' column of 'admissions'"). When a write fails
+     that way, retry once with any `_bs` keys stripped so the public/admin
+     pages keep working on databases where migration 007 hasn't run yet —
+     mirroring the exam portal's own fallbacks. */
+  function _isColumnError(msg) {
+    return /(column .* does not exist|pgrst204|could not find the .* column)/i.test(msg || '');
+  }
+  function _hasBsKey(payload) {
+    const keys = Array.isArray(payload) ? Object.keys(payload[0] || {}) : Object.keys(payload || {});
+    return keys.some(k => /_bs$/.test(k));
+  }
+  function _stripBsKeys(payload) {
+    const out = {};
+    for (const k in payload) { if (!/_bs$/.test(k)) out[k] = payload[k]; }
+    return out;
+  }
+  async function write(table, url, method, payload) {
+    const raw = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+    const text = await raw.text();
+    if (!raw.ok) throw new Error('Supabase ' + method.toLowerCase() + ' ' + table + ': ' + raw.statusText + (text ? ' — ' + text : ''));
+    SPB_MONITOR.log('upload', JSON.stringify(payload).length);
+    SPB_MONITOR.log('download', text.length);
+    return text ? JSON.parse(text) : null;
+  }
+
   return {
     select(table, opts = {}) {
       const key = _inflightKey(table, JSON.stringify(opts));
@@ -155,26 +181,36 @@ const supabase = (() => {
       const returnCols = opts.returnColumns || getColumns(table);
       const url = buildUrl(table, { select: returnCols });
       const body = Array.isArray(record) ? record : { ...record };
-      const raw = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-      if (!raw.ok) throw new Error('Supabase insert ' + table + ': ' + raw.statusText);
-      const text = await raw.text();
-      SPB_MONITOR.log('upload', JSON.stringify(body).length);
-      SPB_MONITOR.log('download', text.length);
-      const data = JSON.parse(text);
-      return { data: Array.isArray(data) ? data[0] : data, error: null };
+      try {
+        const data = await write(table, url, 'POST', body);
+        return { data: Array.isArray(data) ? data[0] : data, error: null };
+      } catch (err) {
+        if (_isColumnError(err.message) && _hasBsKey(body)) {
+          const cleaned = Array.isArray(body) ? body.map(_stripBsKeys) : _stripBsKeys(body);
+          if (!Object.keys(cleaned).length) throw err;
+          const data = await write(table, url, 'POST', cleaned);
+          return { data: Array.isArray(data) ? data[0] : data, error: null };
+        }
+        throw err;
+      }
     },
 
     async update(table, id, updates, opts) {
       opts = opts || {};
       const returnCols = opts.returnColumns || ['id'];
       const url = buildUrl(table, { select: returnCols.join(','), id });
-      const raw = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(updates) });
-      if (!raw.ok) throw new Error('Supabase update ' + table + ': ' + raw.statusText);
-      const text = await raw.text();
-      SPB_MONITOR.log('upload', JSON.stringify(updates).length);
-      SPB_MONITOR.log('download', text.length);
-      const data = JSON.parse(text);
-      return { data: data[0] || null, error: null };
+      try {
+        const data = await write(table, url, 'PATCH', updates);
+        return { data: (Array.isArray(data) ? data[0] : data) || null, error: null };
+      } catch (err) {
+        if (_isColumnError(err.message) && _hasBsKey(updates)) {
+          const cleaned = _stripBsKeys(updates);
+          if (!Object.keys(cleaned).length) throw err;
+          const data = await write(table, url, 'PATCH', cleaned);
+          return { data: (Array.isArray(data) ? data[0] : data) || null, error: null };
+        }
+        throw err;
+      }
     },
 
     async upsert(table, records, opts) {

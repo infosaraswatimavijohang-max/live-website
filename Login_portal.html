@@ -1454,7 +1454,7 @@ function diffFields(current, updated){
 async function dbUpdateStudentDetails(id, fields){
   let update = fields;
   let { error } = await supabaseClient.from('students').update(update).eq('id', id);
-  if(error && /column .* does not exist/i.test((error.message || '') + (error.details || '')) && /_bs$/.test(JSON.stringify(Object.keys(update)))){
+  if(error && /column .* does not exist/i.test((error.message || '') + (error.details || '')) && Object.keys(update).some(k => /_bs$/.test(k))){
     const cleaned = {};
     for(const k in update){ if(!/_bs$/.test(k)) cleaned[k] = update[k]; }
     if(Object.keys(cleaned).length){ ({ error } = await supabaseClient.from('students').update(cleaned).eq('id', id)); }
@@ -1466,7 +1466,7 @@ async function dbUpdateStudentDetails(id, fields){
 async function dbUpdateTeacherDetails(id, fields){
   let update = fields;
   let { error } = await supabaseClient.from('teachers').update(update).eq('id', id);
-  if(error && /column .* does not exist/i.test((error.message || '') + (error.details || '')) && /_bs$/.test(JSON.stringify(Object.keys(update)))){
+  if(error && /column .* does not exist/i.test((error.message || '') + (error.details || '')) && Object.keys(update).some(k => /_bs$/.test(k))){
     const cleaned = {};
     for(const k in update){ if(!/_bs$/.test(k)) cleaned[k] = update[k]; }
     if(Object.keys(cleaned).length){ ({ error } = await supabaseClient.from('teachers').update(cleaned).eq('id', id)); }
@@ -1654,25 +1654,26 @@ async function loadAssignments(){
 }
 async function dbInsertAssignment({title, description, classId, subjectId, dueDate, fileUrl, fileName}){
   let lastError = null;
-  let bsDropped = false;
+  let giveUp = false;
+  // Try each file column (file_url first), with and then without the
+  // due_date_bs column, so older schemas keep working before migration 007.
   for(const col of ['file_url','file_data']){
-    const payload = {
-      title, description: description || '', class_id: classId, subject_id: subjectId,
-      teacher_id: SESSION.role === 'teacher' ? SESSION.teacherId : null,
-      due_date: dueDate || null,
-    };
-    if(dueDate) payload.due_date_bs = adToBsStr(dueDate);
-    if(bsDropped) delete payload.due_date_bs;
-    payload[col] = fileUrl || '';
-    if(fileName) payload.file_name = fileName;
-    const { data, error } = await supabaseClient.from('assignments').insert(payload).select('id').single();
-    if(!error) return data.id;
-    lastError = error;
-    // Retry without the due_date_bs column first, then fall back to file_data,
-    // so older schemas keep working before the migration is applied.
-    const missingCol = /column .* does not exist/i.test((error.message || '') + (error.details || ''));
-    if(missingCol && !bsDropped && payload.due_date_bs){ bsDropped = true; continue; }
-    if(!error.message || !error.message.match(/column|does not exist/i)) break;
+    for(const withBs of [true, false]){
+      const payload = {
+        title, description: description || '', class_id: classId, subject_id: subjectId,
+        teacher_id: SESSION.role === 'teacher' ? SESSION.teacherId : null,
+        due_date: dueDate || null,
+      };
+      if(withBs && dueDate) payload.due_date_bs = adToBsStr(dueDate);
+      payload[col] = fileUrl || '';
+      if(fileName) payload.file_name = fileName;
+      const { data, error } = await supabaseClient.from('assignments').insert(payload).select('id').single();
+      if(!error) return data.id;
+      lastError = error;
+      const missingCol = /column .* does not exist/i.test((error.message || '') + (error.details || ''));
+      if(!missingCol) giveUp = true;
+    }
+    if(giveUp) break;
   }
   console.error('insert assignment failed', lastError); toast('Could not save assignment: ' + (lastError.message || lastError.details || JSON.stringify(lastError))); return null;
 }
