@@ -422,14 +422,31 @@ var App = {
       container.innerHTML = '<p class="yp-empty">No activities for ' + month + '.</p>';
       return;
     }
-    var holidayCards = holidays.map(function (h) {
+    var monthIdx = MONTH_ORDER.indexOf(month);
+    var grid = monthIdx >= 0 ? bsMonthGrid(monthIdx) : [];
+    function ordinal(n) {
       var sfx = 'th';
-      if (h.day % 10 === 1 && h.day % 100 !== 11) sfx = 'st';
-      else if (h.day % 10 === 2 && h.day % 100 !== 12) sfx = 'nd';
-      else if (h.day % 10 === 3 && h.day % 100 !== 13) sfx = 'rd';
-      return '<div class="yp-card yp-holiday"><span class="yp-date">' + h.day + sfx + '</span><div class="yp-body-inner"><span class="yp-activity">' + h.name + '</span><span class="yp-meta">Public Holiday</span></div></div>';
-    }).join('');
-    container.innerHTML = holidayCards + items.map(function (a) {
+      if (n % 10 === 1 && n % 100 !== 11) sfx = 'st';
+      else if (n % 10 === 2 && n % 100 !== 12) sfx = 'nd';
+      else if (n % 10 === 3 && n % 100 !== 13) sfx = 'rd';
+      return n + sfx;
+    }
+    function lastWeekday(dow) {
+      for (var w = grid.length - 1; w >= 0; w--)
+        for (var d = grid[w].length - 1; d >= 0; d--)
+          if (grid[w][d].bs && grid[w][d].dow === dow) return grid[w][d].bs;
+      return 99;
+    }
+    function startDay(dateStr) {
+      var m = dateStr.match(/(\d+)/g);
+      if (m && m.length) return parseInt(m[0], 10);
+      if (/last/i.test(dateStr)) return Math.min(lastWeekday(3), lastWeekday(4));
+      return 99;
+    }
+    function holidayCard(h) {
+      return '<div class="yp-card yp-holiday"><span class="yp-date">' + ordinal(h.day) + '</span><div class="yp-body-inner"><span class="yp-activity">' + h.name + '</span><span class="yp-meta">National Holiday</span></div></div>';
+    }
+    function programCard(a) {
       var act = a.activity;
       var cls = 'yp-card';
       if (/vacation|holiday/i.test(act)) cls += ' yp-holiday';
@@ -437,8 +454,15 @@ var App = {
       else if (/competition|contest|speech|quiz|dance|spelling|race|drawing|handwriting|essay/i.test(act)) cls += ' yp-event';
       else if (/meeting|staff/i.test(act)) cls += ' yp-meeting';
       else cls += ' yp-regular';
-      return '<div class="' + cls + '"><span class="yp-date">' + a.date + '</span><div class="yp-body-inner"><span class="yp-activity">' + act + '</span>' + (a.responsible && a.responsible !== '\u2014' ? '<span class="yp-meta">' + a.responsible + '</span>' : '') + '</div></div>';
-    }).join('');
+      var meta = 'School Annual Program';
+      if (a.responsible && a.responsible !== '\u2014' && a.responsible !== '-') meta += ' · ' + a.responsible;
+      return '<div class="' + cls + '"><span class="yp-date">' + a.date + '</span><div class="yp-body-inner"><span class="yp-activity">' + act + '</span>' + '<span class="yp-meta">' + meta + '</span>' + '</div></div>';
+    }
+    var cards = [];
+    holidays.forEach(function (h) { cards.push({ key: h.day, holiday: true, html: holidayCard(h) }); });
+    items.forEach(function (a) { cards.push({ key: startDay(a.date), holiday: false, html: programCard(a) }); });
+    cards.sort(function (x, y) { return x.key - y.key || (x.holiday ? -1 : 1); });
+    container.innerHTML = cards.map(function (c) { return c.html; }).join('');
   },
 
   renderPrograms() { return DataStore.get('PROGRAMS').then(function (programs) {
