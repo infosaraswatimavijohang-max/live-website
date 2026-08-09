@@ -251,12 +251,22 @@ const supabase = (() => {
       return parseInt(raw.headers.get('content-range')?.split('/')[1] || raw.headers.get('x-total-count') || '0', 10);
     },
 
+    async countWithFallback(table) {
+      try {
+        return await this.count(table);
+      } catch (e) {
+        const localKey = 'sss_' + table;
+        const local = JSON.parse(localStorage.getItem(localKey) || '[]');
+        return Array.isArray(local) ? local.length : 0;
+      }
+    },
+
     /* Batch dashboard: fetch multiple table counts with one API call pattern.
        Returns counts for all tables in a single round-trip equivalent. */
     async dashboardStats() {
       const tables = ['slides', 'notices', 'programs', 'teachers', 'staff', 'gallery', 'events', 'testimonials'];
       const results = await Promise.allSettled(
-        tables.map(t => this.count(t).then(c => ({ table: t, count: c })))
+        tables.map(t => this.countWithFallback(t).then(c => ({ table: t, count: c })))
       );
       const stats = {};
       results.forEach(r => {

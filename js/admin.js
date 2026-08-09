@@ -107,6 +107,8 @@ const Admin = {
     } catch(e) { console.warn('Dashboard load error:', e); }
     var admissions = JSON.parse(localStorage.getItem('sss_admissions') || '[]');
     document.getElementById('dashAdmissions').textContent = admissions.length;
+    var settings = await DataStore.get('SETTINGS') || {};
+    document.getElementById('dashAdmissionForm').textContent = settings.admissionEnabled !== false ? 'Enabled' : 'Disabled';
   },
 
   toggleHomeSection(section, visible) {
@@ -130,6 +132,8 @@ const Admin = {
     setVal('settingFacebook', settings.facebook);
     setVal('settingYoutube', settings.youtube);
     setVal('settingMap', settings.mapUrl);
+    var admEnabled = document.getElementById('settingAdmissionEnabled');
+    if (admEnabled) admEnabled.checked = settings.admissionEnabled !== false;
     if (settings.logo) {
       var preview = document.getElementById('logoPreview');
       if (preview) preview.innerHTML = '<img src="' + settings.logo + '" alt="Logo">';
@@ -150,7 +154,8 @@ const Admin = {
       facebook: document.getElementById('settingFacebook').value,
       youtube: document.getElementById('settingYoutube').value,
       mapUrl: document.getElementById('settingMap').value,
-      adminUsername: existing.adminUsername || 'amitrazbanc'
+      adminUsername: existing.adminUsername || 'amitrazbanc',
+      admissionEnabled: document.getElementById('settingAdmissionEnabled').checked
     };
     if (password) settings.adminPassword = password;
     else settings.adminPassword = existing.adminPassword || 'school1122@';

@@ -4,9 +4,13 @@ var App = {
   countersStarted: false,
   _loaded: {},
   _settings: null,
+  _homepageVisibility: {},
 
   async init() {
     try {
+      const visibility = await DataStore.get('HOMEPAGE_VISIBILITY');
+      this._homepageVisibility = visibility || {};
+      
       this.renderSplitHero();
       this.setupNavigation();
       this.setupAdmissionForm();
@@ -21,6 +25,12 @@ var App = {
       await this.renderHeader();
       await this.renderFooter();
 
+      if (this.isSectionVisible('hero')) {
+        await this.renderHeroSlides();
+      } else {
+        this.hideSection('home');
+      }
+
       const sections = [
         { id: 'about', el: 'about', render: 'renderAbout' },
         { id: 'stats', el: 'stats', render: 'renderStats' },
@@ -31,12 +41,17 @@ var App = {
         { id: 'gallery', el: 'gallery', render: 'renderGallery' },
         { id: 'events', el: 'events', render: 'renderEvents' },
         { id: 'testimonials', el: 'testimonials', render: 'renderTestimonials' },
+        { id: 'admission', el: 'admission', render: 'renderAdmission' },
       ];
 
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (reduced || !('IntersectionObserver' in window)) {
         for (const sec of sections) {
-          await this[sec.render]();
+          if (this.isSectionVisible(sec.id)) {
+            await this[sec.render]();
+          } else {
+            this.hideSection(sec.el);
+          }
         }
       } else {
         this._lazyLoadSections(sections);
@@ -46,12 +61,30 @@ var App = {
     }
   },
 
+  isSectionVisible(sectionId) {
+    const v = this._homepageVisibility;
+    if (Object.keys(v).length === 0) return true;
+    return v[sectionId] !== false;
+  },
+
+  hideSection(sectionId) {
+    const el = document.getElementById(sectionId);
+    if (el) el.style.display = 'none';
+  },
+
   _lazyLoadSections(sections) {
     const io = new IntersectionObserver(async (entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
           const sectionId = entry.target.id;
           if (this._loaded[sectionId]) { io.unobserve(entry.target); continue; }
+          
+          if (!this.isSectionVisible(sectionId)) {
+            this.hideSection(sectionId);
+            io.unobserve(entry.target);
+            continue;
+          }
+          
           this._loaded[sectionId] = true;
           io.unobserve(entry.target);
           const sec = sections.find(s => s.el === sectionId || s.id === sectionId);
@@ -628,6 +661,47 @@ var App = {
     if (fpEl) fpEl.textContent = settings.phone || '+977-9857062876';
     var feEl = document.getElementById('footerEmail');
     if (feEl) feEl.textContent = settings.email || 'infosaraswatimavijohang@gmail.com';
+  },
+
+  async renderHeroSlides() {
+    const slides = await DataStore.get('SLIDES') || [];
+    const container = document.getElementById('heroSlides');
+    if (!container) return;
+    if (slides.length === 0) return;
+    container.innerHTML = slides
+      .sort((a, b) => (a.sort_order || a.order || 0) - (b.sort_order || b.order || 0))
+      .map((s, i) => '<img src="' + (s.image_url || s.image || '') + '" alt="' + (s.title || 'Slide ' + (i+1)) + '" class="hero-slide' + (i === 0 ? ' active' : '') + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '"' + (i === 0 ? ' fetchpriority="high"' : '') + '>')
+      .join('');
+    this.currentSlide = 0;
+    if (this._parallaxInterval) { clearInterval(this._parallaxInterval); this._parallaxInterval = null; }
+    const hero = document.querySelector('.hero');
+    if (hero && slides.length > 1) {
+      this._parallaxInterval = setInterval(() => this.cycleHeroSlides(slides.length), 5000);
+      hero.addEventListener('mouseenter', () => { clearInterval(this._parallaxInterval); this._parallaxInterval = null; });
+      hero.addEventListener('mouseleave', () => { if (!this._parallaxInterval) this._parallaxInterval = setInterval(() => this.cycleHeroSlides(slides.length), 5000); });
+    }
+  },
+
+  cycleHeroSlides(length) {
+    const slides = document.querySelectorAll('#heroSlides .hero-slide');
+    if (!slides.length) return;
+    slides[this.currentSlide].classList.remove('active');
+    this.currentSlide = (this.currentSlide + 1) % length;
+    slides[this.currentSlide].classList.add('active');
+  },
+
+  renderAdmission() {
+    return DataStore.get('SETTINGS').then(function (settings) {
+      var form = document.getElementById('admissionForm');
+      if (!form) return;
+      if (settings && settings.admissionEnabled === false) {
+        form.style.display = 'none';
+        var msg = document.createElement('div');
+        msg.className = 'admission-disabled';
+        msg.innerHTML = '<p>Admissions are currently closed. Please check back later.</p>';
+        form.parentNode.insertBefore(msg, form);
+      }
+    });
   },
 
   setupNavigation() {

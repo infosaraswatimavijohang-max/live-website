@@ -6,7 +6,7 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 
 - **Public pages**: Open any `.html` directly in a browser (no build step). Contact/about maps are static `maps.app.goo.gl` links — **not** iframes. When Supabase is unreachable, `DataStore` falls back to `sss_` localStorage, so pages still render.
 - **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:324-325`).
-- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~7400-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
+- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~7700-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
 
 ## Script load order (critical)
 
@@ -95,6 +95,7 @@ Run in Supabase SQL Editor in numeric order:
 | `sql/004_assignments_notes_queries.sql` | Assignments, notes, queries |
 | `sql/006_fee_management.sql` | `fee_categories`, `class_fees`, `student_fees`, `fee_collections`, `bill_sequence`, `student_discounts` + RLS |
 | `sql/007_bs_date_columns.sql` | BS date columns: `admissions.dob_bs`, `notices.date_bs`, `events.date_bs`, `students.dob_bs`, `teachers.joining_date_bs`, `assignments.due_date_bs` |
+| `sql/007_gallery_storage.sql` | Public `gallery` storage bucket + `storage.objects` RLS (public read/write, mirrors `public_all`) |
 
 Each fee table has `public_all` RLS policy. Two other SQL files are one-time data migrations (student/teacher photo updates), not schema changes.
 
@@ -105,7 +106,7 @@ Each fee table has `public_all` RLS policy. Two other SQL files are one-time dat
 - On every load it syncs those relational tables into an `exam_portal_kv` table (`structure` + `auth` blobs); the app reads STRUCT from that blob. Photos are deliberately stripped before persisting (`persistStructure()`), so cached rows are image-less.
 - Own auth (username/password per student/teacher), own caching (`examCache`), own column maps (`EXAM_COLUMNS` in `exam_helper.js`).
 - **STRUCT naming differs from DB columns**: classes use `name` not `class_label`, students use `name`/`roll`/`classId` not `full_name`/`school_roll_no`/`class_id`. Inline code maps between them via `EXAM_COLUMNS`.
-- Inline `<script>` is ~7400 lines — prefer targeted edits over bulk rewrites.
+- Inline `<script>` is ~7700 lines — prefer targeted edits over bulk rewrites.
 
 ## Fee Management (in `Login_portal.html` Account module)
 
