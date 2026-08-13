@@ -6,7 +6,7 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 
 - **Public pages**: Open any `.html` directly in a browser (no build step). Contact/about maps are static `maps.app.goo.gl` links — **not** iframes. When Supabase is unreachable, `DataStore` falls back to `sss_` localStorage, so pages still render.
 - **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:324-325`).
-- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~7700-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
+- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~7450-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
 
 ## Script load order (critical)
 
@@ -31,7 +31,7 @@ supabase.js → cache.js → data.js → main.js (or admin.js)
 ## Auto-seed (`seedData` in `js/data.js`)
 
 Fires on **both** triggers:
-1. `window.onload` in `data.js:654-657` (runs on every public page load)
+1. `window.onload` in `data.js:653-656` (runs on every public page load)
 2. Admin login (`admin.js:16`) calls `seedData()` after auth check
 
 Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. If absent → seeds site_settings, slides, and about first, then teachers/staff/gallery.
@@ -52,7 +52,9 @@ Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. 
 
 ## Image handling
 
-Admin uploads → `compressImage(file, 800, 0.6)` → WebP base64 → stored inline (localStorage size limits apply). Teacher/staff photo filenames in seed data must match `assets/images/Teachers/*` and `assets/images/Staff/*` exactly.
+- Admin uploads → `compressImage(file, 800, 0.6)` → WebP base64 → stored inline (localStorage size limits apply). Teacher/staff photo filenames in seed data must match `assets/images/Teachers/*` and `assets/images/Staff/*` exactly.
+- **Gallery images live in Supabase Storage** `gallery` bucket (public URLs) — `galleryData` in `data.js:443` points at `.../storage/v1/object/public/gallery/...`. Seed logic writes these into `sss_gallery`/`GALLERY`.
+- Re-sync local gallery files → Storage → table → `galleryData` with `upload_gallery.ps1` (requires `sql/007_gallery_storage.sql` first; reads credentials from `js/supabase.js`, rewrites `galleryData` in `js/data.js`).
 
 ## Design system
 
@@ -107,6 +109,12 @@ Each fee table has `public_all` RLS policy. Two other SQL files are one-time dat
 - Own auth (username/password per student/teacher), own caching (`examCache`), own column maps (`EXAM_COLUMNS` in `exam_helper.js`).
 - **STRUCT naming differs from DB columns**: classes use `name` not `class_label`, students use `name`/`roll`/`classId` not `full_name`/`school_roll_no`/`class_id`. Inline code maps between them via `EXAM_COLUMNS`.
 - Inline `<script>` is ~7700 lines — prefer targeted edits over bulk rewrites.
+
+### Exam Portal credentials
+
+- Student default password = roll number; teacher default password = username (first name). Passwords are plaintext columns on `students`/`teachers`, merged into the `exam_portal_kv` `structure`/`auth` rows.
+- `pwdToggleHtml` only reveals the **default** password. Once the user changes it (`mustChangePassword === false`), admin sees "Changed by user (hidden)" and can no longer view it.
+- Admin password recovery: students table **Reset Password** button → back to roll number (`resetStudentPassword`); the **Edit Student** modal also has a "New password (optional)" field, same as the teacher edit modal (`edit-stu-pass` → `submitEditStudent` sets `password` + `previousPassword` + `mustChangePassword: true`).
 
 ## Fee Management (in `Login_portal.html` Account module)
 

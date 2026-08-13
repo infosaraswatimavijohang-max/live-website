@@ -1825,6 +1825,18 @@ function ensureTeacherCredentials(){
       t.username = uniqueTeacherUsername(t.name, t.id);
       changed = true;
     }
+    // Reassign any username that collides (case-insensitively) with the
+    // admin, a student, or an earlier teacher — a shared username would be
+    // silently shadowed by whichever login is checked first.
+    const oldUsername = t.username;
+    if(usernameTaken(t.username, {excludeTeacherId: t.id})){
+      t.username = uniqueTeacherUsername(t.name, t.id);
+      changed = true;
+      // Preserve the "default password mirrors the username" invariant: if
+      // the password is still the old default (the user hasn't changed it),
+      // re-mirror it to the reassigned username.
+      if(t.password === oldUsername) t.password = t.username;
+    }
     // Default teacher password mirrors the default username (first name) —
     // same "first name in, first name out" default as students get their
     // roll number — NOT a fixed 'teacher123' for every account, which would
@@ -1986,9 +1998,10 @@ function slugFirstName(fullName){
    was checked first would silently shadow the other's account. */
 function usernameTaken(candidate, {excludeTeacherId=null, excludeStudentId=null}={}){
   if(!candidate) return false;
-  if(AUTH.admin && AUTH.admin.username === candidate) return true;
-  if(AUTH.teachers.some(t=>t.id!==excludeTeacherId && t.username===candidate)) return true;
-  if(STRUCT.students.some(s=>s.id!==excludeStudentId && s.username===candidate)) return true;
+  const c = candidate.toLowerCase();
+  if(AUTH.admin && AUTH.admin.username && AUTH.admin.username.toLowerCase() === c) return true;
+  if(AUTH.teachers.some(t=>t.id!==excludeTeacherId && (t.username||'').toLowerCase()===c)) return true;
+  if(STRUCT.students.some(s=>s.id!==excludeStudentId && (s.username||'').toLowerCase()===c)) return true;
   return false;
 }
 function uniqueStudentUsername(fullName, excludeId){
@@ -2011,6 +2024,12 @@ function ensureStudentCredentials(){
   STRUCT.students.forEach(s=>{
     let changed = false;
     if(!s.username){ s.username = uniqueStudentUsername(s.name, s.id); changed = true; }
+    // Reassign any username that collides (case-insensitively) with the
+    // admin, a teacher, or an earlier student — see ensureTeacherCredentials.
+    if(usernameTaken(s.username, {excludeStudentId: s.id})){
+      s.username = uniqueStudentUsername(s.name, s.id);
+      changed = true;
+    }
     if(!s.password){ s.password = String(s.roll); changed = true; }
     if(typeof s.mustChangePassword !== 'boolean'){ s.mustChangePassword = true; }
     if(changed) toSync.push({id:s.id, username:s.username, password:s.password});
@@ -2289,7 +2308,7 @@ async function submitChangePassword(){
   const next = document.getElementById('cp-new').value;
   const confirmPwd = document.getElementById('cp-confirm').value;
   const newUsernameEl = document.getElementById('cp-username');
-  const newUsername = newUsernameEl ? newUsernameEl.value.trim() : null;
+  const newUsername = newUsernameEl ? newUsernameEl.value.trim().toLowerCase() : null;
   const errEl = document.getElementById('cp-error');
   errEl.textContent = '';
 
@@ -3320,8 +3339,9 @@ function openEditStudentModal(id){
                 </select>
               </div>
               <div class="field"><label>Student ID / EMIS ID</label><input id="edit-stu-emis" value="${(s.emisId||'').toString().replace(/"/g,'&quot;')}"></div>
-              <div class="field"><label>Username</label><div style="padding:11px 0;font-family:var(--font-mono);font-size:13px;">${s.username || '—'}</div></div>
-              <div class="field"><label>Password</label><div style="padding:11px 0;">${pwdToggleHtml(s)}</div></div>
+              <div class="field"><label>Username</label><input id="edit-stu-user" value="${(s.username||'').replace(/"/g,'&quot;')}"></div>
+              <div class="field"><label>Current password</label><div style="padding:11px 0;">${pwdToggleHtml(s)}</div></div>
+              <div class="field"><label>New password <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label><input type="password" id="edit-stu-pass" autocomplete="new-password"></div>
               <div class="field"><label>Date of birth</label><input type="date" id="edit-stu-dob" value="${(s.dob||'').replace(/"/g,'&quot;')}"></div>
               <div class="field"><label>Gender</label>
                 <select id="edit-stu-gender">
@@ -3357,9 +3377,14 @@ async function submitEditStudent(id){
   const name = document.getElementById('edit-stu-name').value.trim();
   const roll = document.getElementById('edit-stu-roll').value.trim();
   const classId = document.getElementById('edit-stu-class').value;
+  let username = document.getElementById('edit-stu-user').value.trim().toLowerCase();
+  const pass = document.getElementById('edit-stu-pass').value;
   const photoInput = document.getElementById('edit-stu-photo');
   const errEl = document.getElementById('edit-stu-error');
   if(!name || !roll || !classId){ errEl.textContent = 'Fill in all fields.'; return; }
+  if(!username) username = uniqueStudentUsername(name, id);
+  if(usernameTaken(username, {excludeStudentId: id})){ errEl.textContent = 'That username is already taken.'; return; }
+  if(pass && pass.length < 4){ errEl.textContent = 'New password should be at least 4 characters.'; return; }
 
   const dob = document.getElementById('edit-stu-dob').value;
   const emisId = document.getElementById('edit-stu-emis').value.trim();
@@ -3379,18 +3404,19 @@ async function submitEditStudent(id){
     // Supabase in a single UPDATE (instead of two separate round trips
     // covering every column every time, whether it changed or not).
     const updated = {
-      full_name: name, school_roll_no: roll, class_id: classId,
+      full_name: name, school_roll_no: roll, class_id: classId, username: username || null,
       dob: dob || null, dob_bs: dob ? adToBsStr(dob) : null, gender: gender || null, father_name: fatherName || null,
       mother_name: motherName || null, guardian_contact: guardianContact || null,
       blood_group: bloodGroup || null, address: address || null, student_id: emisId || null,
     };
     const current = {
-      full_name: s.name, school_roll_no: s.roll, class_id: s.classId,
+      full_name: s.name, school_roll_no: s.roll, class_id: s.classId, username: s.username || null,
       dob: s.dob || null, dob_bs: s.dobBs || null, gender: s.gender || null, father_name: s.fatherName || null,
       mother_name: s.motherName || null, guardian_contact: s.guardianContact || null,
       blood_group: s.bloodGroup || null, address: s.address || null, student_id: s.emisId || null,
     };
     const changed = diffFields(current, updated);
+    if(pass) changed.password = pass;
     if(Object.keys(changed).length){
       const ok = await dbUpdateStudentDetails(id, changed);
       if(!ok) return;
@@ -3402,7 +3428,8 @@ async function submitEditStudent(id){
         if(photo){ await dbSaveStudentPhoto(id, photo); s.photo = photo; }
       } catch(e){ /* keep existing photo on failure */ }
     }
-    s.name = name; s.roll = roll; s.classId = classId;
+    s.name = name; s.roll = roll; s.classId = classId; s.username = username;
+    if(pass){ s.previousPassword = s.password; s.password = pass; s.mustChangePassword = true; }
     s.dob = dob; s.dobBs = dob ? adToBsStr(dob) : ''; s.emisId = emisId; s.gender = gender; s.fatherName = fatherName; s.motherName = motherName;
     s.guardianContact = guardianContact; s.bloodGroup = bloodGroup; s.address = address;
     await persistStructure();
@@ -3605,7 +3632,7 @@ function refreshPermSubjectOptions(){
 }
 async function addTeacher(){
   const name = document.getElementById('new-t-name').value.trim();
-  const username = document.getElementById('new-t-user').value.trim();
+  const username = document.getElementById('new-t-user').value.trim().toLowerCase();
   const password = document.getElementById('new-t-pass').value;
   const phone = document.getElementById('new-t-phone').value.trim();
   const email = document.getElementById('new-t-email').value.trim();
@@ -3729,7 +3756,7 @@ async function submitEditTeacher(id){
   const t = AUTH.teachers.find(x=>x.id===id);
   if(!t) return;
   const name = document.getElementById('edit-t-name').value.trim();
-  const username = document.getElementById('edit-t-user').value.trim();
+  const username = document.getElementById('edit-t-user').value.trim().toLowerCase();
   const pass = document.getElementById('edit-t-pass').value;
   const photoInput = document.getElementById('edit-t-photo');
   const errEl = document.getElementById('edit-t-error');
