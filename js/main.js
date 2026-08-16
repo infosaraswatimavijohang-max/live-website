@@ -531,11 +531,12 @@ var App = {
     if (!teachers.length) teachers = typeof teacherData !== 'undefined' ? teacherData : [];
     var container = document.getElementById('teachersGrid');
     if (!container) return;
-    container.innerHTML = teachers.map(function (t) {
+    var cards = teachers.map(function (t) {
       var photo = t.photo_url || t.photo || '';
       var placeholder = getPlaceholderImage(t.name || 'T');
-      return '<div class="teacher-card"><img src="' + (photo || placeholder) + '" alt="' + (t.name || '') + '" loading="lazy" onerror="this.onerror=null;this.src=\'' + placeholder + '\'"><div class="tinfo"><h4>' + (t.name || '') + '</h4><span class="tsubject">' + (t.subject || '') + '</span>' + (t.qualification ? '<p class="tqual">' + t.qualification + '</p>' : '') + '</div></div>';
+      return '<div class="teacher-card"><img src="' + (photo || placeholder) + '" alt="' + (t.name || '') + '" loading="lazy" onerror="this.onerror=null;this.src=\'' + placeholder + '\'"><div class="tinfo"><h4>' + (t.name || '') + '</h4>' + (t.subject ? '<span class="tsubject">' + t.subject + '</span>' : '') + (t.qualification ? '<p class="tqual">' + t.qualification + '</p>' : '') + '</div></div>';
     }).join('');
+    container.innerHTML = '<div class="teachers-track">' + cards + cards + '</div>';
   }); },
 
   renderStaff() { return DataStore.get('STAFF').then(function (staff) {
@@ -543,57 +544,27 @@ var App = {
     if (!staff.length) staff = typeof staffData !== 'undefined' ? staffData : [];
     var container = document.getElementById('staffGrid');
     if (!container) return;
-    container.innerHTML = staff.map(function (s) {
+    var cards = staff.map(function (s) {
       var photo = s.photo_url || s.photo || '';
       var placeholder = getPlaceholderImage(s.name || 'S');
-      return '<div class="staff-card"><img src="' + (photo || placeholder) + '" alt="' + (s.name || '') + '" loading="lazy" onerror="this.onerror=null;this.src=\'' + placeholder + '\'"><h4>' + (s.name || '') + '</h4><span class="sposition">' + (s.position || '') + '</span></div>';
+      return '<div class="staff-card"><img src="' + (photo || placeholder) + '" alt="' + (s.name || '') + '" loading="lazy" onerror="this.onerror=null;this.src=\'' + placeholder + '\'"><div class="sinfo"><h4>' + (s.name || '') + '</h4><span class="sposition">' + (s.position || '') + '</span></div></div>';
     }).join('');
+    container.innerHTML = '<div class="staff-track">' + cards + cards + '</div>';
   }); },
 
-  scrollTeachers(dir) {
-    var container = document.getElementById('teachersGrid');
-    if (!container) return;
-    var scrollAmount = container.querySelector('.teacher-card') ? container.querySelector('.teacher-card').offsetWidth + 20 : 220;
-    container.scrollBy({ left: dir * scrollAmount, behavior: 'smooth' });
-  },
-
   renderGallery() { return DataStore.get('GALLERY').then(function (gallery) {
-    gallery = gallery || [];
     var container = document.getElementById('galleryGrid');
     if (!container) return;
-    this.galleryAllImages = gallery;
-    this.galleryCategoryMap = { 'events': 'Events', 'graduation': 'Graduation', 'lab': 'Lab', 'trip': 'Trip' };
-    this.renderGalleryImages(gallery.filter(function (img) { return (img.category || '').toLowerCase() === 'events' || !img.category; }));
-    this.renderGalleryMarquee(gallery);
-    var cards = document.querySelectorAll('.collection-card');
-    var self = this;
-    cards.forEach(function (card) {
-      card.onclick = function () {
-        cards.forEach(function (c) { c.classList.remove('active'); });
-        card.classList.add('active');
-        var collection = card.dataset.collection;
-        var category = self.galleryCategoryMap[collection] || collection;
-        var filtered = (self.galleryAllImages || []).filter(function (img) { return (img.category || '').toLowerCase() === category.toLowerCase(); });
-        self.renderGalleryImages(filtered);
-      };
-    });
+    var seeded = typeof galleryData !== 'undefined' ? galleryData : [];
+    gallery = gallery || [];
+    var known = {};
+    seeded.forEach(function (g) { known[g.id || g.src] = true; });
+    var extras = gallery.filter(function (g) { return !known[g.id || g.src]; });
+    this.renderGalleryImages(seeded.concat(extras));
+  }).catch(function () {
+    var container = document.getElementById('galleryGrid');
+    if (container && typeof galleryData !== 'undefined') this.renderGalleryImages(galleryData);
   }.bind(this)); },
-
-  renderGalleryMarquee(images) {
-    var container = document.getElementById('galleryMarquee');
-    if (!container || !images || !images.length) return;
-    var shown = images.slice(0, 10);
-    var doubled = shown.concat(shown);
-    container.innerHTML = '<div class="gmarquee-track">' + doubled.map(function (img) {
-      var src = img.src || img.image_url || '';
-      return '<img src="' + src + '" alt="' + (img.caption || '') + '" loading="lazy">';
-    }).join('') + '</div>';
-    var gTrack = container.querySelector('.gmarquee-track');
-    if (gTrack) {
-      gTrack.addEventListener('mouseenter', function () { gTrack.style.animationPlayState = 'paused'; });
-      gTrack.addEventListener('mouseleave', function () { gTrack.style.animationPlayState = 'running'; });
-    }
-  },
 
   renderGalleryImages(images) {
     var container = document.getElementById('galleryGrid');
@@ -603,13 +574,14 @@ var App = {
       return;
     }
     window._galleryImages = images;
-    container.innerHTML = images.map(function (img, i) {
+    var cards = images.map(function (img, i) {
       var src = img.src || img.image_url || '';
       var alt = (img.caption || 'Gallery').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       var dataSrc = src.replace(/'/g,'%27').replace(/"/g,'%22');
       var dataCap = (img.caption || '').replace(/'/g,'%27').replace(/"/g,'%22');
       return '<div class="gallery-item" onclick="openLightbox(\'' + dataSrc + '\',\'' + dataCap + '\',' + i + ')"><img src="' + src.replace(/"/g,'&quot;') + '" alt="' + alt + '" loading="lazy"></div>';
     }).join('');
+    container.innerHTML = '<div class="gallery-track">' + cards + cards + '</div>';
     var lbPrev = document.getElementById('lbPrev');
     var lbNext = document.getElementById('lbNext');
     if (lbPrev) lbPrev.style.display = images.length > 1 ? '' : 'none';
