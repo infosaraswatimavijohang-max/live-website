@@ -5,8 +5,8 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 ## Running
 
 - **Public pages**: Open any `.html` directly in a browser (no build step). Contact/about maps are static `maps.app.goo.gl` links — **not** iframes. When Supabase is unreachable, `DataStore` falls back to `sss_` localStorage, so pages still render.
-- **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:324-325`).
-- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~7450-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
+- **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:306-307`).
+- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~7800-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
 
 ## Script load order (critical)
 
@@ -31,7 +31,7 @@ supabase.js → cache.js → data.js → main.js (or admin.js)
 ## Auto-seed (`seedData` in `js/data.js`)
 
 Fires on **both** triggers:
-1. `window.onload` in `data.js:653-656` (runs on every public page load)
+1. `window.onload` in `data.js:719-725` (runs on every public page load)
 2. Admin login (`admin.js:16`) calls `seedData()` after auth check
 
 Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. If absent → seeds site_settings, slides, and about first, then teachers/staff/gallery.
@@ -53,7 +53,7 @@ Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. 
 ## Image handling
 
 - Admin uploads → `compressImage(file, 800, 0.6)` → WebP base64 → stored inline (localStorage size limits apply). Teacher/staff photo filenames in seed data must match `assets/images/Teaching Staff/*` and `assets/images/Non Teaching Staff/*` exactly.
-- **Gallery images live in Supabase Storage** `gallery` bucket (public URLs) — `galleryData` in `data.js:443` points at `.../storage/v1/object/public/gallery/...`. Seed logic writes these into `sss_gallery`/`GALLERY`.
+- **Gallery images live in Supabase Storage** `gallery` bucket (public URLs) — `galleryData` in `data.js:425` points at `.../storage/v1/object/public/gallery/...`. Seed logic writes these into `sss_gallery`/`GALLERY`.
 - Re-sync local gallery files → Storage → table → `galleryData` with `upload_gallery.ps1` (requires `sql/007_gallery_storage.sql` first; reads credentials from `js/supabase.js`, rewrites `galleryData` in `js/data.js`).
 
 ## Design system
@@ -108,7 +108,7 @@ Each fee table has `public_all` RLS policy. Two other SQL files are one-time dat
 - On every load it syncs those relational tables into an `exam_portal_kv` table (`structure` + `auth` blobs); the app reads STRUCT from that blob. Photos are deliberately stripped before persisting (`persistStructure()`), so cached rows are image-less.
 - Own auth (username/password per student/teacher), own caching (`examCache`), own column maps (`EXAM_COLUMNS` in `exam_helper.js`).
 - **STRUCT naming differs from DB columns**: classes use `name` not `class_label`, students use `name`/`roll`/`classId` not `full_name`/`school_roll_no`/`class_id`. Inline code maps between them via `EXAM_COLUMNS`.
-- Inline `<script>` is ~7700 lines — prefer targeted edits over bulk rewrites.
+- Inline `<script>` is ~7800 lines — prefer targeted edits over bulk rewrites.
 
 ### Exam Portal credentials
 
