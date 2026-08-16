@@ -31,6 +31,7 @@ Static HTML/CSS/JS — no build process. Data via Supabase REST API + localStora
 - **Primary**: Supabase REST API via raw `fetch` (`js/supabase.js`)
 - **Fallback**: localStorage with `sss_` prefix — all DataStore ops write through to both
 - **Two-tier cache**: memory + localStorage with TTL (`js/cache.js`)
+- **Gallery**: the public gallery renders directly from local `assets/images/<Folder>/` files listed in `galleryData` (`js/data.js`, 74 WebP images) with admin-added extras appended — no Supabase storage dependency
 - **Reset**: DevTools → Application → clear `sss_*` and `sss_cache_*` keys
 
 ## Key Files

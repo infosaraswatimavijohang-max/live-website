@@ -40,3 +40,10 @@
 - Transition: 0.35s cubic-bezier(0.22, 1, 0.36, 1)
 - Hover lift: translateY(-4px)
 - No bounce, no elastic
+
+## Showcase marquee (gallery / teachers / staff)
+- The Gallery, Teachers, and Staff sections are auto-scrolling marquee strips instead of grids.
+- Markup: an `overflow:hidden` wrapper containing a `width:fit-content` track whose content is **doubled** (set A + copy of A) so `translateX(-50%)` loops seamlessly.
+- Animation: `@keyframes gmarquee { 0% { transform: translateX(0) } 100% { transform: translateX(-50%) } }`, `90s linear infinite` (slow — deliberately not fast), pausing on hover (`animation-play-state: paused`).
+- Card size: 260px (`flex: 0 0 260px`), shrinking to 200px below 480px and 165px below 360px. People cards (teachers/staff) use a 128px round photo; gallery items are 4:3 (`aspect-ratio: 4/3`) thumbnails. Gap between cards: 16-20px.
+- Teachers/staff cards: photo, name, subject, qualification; gallery items open a lightbox on click.

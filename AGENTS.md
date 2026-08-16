@@ -53,8 +53,8 @@ Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. 
 ## Image handling
 
 - Admin uploads → `compressImage(file, 800, 0.6)` → WebP base64 → stored inline (localStorage size limits apply). Teacher/staff photo filenames in seed data must match `assets/images/Teaching Staff/*` and `assets/images/Non Teaching Staff/*` exactly.
-- **Gallery images live in Supabase Storage** `gallery` bucket (public URLs) — `galleryData` in `data.js:425` points at `.../storage/v1/object/public/gallery/...`. Seed logic writes these into `sss_gallery`/`GALLERY`.
-- Re-sync local gallery files → Storage → table → `galleryData` with `upload_gallery.ps1` (requires `sql/007_gallery_storage.sql` first; reads credentials from `js/supabase.js`, rewrites `galleryData` in `js/data.js`).
+- **Public gallery renders from local files** — `galleryData` in `js/data.js` (74 WebP images) points at `assets/images/<Folder>/<file>.webp`, URL-encoded (spaces `%20`, parentheses `%28`/`%29`). `App.renderGallery` in `main.js` always renders `galleryData` and appends admin-added extras (by id), with a `.catch` fallback — the public gallery never depends on Supabase.
+- **Legacy storage workflow (superseded)**: `upload_gallery.ps1` + `sql/007_gallery_storage.sql` uploaded folders to the `gallery` bucket and rewrote `galleryData` with public storage URLs. Stale storage URLs caused a blank gallery, so the public gallery now uses local files only. The storage bucket/table remain for admin use.
 
 ## Design system
 
@@ -69,6 +69,7 @@ Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. 
 
 - Public pages render shared header/footer via `App.renderHeader()` / `App.renderFooter()`.
 - Sections lazy-loaded via `IntersectionObserver` with 200px rootMargin; falls back to eager if `prefers-reduced-motion`.
+- **Showcase marquees**: Gallery, Teachers, and Staff render as auto-scrolling strips — `.gallery-track` / `.teachers-track` / `.staff-track` inside an `overflow:hidden` wrapper, each `width:fit-content`, content doubled, `gmarquee` keyframes (`translateX(-50%)`) at 90s, pausing on hover. Cards are 260px wide (`flex:0 0 260px`; 165px on small phones), people cards use a 128px round photo.
 
 ## Annual Work Plan & Calendar (BS 2083)
 
@@ -97,7 +98,7 @@ Run in Supabase SQL Editor in numeric order:
 | `sql/004_assignments_notes_queries.sql` | Assignments, notes, queries |
 | `sql/006_fee_management.sql` | `fee_categories`, `class_fees`, `student_fees`, `fee_collections`, `bill_sequence`, `student_discounts` + RLS |
 | `sql/007_bs_date_columns.sql` | BS date columns: `admissions.dob_bs`, `notices.date_bs`, `events.date_bs`, `students.dob_bs`, `teachers.joining_date_bs`, `assignments.due_date_bs` |
-| `sql/007_gallery_storage.sql` | Public `gallery` storage bucket + `storage.objects` RLS (public read/write, mirrors `public_all`) |
+| `sql/007_gallery_storage.sql` | Legacy — public `gallery` storage bucket + `storage.objects` RLS (no longer required; public gallery renders local `galleryData` files) |
 
 Each fee table has `public_all` RLS policy. Two other SQL files are one-time data migrations (student/teacher photo updates), not schema changes.
 
