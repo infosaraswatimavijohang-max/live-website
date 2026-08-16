@@ -52,7 +52,7 @@ Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. 
 
 ## Image handling
 
-- Admin uploads → `compressImage(file, 800, 0.6)` → WebP base64 → stored inline (localStorage size limits apply). Teacher/staff photo filenames in seed data must match `assets/images/Teachers/*` and `assets/images/Staff/*` exactly.
+- Admin uploads → `compressImage(file, 800, 0.6)` → WebP base64 → stored inline (localStorage size limits apply). Teacher/staff photo filenames in seed data must match `assets/images/Teaching Staff/*` and `assets/images/Non Teaching Staff/*` exactly.
 - **Gallery images live in Supabase Storage** `gallery` bucket (public URLs) — `galleryData` in `data.js:443` points at `.../storage/v1/object/public/gallery/...`. Seed logic writes these into `sss_gallery`/`GALLERY`.
 - Re-sync local gallery files → Storage → table → `galleryData` with `upload_gallery.ps1` (requires `sql/007_gallery_storage.sql` first; reads credentials from `js/supabase.js`, rewrites `galleryData` in `js/data.js`).
 

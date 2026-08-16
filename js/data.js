@@ -325,7 +325,7 @@ async function seedData() {
       values: 'Excellence, Integrity, Growth, Leadership, and Community.',
       principal_name: 'Mr. Chhabilal Bhandari',
       principal_message: 'Dear Students, Parents, and Well-wishers.',
-      principal_photo: 'assets/images/Teachers/Chhabilal Bhandari.webp',
+      principal_photo: 'assets/images/Teaching Staff/Chhabilal Bhandari.webp',
       general_block: 'Our General Block offers comprehensive education from ECD through Grade 12.',
       technical_block: 'Our Technical Block offers Computer Engineering education for Grade 9-12.'
     });
@@ -365,43 +365,43 @@ async function seedData() {
 }
 
 var teacherData = [
-  { id: 't1', name: 'Arjun Prashad Sharma Dhakal', subject: 'G5 - Primary', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teachers/Arjun Prasad Dhakal.webp' },
-  { id: 't2', name: 'Gayatri Acharya Regmi', subject: 'G12 - Primary', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teachers/Gayatrai.webp' },
-  { id: 't3', name: 'Kalpana Bhattarai', subject: 'ECD', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teachers/Kalpana Bhattrai.webp' },
-  { id: 't4', name: 'Shreedhar Gautam', subject: 'English (G1-G12)', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teachers/Shreedhar Gautam.webp', designation: 'Assistant Head Teacher' },
-  { id: 't5', name: 'Maniram Gautam', subject: 'Mathematics (G10)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teachers/Man ram Gautam.webp' },
-  { id: 't6', name: 'Amrita Parajuli', subject: 'G11 - Primary', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teachers/Amrita Parajuli.webp' },
-  { id: 't7', name: 'Dhan Bahadur Kala', subject: 'Mathematics (G4-G6)', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teachers/Dhan Bahadur Kala.webp' },
-  { id: 't8', name: 'Homnath Pokhrel', subject: 'English (G10)', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teachers/Homnath Pokheral.webp' },
-  { id: 't9', name: 'Harikala Nepali', subject: 'G1-G12 - Primary', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teachers/Harikala Nepali.webp' },
-  { id: 't10', name: 'Er. Amit Rajbanshi', subject: 'Computer Science (G12)', qualification: 'Masters', block: 'Technical', photo_url: 'assets/images/Teachers/Er. Amit Rajbanshi.webp' },
-  { id: 't11', name: 'Keshav Raj Dhakal', subject: 'Science (G12)', qualification: 'Masters', block: 'Technical', photo_url: 'assets/images/Teachers/Keshab Raj DHakal.webp' },
-  { id: 't12', name: 'Bhojraj Dhakal', subject: 'G1-G12 - Primary', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teachers/Bhojraj Dhakal.webp' },
-  { id: 't13', name: 'Devi Kumari Thapa', subject: 'Nepali (G10)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teachers/Devi KUmari Thapa.webp' },
-  { id: 't14', name: 'Santosh Basnet', subject: 'Science (G12)', qualification: 'Masters', block: 'Technical', photo_url: 'assets/images/Teachers/Santosh Basnet.webp' },
-  { id: 't15', name: 'Man Bahadur Thapa', subject: 'Humanities (G10-G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teachers/Man Bahadur Thapa.webp' },
-  { id: 't16', name: 'Surendra Prasad Poudel', subject: 'English (G1-G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teachers/Surendra kumar Paudel.webp' },
-  { id: 't17', name: 'Denim Kumar Ale', subject: 'Computer Science (G7, G9-G10)', qualification: 'Intermediate or +2', block: 'Technical', photo_url: 'assets/images/Teachers/Danim Kumar Ale.webp' },
-  { id: 't18', name: 'Shristi Bhandari', subject: 'Computer Tech. (G3, G5)', qualification: 'Intermediate or +2', block: 'Technical', photo_url: 'assets/images/Teachers/Shristi Bhandari.webp' },
-  { id: 't19', name: 'Chitra Bahadur Tharu', subject: 'Mathematics (G10-G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teachers/Chitra Bahadur Tharu.webp' },
-  { id: 't20', name: 'Chhabilal Bhandari', subject: 'G10 - Science', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teachers/Chhabilal Bhandari.webp', designation: 'Head Teacher' },
-  { id: 't21', name: 'Kalpana Bhandari', subject: 'ECD', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teachers/Kalpana Bhattrai.webp' },
-  { id: 't22', name: 'Hem Raj Timilsina', subject: 'Nepali (G12)', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teachers/Hemraj Timilsina.webp' },
-  { id: 't23', name: 'Mahesh Paudel', subject: 'Nepali (G1-G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teachers/Mahesh Paudel.webp' },
-  { id: 't24', name: 'Indira Pulami', subject: 'G6-G7 - Primary', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teachers/Indra Pulami.webp' },
-  { id: 't25', name: 'Er. Prem Shankar Singh', subject: 'Computer Tech. (G1-G12)', qualification: 'Bachelors', block: 'Technical', photo_url: 'assets/images/Teachers/Prem Shankar Singh.webp' },
-  { id: 't26', name: 'Er. Sarthak Aryal', subject: 'Computer Tech. (G1-G12)', qualification: 'Bachelors', block: 'Technical', photo_url: 'assets/images/Teachers/Er. Sarthak Aryal.webp' },
-  { id: 't27', name: 'Chemkali Kala Shrees', subject: 'G1-G12 - Primary', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teachers/Chemkala Kala Shiris.webp' },
-  { id: 't29', name: 'Dhanesh Kumar Barai', subject: 'Science (G3-G5)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teachers/Ramesh Barai.webp' },
-  { id: 't30', name: 'Er. Sunil Ram Luhar', subject: 'Computer Science (G1-G12)', qualification: 'Bachelors', block: 'Technical', photo_url: 'assets/images/Teachers/Er. Sunil Ram Luhar.webp' },
-  { id: 't31', name: 'Manisha Sunar', subject: 'G1-G12 - Primary', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teachers/Manisha Sunar.webp' }
+  { id: 't1', name: 'Arjun Prashad Sharma Dhakal', subject: 'G5 - Primary', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teaching Staff/Arjun Prasad Dhakal.webp' },
+  { id: 't2', name: 'Gayatri Acharya Regmi', subject: 'G12 - Primary', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Gayatrai.webp' },
+  { id: 't3', name: 'Kalpana Bhattarai', subject: 'ECD', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teaching Staff/Kalpana Bhattrai.webp' },
+  { id: 't4', name: 'Shreedhar Gautam', subject: 'English (G1-G12)', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Shreedhar Gautam.webp', designation: 'Assistant Head Teacher' },
+  { id: 't5', name: 'Maniram Gautam', subject: 'Mathematics (G10)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Man ram Gautam.webp' },
+  { id: 't6', name: 'Amrita Parajuli', subject: 'G11 - Primary', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Amrita Parajuli.webp' },
+  { id: 't7', name: 'Dhan Bahadur Kala', subject: 'Mathematics (G4-G6)', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teaching Staff/Dhan Bahadur Kala.webp' },
+  { id: 't8', name: 'Homnath Pokhrel', subject: 'English (G10)', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Homnath Pokheral.webp' },
+  { id: 't9', name: 'Harikala Nepali', subject: 'G1-G12 - Primary', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Harikala Nepali.webp' },
+  { id: 't10', name: 'Er. Amit Rajbanshi', subject: 'Computer Science (G12)', qualification: 'Masters', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Er. Amit Rajbanshi.webp' },
+  { id: 't11', name: 'Keshav Raj Dhakal', subject: 'Science (G12)', qualification: 'Masters', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Keshab Raj DHakal.webp' },
+  { id: 't12', name: 'Bhojraj Dhakal', subject: 'G1-G12 - Primary', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teaching Staff/Bhojraj Dhakal.webp' },
+  { id: 't13', name: 'Devi Kumari Thapa', subject: 'Nepali (G10)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Devi KUmari Thapa.webp' },
+  { id: 't14', name: 'Santosh Basnet', subject: 'Science (G12)', qualification: 'Masters', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Santosh Basnet.webp' },
+  { id: 't15', name: 'Man Bahadur Thapa', subject: 'Humanities (G10-G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Man Bahadur Thapa.webp' },
+  { id: 't16', name: 'Surendra Prasad Poudel', subject: 'English (G1-G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Surendra kumar Paudel.webp' },
+  { id: 't17', name: 'Denim Kumar Ale', subject: 'Computer Science (G7, G9-G10)', qualification: 'Intermediate or +2', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Danim Kumar Ale.webp' },
+  { id: 't18', name: 'Shristi Bhandari', subject: 'Computer Tech. (G3, G5)', qualification: 'Intermediate or +2', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Shristi Bhandari.webp' },
+  { id: 't19', name: 'Chitra Bahadur Tharu', subject: 'Mathematics (G10-G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Chitra Bahadur Tharu.webp' },
+  { id: 't20', name: 'Chhabilal Bhandari', subject: 'G10 - Science', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Chhabilal Bhandari.webp', designation: 'Head Teacher' },
+  { id: 't21', name: 'Kalpana Bhandari', subject: 'ECD', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teaching Staff/Kalpana Bhattrai.webp' },
+  { id: 't22', name: 'Hem Raj Timilsina', subject: 'Nepali (G12)', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Hemraj Timilsina.webp' },
+  { id: 't23', name: 'Mahesh Paudel', subject: 'Nepali (G1-G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Mahesh Paudel.webp' },
+  { id: 't24', name: 'Indira Pulami', subject: 'G6-G7 - Primary', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Indra Pulami.webp' },
+  { id: 't25', name: 'Lelin Kumar Regmi', subject: 'Computer Tech. (G1-G12)', qualification: 'Bachelors', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Lelin Kumar Regmi.jpeg' },
+  { id: 't26', name: 'Er. Sarthak Aryal', subject: 'Computer Tech. (G1-G12)', qualification: 'Bachelors', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Er. Sarthak Aryal.webp' },
+  { id: 't27', name: 'Chemkali Kala Shrees', subject: 'G1-G12 - Primary', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teaching Staff/Chemkala Kala Shiris.webp' },
+  { id: 't29', name: 'Dhanesh Kumar Barai', subject: 'Science (G3-G5)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Ramesh Barai.webp' },
+  { id: 't30', name: 'Sunil Ram Luhar', subject: 'Computer Science (G1-G12)', qualification: 'Bachelors', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Sunil Ram Luhar.webp' },
+  { id: 't31', name: 'Manisha Sunar', subject: 'G1-G12 - Primary', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teaching Staff/Manisha Sunar.webp' }
 ];
 
 var staffData = [
-  { id: 's1', name: 'Nawaraj Dhakal', position: 'Support Staff (Peon)', block: 'General', photo_url: 'assets/images/Staff/Nawaraj Dhakal.webp' },
-  { id: 's2', name: 'Manju Archarya', position: 'Support Staff (Peon)', block: 'General', photo_url: 'assets/images/Staff/Manju Archarya.webp' },
-  { id: 's3', name: 'Bishnu Bhandari', position: 'Accountant', block: 'General', photo_url: 'assets/images/Staff/Bishnu Bhandari.webp' },
-  { id: 's4', name: 'Laxmi BK', position: 'Support Staff (Sweeper)', block: 'General', photo_url: 'assets/images/Staff/Laxmi Bk.webp' }
+  { id: 's1', name: 'Nawaraj Dhakal', position: 'Support Staff (Peon)', block: 'General', photo_url: 'assets/images/Non Teaching Staff/Nawaraj Dhakal.webp' },
+  { id: 's2', name: 'Manju Archarya', position: 'Support Staff (Peon)', block: 'General', photo_url: 'assets/images/Non Teaching Staff/Manju Archarya.webp' },
+  { id: 's3', name: 'Bishnu Bhandari', position: 'Accountant', block: 'General', photo_url: 'assets/images/Non Teaching Staff/Bishnu Bhandari.webp' },
+  { id: 's4', name: 'Laxmi BK', position: 'Support Staff (Sweeper)', block: 'General', photo_url: 'assets/images/Non Teaching Staff/Laxmi Bk.webp' }
 ];
 
 async function seedTeachers() {

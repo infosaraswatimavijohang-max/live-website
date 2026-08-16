@@ -235,7 +235,7 @@ var App = {
     var tbEl = document.getElementById('technicalBlockDesc');
     if (tbEl) tbEl.textContent = about.technical_block || about.technicalBlock || 'Technical Block';
     var ppEl = document.getElementById('principalPhoto');
-    if (ppEl) ppEl.src = about.principal_photo || about.principalPhoto || 'assets/images/Teachers/Chhabilal Bhandari.webp';
+    if (ppEl) ppEl.src = about.principal_photo || about.principalPhoto || 'assets/images/Teaching Staff/Chhabilal Bhandari.webp';
   }); },
 
   renderStats() { return DataStore.get('STATS').then(function (stats) {
