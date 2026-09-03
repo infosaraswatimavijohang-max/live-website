@@ -2064,6 +2064,27 @@ let PERMS = null;       // [{teacherId, classId, subjectId}]
 let EXAMS = null;       // [{id,name,classIds:[],subjectMarks:{subjectId:{theoryFull,practFull,theoryPass,practPass}}}]
 let ASSIGNMENTS = null; // [{id,title,description,classId,subjectId,teacherId,dueDate,fileUrl,createdAt}]
 let NOTES = null;       // [{id,title,content,classId,subjectId,teacherId,fileUrl,createdAt}]
+let ALUMNI = { students: [], teachers: [] }; // passed-out / left-school records
+/* Lazy-loads the alumni tables into ALUMNI on first use, then caches. */
+let ALUMNI_LOADED = false;
+async function loadAlumniData(){
+  if(ALUMNI_LOADED) return ALUMNI;
+  try{
+    const sRes = await supabaseClient.from('alumni_students').select('*').order('left_on',{ascending:false});
+    const tRes = await supabaseClient.from('alumni_teachers').select('*').order('left_on',{ascending:false});
+    if(sRes.error) console.error('load alumni students failed', sRes.error);
+    if(tRes.error) console.error('load alumni teachers failed', tRes.error);
+    ALUMNI = {
+      students: sRes.error ? [] : sRes.data || [],
+      teachers: tRes.error ? [] : tRes.data || [],
+    };
+  }catch(e){
+    console.error('loadAlumniData exception', e);
+    ALUMNI = { students: [], teachers: [] };
+  }
+  ALUMNI_LOADED = true;
+  return ALUMNI;
+}
 /* Generic collapse/expand for exam blocks, teacher cards etc — uses localStorage */
 function toggleCollapse(id){
   const body = document.getElementById('collapse-body-'+id);
@@ -2450,6 +2471,7 @@ const ADMIN_NAV = [
   {id:'student-id-cards', label:'Student IDs'},
   {id:'teacher-id-cards', label:'Teacher IDs'},
   {id:'staff-id-cards', label:'Staff IDs'},
+  {id:'alumni', label:'Alumni'},
  ];
 const TEACHER_NAV_BASE = [
   {id:'my-subjects', label:'My Subjects'},
@@ -2552,6 +2574,7 @@ async function renderTab(){
     'student-id-cards':['Documents','Student ID Cards'],
     'teacher-id-cards':['Access Control','Teacher ID Cards'],
     'staff-id-cards':['Access Control','Staff ID Cards'],
+    'alumni':['Records','Alumni'],
   };
   document.getElementById('topbar-crumb').textContent = titles[currentTab][0];
   document.getElementById('topbar-title').textContent = titles[currentTab][1];
@@ -2599,6 +2622,7 @@ async function renderTab(){
   if(currentTab==='my-result') return renderMyResult();
   if(currentTab==='assignments') return renderAssignments();
   if(currentTab==='notes') return renderNotes();
+  if(currentTab==='alumni') return renderAlumni();
 }
 
 /* ================= ADMIN: OVERVIEW ================= */
@@ -2629,6 +2653,62 @@ function renderOverview(){
     </div>
   `;
 }
+
+/* ================= ADMIN: ALUMNI ================= */
+async function renderAlumni(){
+  const c = document.getElementById('content-area');
+  c.innerHTML = '<div class="empty">Loading alumni…</div>';
+  await loadAlumniData();
+  const alumniStudents = ALUMNI.students;
+  const alumniTeachers = ALUMNI.teachers;
+  const classNameOfId = id => { const cl = STRUCT.classes.find(x=>x.id===id); return cl ? cl.name : '—'; };
+  const fmtDate = d => d ? String(d).slice(0,10) : '—';
+  c.innerHTML = `
+    <div class="card no-print" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:13px;color:var(--ink-soft);">Students and staff who have passed out or left the school. Mark a person with <b>Leave School</b> from the Students / Teaching &nbsp;Staff tabs to move them here.</div>
+      <button class="btn btn-gold" onclick="renderAlumni()">⟳ Refresh</button>
+    </div>
+    <div class="grid3" style="margin-bottom:20px;">
+      <div class="stat"><div class="num">${alumniStudents.length}</div><div class="lbl">Alumni Students</div></div>
+      <div class="stat"><div class="num">${alumniTeachers.length}</div><div class="lbl">Former Staff</div></div>
+      <div class="stat"><div class="num">${alumniStudents.length + alumniTeachers.length}</div><div class="lbl">Total Alumni</div></div>
+    </div>
+    <div class="card">
+      <h3>Alumni Students</h3>
+      ${alumniStudents.length ? `
+        <table class="alumni-table">
+          <thead><tr><th>Name</th><th>Roll</th><th>Class</th><th>Left On</th><th>Contact</th></tr></thead>
+          <tbody>
+            ${alumniStudents.map(a=>`
+              <tr>
+                <td style="display:flex;align-items:center;gap:8px;">${a.photo_url ? `<img src="${esc(a.photo_url)}" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--line);">` : ''}<b>${esc(a.full_name)}</b></td>
+                <td class="mono">${esc(a.roll || '—')}</td>
+                <td>${esc(classNameOfId(a.class_id))}</td>
+                <td class="mono" style="font-size:12px;">${fmtDate(a.left_on)}</td>
+                <td style="font-size:12px;">${esc(a.guardian_contact || '—')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>` : '<div class="empty">No alumni students yet — use <b>Leave School</b> on a student to mark them as passed out.</div>'}
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h3>Former Staff</h3>
+      ${alumniTeachers.length ? `
+        <table class="alumni-table">
+          <thead><tr><th>Name</th><th>Designation</th><th>Left On</th><th>Contact</th></tr></thead>
+          <tbody>
+            ${alumniTeachers.map(a=>`
+              <tr>
+                <td style="display:flex;align-items:center;gap:8px;">${a.photo_url ? `<img src="${esc(a.photo_url)}" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--line);">` : ''}<b>${esc(a.full_name)}</b></td>
+                <td style="font-size:12px;">${esc(a.designation || '—')}${a.category === 'non-teaching' ? ' <span style="color:var(--ink-soft);font-size:10px;">(non-teaching)</span>' : ''}</td>
+                <td class="mono" style="font-size:12px;">${fmtDate(a.left_on)}</td>
+                <td style="font-size:12px;">${esc(a.phone || a.email || '—')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>` : '<div class="empty">No former staff yet — use <b>Leave School</b> on a staff member to move them here.</div>'}
+    </div>
+  `;
+}
+window.renderAlumni = renderAlumni;
 
 /* ================= ADMIN: CLASSES & SUBJECTS ================= */
 function renderClasses(){
@@ -2897,6 +2977,7 @@ function studentRowHtml(s){
         <button class="btn-edit-outline" style="margin-left:6px;" onclick="openEditStudentModal('${s.id}')">Edit</button>
         <button class="btn-danger-outline" style="margin-left:6px;" onclick="removeStudent('${s.id}')">Remove</button>
         <button class="btn-danger-outline" style="margin-left:6px;" onclick="resetStudentPassword('${s.id}')">Reset Password</button>
+        <button class="btn-danger-outline" style="margin-left:6px;" onclick="moveStudentToAlumni('${s.id}')" title="Mark as left/passed out and move to Alumni">Leave School</button>
       </td>
     </tr>`;
 }
@@ -3292,6 +3373,66 @@ async function removeStudent(id){
   await persistStructure();
   toast('Student removed'); renderStudents();
 }
+async function moveStudentToAlumni(id){
+  const s = STRUCT.students.find(x=>x.id===id);
+  if(!s) return;
+  if(!confirm(`Move ${s.name} to Alumni & remove them from the active student list? This does not delete their fee/marks history.`)) return;
+  const ok = await dbMoveStudentToAlumni(s);
+  if(!ok) return; // dbMoveStudentToAlumni already toasted the error
+  // Mirror the photo into the alumni row for immediate rendering (alumni
+  // students are shown by this tab, and their photo is NOT in the kv blob).
+  ALUMNI.students = ALUMNI.students.concat([{
+    id: null,
+    student_id: s.id,
+    full_name: s.name,
+    roll: s.roll,
+    class_id: s.classId || null,
+    emis_id: s.emisId || null,
+    dob: s.dob || null,
+    gender: s.gender || null,
+    father_name: s.fatherName || null,
+    mother_name: s.motherName || null,
+    guardian_contact: s.guardianContact || null,
+    address: s.address || null,
+    blood_group: s.bloodGroup || null,
+    photo_url: s.photo || null,
+    left_on: new Date().toISOString(),
+  }]);
+  STRUCT.students = STRUCT.students.filter(x=>x.id!==id);
+  await persistStructure();
+  toast('Moved to Alumni'); renderStudents();
+}
+async function dbMoveStudentToAlumni(s){
+  try{
+    const { data, error } = await supabaseClient
+      .from('alumni_students')
+      .insert([{
+        student_id: s.id,
+        full_name: s.name,
+        roll: s.roll,
+        class_id: s.classId || null,
+        emis_id: s.emisId || null,
+        dob: s.dob || null,
+        gender: s.gender || null,
+        father_name: s.fatherName || null,
+        mother_name: s.motherName || null,
+        guardian_contact: s.guardianContact || null,
+        address: s.address || null,
+        blood_group: s.bloodGroup || null,
+        photo_url: s.photo || null,
+        left_on: new Date().toISOString(),
+      }]).select('id').single();
+    if(error){ console.error('move student to alumni failed', error); toast('Could not move the student to Alumni (check the new alumni_students table exists).'); return false; }
+    // Now remove from the active students table + its photos.
+    await supabaseClient.from('images').delete().eq('owner_type','student').eq('owner_id', s.id);
+    const del = await supabaseClient.from('students').delete().eq('id', s.id);
+    if(del.error){ console.error('delete student after alumni move failed', del.error); toast('Moved to Alumni, but could not remove the student from the active list.'); return false; }
+    return true;
+  }catch(e){
+    console.error('dbMoveStudentToAlumni exception', e);
+    toast('Could not move the student to Alumni.'); return false;
+  }
+}
 async function resetStudentPassword(id){
   const s = STRUCT.students.find(x=>x.id===id);
   if(!s) return;
@@ -3573,6 +3714,7 @@ function renderTeachers(){
               <button class="btn-edit-outline" onclick="openTeacherDetailsModal('${t.id}')">Details</button>
               <button class="btn-edit-outline" onclick="openEditTeacherModal('${t.id}')">Edit</button>
               <button class="btn-danger-outline" onclick="removeTeacher('${t.id}')">Remove</button>
+              <button class="btn-danger-outline" onclick="moveTeacherToAlumni('${t.id}')">Leave School</button>
             </div>
           </div>
         </div>`;
@@ -3681,6 +3823,57 @@ async function removeTeacher(id){
   PERMS = PERMS.filter(p=>p.teacherId!==id);
   await persistAuth(); await sset('permissions', PERMS);
   toast('Staff account removed'); renderTeachers();
+}
+async function moveTeacherToAlumni(id){
+  const t = AUTH.teachers.find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`Move ${t.name} to Alumni & remove them from the active staff list? Their permissions will be dropped.`)) return;
+  const ok = await dbMoveTeacherToAlumni(t);
+  if(!ok) return; // dbMoveTeacherToAlumni already toasted the error
+  ALUMNI.teachers = ALUMNI.teachers.concat([{
+    id: null,
+    teacher_id: t.id,
+    full_name: t.name,
+    phone: t.phone || null,
+    email: t.email || null,
+    qualification: t.qualification || null,
+    designation: t.designation || null,
+    department: t.department || null,
+    category: t.category !== 'non-teaching' ? 'teaching' : 'non-teaching',
+    joining_date: t.joiningDate || null,
+    photo_url: t.photo || null,
+    left_on: new Date().toISOString(),
+  }]);
+  AUTH.teachers = AUTH.teachers.filter(x=>x.id!==id);
+  PERMS = PERMS.filter(p=>p.teacherId!==id);
+  await persistAuth(); await sset('permissions', PERMS);
+  toast('Moved to Alumni'); renderTeachers();
+}
+async function dbMoveTeacherToAlumni(t){
+  try{
+    const { data, error } = await supabaseClient
+      .from('alumni_teachers')
+      .insert([{
+        teacher_id: t.id,
+        full_name: t.name,
+        phone: t.phone || null,
+        email: t.email || null,
+        qualification: t.qualification || null,
+        designation: t.designation || null,
+        department: t.department || null,
+        category: t.category !== 'non-teaching' ? 'teaching' : 'non-teaching',
+        joining_date: t.joiningDate || null,
+        photo_url: t.photo || null,
+        left_on: new Date().toISOString(),
+      }]).select('id').single();
+    if(error){ console.error('move teacher to alumni failed', error); toast('Could not move the staff member to Alumni (check the new alumni_teachers table exists).'); return false; }
+    const del = await supabaseClient.from('teachers').delete().eq('id', t.id);
+    if(del.error){ console.error('delete teacher after alumni move failed', del.error); toast('Moved to Alumni, but could not remove the staff member from the active list.'); return false; }
+    return true;
+  }catch(e){
+    console.error('dbMoveTeacherToAlumni exception', e);
+    toast('Could not move the staff member to Alumni.'); return false;
+  }
 }
 /* ---- edit modal: teachers ---- */
 function openEditTeacherModal(id){
