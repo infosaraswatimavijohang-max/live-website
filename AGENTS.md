@@ -6,7 +6,7 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 
 - **Public pages**: Open any `.html` directly in a browser (no build step). Contact/about maps are static `maps.app.goo.gl` links — **not** iframes. When Supabase is unreachable, `DataStore` falls back to `sss_` localStorage, so pages still render.
 - **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:306-307`).
-- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~7800-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
+- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (7972-line file, ~6880-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
 
 ## Script load order (critical)
 
@@ -102,8 +102,9 @@ Run in Supabase SQL Editor in numeric order:
 | `sql/006_fee_management.sql` | `fee_categories`, `class_fees`, `student_fees`, `fee_collections`, `bill_sequence`, `student_discounts` + RLS |
 | `sql/007_bs_date_columns.sql` | BS date columns: `admissions.dob_bs`, `notices.date_bs`, `events.date_bs`, `students.dob_bs`, `teachers.joining_date_bs`, `assignments.due_date_bs` |
 | `sql/007_gallery_storage.sql` | Legacy — public `gallery` storage bucket + `storage.objects` RLS (no longer required; public gallery renders local `galleryData` files) |
+| `sql/008_alumni.sql` | `alumni_students`, `alumni_teachers` + `public_all` RLS |
 
-Each fee table has `public_all` RLS policy. Two other SQL files are one-time data migrations (student/teacher photo updates), not schema changes.
+Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_updates.sql`, `teacher_photo_updates.sql`) are one-time data migrations, not schema changes.
 
 ## Exam Portal (`Login_portal.html`)
 
@@ -112,7 +113,7 @@ Each fee table has `public_all` RLS policy. Two other SQL files are one-time dat
 - On every load it syncs those relational tables into an `exam_portal_kv` table (`structure` + `auth` blobs); the app reads STRUCT from that blob. Photos are deliberately stripped before persisting (`persistStructure()`), so cached rows are image-less.
 - Own auth (username/password per student/teacher), own caching (`examCache`), own column maps (`EXAM_COLUMNS` in `exam_helper.js`).
 - **STRUCT naming differs from DB columns**: classes use `name` not `class_label`, students use `name`/`roll`/`classId` not `full_name`/`school_roll_no`/`class_id`. Inline code maps between them via `EXAM_COLUMNS`.
-- Inline `<script>` is ~7800 lines — prefer targeted edits over bulk rewrites.
+- `Login_portal.html` is a ~7970-line file; the main inline `<script>` spans lines 1091–7969 (~6880 lines of JS between the tags) — prefer targeted edits over bulk rewrites. Syntax-check it by extracting that range and running `node --check`.
 
 ### Exam Portal credentials
 
@@ -128,6 +129,12 @@ Each fee table has `public_all` RLS policy. Two other SQL files are one-time dat
 - Discounts: `student_discounts` table with `discount_type` (position/category/custom), `discount_percent`, `discount_amount`, `applies_to`.
 - Privileges: admin + `designation: 'Accountant'` + class teachers (scoped to own classes).
 
+## Alumni (in `Login_portal.html`)
+
+- Admin-only **Alumni** tab lists passed-out/left-school students (`ALUMNI.students`) and former staff (`ALUMNI.teachers`). Data lives in `alumni_students` / `alumni_teachers` tables (see `sql/008_alumni.sql`), loaded lazily by `loadAlumniData()` (cached via `ALUMNI_LOADED`).
+- **Leave School** button (on each student row and staff card) calls `moveStudentToAlumni()` / `moveTeacherToAlumni()`. These COPY the row into the alumni table (with `left_on` timestamp + photo), then DELETE it from the active `students`/`teachers` table; fee/marks history is untouched. Credentials in the kv `structure`/`auth` blobs are removed when the active row is dropped.
+- The in-memory alumni rows pushed by `move*ToAlumni()` use DB-shaped field names (`full_name`, `roll`, `class_id`, `photo_url`, `left_on`) so `renderAlumni()` reads them and the DB rows consistently — not the STRUCT/AUTH-shaped names.
+
 ## Domain
 
 `saraswatisecschool.edu.np` — set in `CNAME` + canonical tag in `index.html`. Note: the `google-site-verification` meta (`index.html:16`) is still the placeholder `YOUR_GOOGLE_VERIFICATION_CODE`.
@@ -137,3 +144,4 @@ Each fee table has `public_all` RLS policy. Two other SQL files are one-time dat
 - `graphify-out/` and `.graphify_*` files are analysis artifacts, not part of the application.
 - No `.gitignore` — git tracks everything. Large generated files (e.g. `sql/teacher_photo_updates.sql` at ~12 MB) are committed.
 - `robots.txt` and `sitemap.xml` present at root.
+- Git identity is NOT configured in this repo. To commit/push, pass explicit identity on each command, e.g. `git -c user.name="Amit Rajbanshi" -c user.email="infosaraswatimavijohang@gmail.com" commit -m "..."` (repo commits use this author).
