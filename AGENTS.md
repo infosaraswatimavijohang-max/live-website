@@ -11,13 +11,16 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 ## Script load order (critical)
 
 ```
-supabase.js → cache.js → data.js → main.js (or admin.js)
+supabase.js → cache.js → data.js → [bs_calendar.js] → main.js (or admin.js)
 ```
 
-- `index.html` loads all four with `defer` — the only page that does.
-- `about.html`, `admissions.html`, `contact.html`, `admin.html` load all four **synchronously** at end of `<body>` (`admin.html` ends with `admin.js` instead of `main.js`).
+`bs_calendar.js` is loaded by `index.html`, `admin.html`, and `Login_portal.html` — it provides AD↔BS conversion and auto-decorates `<input type="date">` with BS spans.
+
+- `index.html` loads all five with `defer`.
+- `about.html`, `admissions.html`, `contact.html` load four scripts **synchronously** at end of `<body>` (no `bs_calendar.js`).
+- `admin.html` loads five scripts synchronously (`...admin.js` instead of `main.js`).
 - **Exception**: `notices.html` loads only `supabase.js + cache.js + data.js` (no `main.js`) with an inline fetch script using `DataStore` + `ANNUAL_PLAN` directly.
-- `Login_portal.html` loads only `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js` + `js/exam_helper.js`.
+- `Login_portal.html` loads `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js` + `js/exam_helper.js` + `js/bs_calendar.js`.
 
 ## Data architecture
 
@@ -31,7 +34,7 @@ supabase.js → cache.js → data.js → main.js (or admin.js)
 ## Auto-seed (`seedData` in `js/data.js`)
 
 Fires on **both** triggers:
-1. `window.onload` in `data.js:719-725` (runs on every public page load)
+1. `window.onload` in `data.js:730-736` (runs on every public page load)
 2. Admin login (`admin.js:16`) calls `seedData()` after auth check
 
 Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. If absent → seeds site_settings, slides, and about first, then teachers/staff/gallery.

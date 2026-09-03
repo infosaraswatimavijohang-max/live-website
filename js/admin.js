@@ -244,7 +244,7 @@ const Admin = {
     var photo = about.principal_photo || about.principalPhoto;
     if (photo) {
       var preview = document.getElementById('principalPhotoPreview');
-      if (preview) preview.innerHTML = '<img src="' + photo + '" alt="Principal">';
+      if (preview) preview.innerHTML = '<img src="' + photo + '" alt="Head Teacher">';
     }
   },
 

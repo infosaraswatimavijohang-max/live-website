@@ -217,7 +217,7 @@ var App = {
     about = about || {};
     var settings = App._settings || {};
     var estEl = document.getElementById('establishedDate');
-    if (estEl) estEl.textContent = settings.established || '2016 Bhadra 16';
+    if (estEl) estEl.textContent = settings.established || '2016 BS 17th Bhadra';
     var histEl = document.getElementById('aboutHistory');
     if (histEl) histEl.textContent = about.history || 'Shree Saraswati Secondary School is committed to providing quality education.';
     var visEl = document.getElementById('aboutVision');
@@ -227,7 +227,7 @@ var App = {
     var valEl = document.getElementById('aboutValues');
     if (valEl) valEl.textContent = about.values || 'Integrity, Excellence, Innovation.';
     var pnEl = document.getElementById('principalName');
-    if (pnEl) pnEl.textContent = about.principal_name || about.principalName || 'Principal';
+    if (pnEl) pnEl.textContent = about.principal_name || about.principalName || 'Head Teacher';
     var pmEl = document.getElementById('principalMessage');
     if (pmEl) pmEl.textContent = about.principal_message || about.principalMessage || 'Welcome to our school.';
     var gbEl = document.getElementById('generalBlockDesc');
@@ -235,7 +235,7 @@ var App = {
     var tbEl = document.getElementById('technicalBlockDesc');
     if (tbEl) tbEl.textContent = about.technical_block || about.technicalBlock || 'Technical Block';
     var ppEl = document.getElementById('principalPhoto');
-    if (ppEl) ppEl.src = about.principal_photo || about.principalPhoto || 'assets/images/Teaching Staff/Chhabilal Bhandari.webp';
+    if (ppEl) ppEl.src = about.principal_photo || about.principalPhoto || 'assets/images/Teaching Staff/Man Bahadur Thapa.webp';
   }); },
 
   renderStats() { return DataStore.get('STATS').then(function (stats) {

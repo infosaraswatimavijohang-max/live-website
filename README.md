@@ -10,7 +10,7 @@ Static HTML/CSS/JS — no build process. Data via Supabase REST API + localStora
 | Page | Purpose |
 |------|---------|
 | `index.html` | Home: hero, about, stats, notice board, annual calendar, programs, teachers/staff, gallery, events, testimonials |
-| `about.html` | School history, vision, mission, principal message, stats |
+| `about.html` | School history, vision, mission, head teacher message, stats |
 | `admissions.html` | Online 6-step admission form with file uploads |
 | `contact.html` | Address, phone, Google Maps, inquiry form |
 | `notices.html` | Notice board with monthly events from annual work plan |

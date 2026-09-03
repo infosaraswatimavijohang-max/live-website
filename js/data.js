@@ -299,7 +299,7 @@ async function seedData() {
   const settings = {
     schoolName: 'Shree Saraswati Secondary School',
     tagline: '\u0936\u093f\u0915\u094d\u0937\u093e \u0928\u0948 \u0938\u0936\u0915\u094d\u0924\u093f\u0915\u0930\u0923',
-    established: '2016 Bhadra 16',
+    established: '2016 BS 17th Bhadra',
     address: 'Satyawati-6, Johang, Gulmi, Lumbini Province',
     phone: '+977-9857062876',
     email: 'infosaraswatimavijohang@gmail.com',
@@ -319,13 +319,13 @@ async function seedData() {
     ]);
 
     await supabase.upsert('about', { id: 1,
-      history: 'We started our journey in 2016 B.S. with a simple but powerful dream: to bring quality education to the children of Gulmi.',
+      history: 'We started our journey on 17th Bhadra, 2016 B.S. with a simple but powerful dream: to bring quality education to the children of Gulmi.',
       vision: 'To be a center of excellence in education.',
       mission: 'To provide quality education that empowers students.',
       values: 'Excellence, Integrity, Growth, Leadership, and Community.',
-      principal_name: 'Mr. Chhabilal Bhandari',
+      principal_name: 'Mr. Man Bahadur Thapa',
       principal_message: 'Dear Students, Parents, and Well-wishers.',
-      principal_photo: 'assets/images/Teaching Staff/Chhabilal Bhandari.webp',
+      principal_photo: 'assets/images/Teaching Staff/Man Bahadur Thapa.webp',
       general_block: 'Our General Block offers comprehensive education from ECD through Grade 12.',
       technical_block: 'Our Technical Block offers Computer Engineering education for Grade 9-12.'
     });
@@ -379,13 +379,12 @@ var teacherData = [
   { id: 't12', name: 'Bhojraj Dhakal', subject: 'English (G3, G4, G5)', qualification: 'Intermediate or +2', block: 'General', photo_url: 'assets/images/Teaching Staff/Bhojraj Dhakal.webp' },
   { id: 't13', name: 'Devi Kumari Thapa', subject: 'Nepali (T9, T10, T11, T12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Devi KUmari Thapa.webp' },
   { id: 't14', name: 'Santosh Basnet', subject: 'Chemistry (T9, T10, T11, T12)', qualification: 'Masters', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Santosh Basnet.webp' },
-  { id: 't15', name: 'Man Bahadur Thapa', subject: 'Social Studies & Human Value Education (G9, G10, G11, G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Man Bahadur Thapa.webp' },
+  { id: 't15', name: 'Man Bahadur Thapa', subject: 'Social Studies & Human Value Education (G9, G10, G11, G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Man Bahadur Thapa.webp', designation: 'Head Teacher' },
   { id: 't16', name: 'Surendra Prasad Poudel', subject: 'English (G1-G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Surendra kumar Paudel.webp' },
   { id: 't17', name: 'Denim Kumar Ale', subject: 'Computer Science (G7, G9-G10)', qualification: 'Bsc.CSIT', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Danim Kumar Ale.webp' },
   { id: 't18', name: 'Shristi Bhandari', subject: 'Computer Education (G2, G5, G7, G8, G9)', qualification: 'Intermediate or +2', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Shristi Bhandari.webp' },
   { id: 't19', name: 'Chitra Bahadur Tharu', subject: 'Mathematics (T9, T10, T11, T12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Chitra Bahadur Tharu.webp' },
-  { id: 't20', name: 'Chhabilal Bhandari', subject: 'Science & Technology (G10)', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Chhabilal Bhandari.webp', designation: 'Head Teacher' },
-  { id: 't22', name: 'Hem Raj Timilsina', subject: 'Nepali (G8, G11, G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Hemraj Timilsina.webp' },
+  { id: 't20', name: 'Hem Raj Timilsina', subject: 'Nepali (G8, G11, G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Hemraj Timilsina.webp' },
   { id: 't23', name: 'Mahesh Paudel', subject: 'Nepali (G9, G10, G11, G12)', qualification: 'Masters', block: 'General', photo_url: 'assets/images/Teaching Staff/Mahesh Paudel.webp' },
   { id: 't24', name: 'Indira Pulami', subject: 'Nepali (G6, G7, G11, G12)', qualification: 'Bachelors', block: 'General', photo_url: 'assets/images/Teaching Staff/Indra Pulami.webp' },
   { id: 't25', name: 'Lelin Kumar Regmi', subject: 'Computer (T9, T10, T11, T12)', qualification: 'Bachelors', block: 'Technical', photo_url: 'assets/images/Teaching Staff/Lelin Kumar Regmi.jpeg' },
@@ -513,17 +512,17 @@ var ANNUAL_PLAN = {
     {"date":"From 21st","activity":"Commencement of regular classes","responsible":"All Teachers","remarks":""},
     {"date":"From 15th","activity":"Student registration and record updating","responsible":"Class Teachers","remarks":""},
     {"date":"25th","activity":"Formation/Reorganization of Nepal Junior Red Cross, Child Club, Scout, Eco Club and House Division","responsible":"ECA Coordinator","remarks":""},
-    {"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},
+    {"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Head Teacher","remarks":""},
     {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}
   ],
   "Jestha": [
-    {"date":"1st","activity":"Felicitation for SEE graduates and teachers of Grades 5, 8, 10","responsible":"Principal / Teachers","remarks":""},
+    {"date":"1st","activity":"Felicitation for SEE graduates and teachers of Grades 5, 8, 10","responsible":"Head Teacher / Teachers","remarks":""},
     {"date":"Within 7th","activity":"Update IEMIS","responsible":"IEMIS Focal Teacher","remarks":""},
     {"date":"8th","activity":"Speech Competition (Grades 6-8 and 9-12)","responsible":"ECA Coordinator","remarks":""},
     {"date":"From 18th","activity":"Remedial classes in English, Mathematics and Science for Grades 8 and 10","responsible":"Subject Teachers","remarks":""},
     {"date":"22nd","activity":"Drawing (Grades 1-3) and Inter-house Quiz (Grades 4-12)","responsible":"ECA Coordinator","remarks":""},
-    {"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Principal","remarks":""},
-    {"date":"-","activity":"Preparation of School Improvement Plan (SIP)","responsible":"Principal / SMC","remarks":""},
+    {"date":"31st","activity":"Teachers and Staff Meeting","responsible":"Head Teacher","remarks":""},
+    {"date":"-","activity":"Preparation of School Improvement Plan (SIP)","responsible":"Head Teacher / SMC","remarks":""},
     {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""}
   ],
   "Ashadh": [
@@ -535,11 +534,11 @@ var ANNUAL_PLAN = {
     {"date":"32nd","activity":"Tree plantation, flower garden and cleanliness program","responsible":"Eco Club","remarks":""}
   ],
   "Shrawan": [
-    {"date":"1st","activity":"Results, prize distribution, analysis and staff meeting","responsible":"Exam Committee / Principal","remarks":""},
+    {"date":"1st","activity":"Results, prize distribution, analysis and staff meeting","responsible":"Exam Committee / Head Teacher","remarks":""},
     {"date":"4th-20th","activity":"Annual vacation","responsible":"-","remarks":""},
     {"date":"21st-22nd","activity":"Local holiday","responsible":"-","remarks":""},
     {"date":"29th","activity":"Nepali Handwriting (1-3), English Handwriting (4-8), English Essay (9-12)","responsible":"ECA Coordinator","remarks":""},
-    {"date":"31st","activity":"Staff meeting","responsible":"Principal","remarks":""},
+    {"date":"31st","activity":"Staff meeting","responsible":"Head Teacher","remarks":""},
     {"date":"-","activity":"Submission of property details","responsible":"Accountant / Admin Section","remarks":""}
   ],
   "Bhadra": [
@@ -549,14 +548,14 @@ var ANNUAL_PLAN = {
     {"date":"25th","activity":"Social Audit","responsible":"SMC / Accountant","remarks":""},
     {"date":"29th","activity":"Children's Day and Child Rights program","responsible":"Child Club","remarks":""},
     {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""},
-    {"date":"31st","activity":"Staff meeting","responsible":"Principal","remarks":""}
+    {"date":"31st","activity":"Staff meeting","responsible":"Head Teacher","remarks":""}
   ],
   "Ashwin": [
-    {"date":"2nd","activity":"National Education Day","responsible":"Principal","remarks":""},
+    {"date":"2nd","activity":"National Education Day","responsible":"Head Teacher","remarks":""},
     {"date":"9th","activity":"English Spelling Contest","responsible":"English Subject Teacher","remarks":""},
     {"date":"16th","activity":"Mathematical Race/Musical Chair","responsible":"Math Teacher / ECA Coordinator","remarks":""},
     {"date":"23rd","activity":"Compost Pit (Eco Club)","responsible":"Eco Club","remarks":""},
-    {"date":"23rd","activity":"Staff meeting and Dashain greetings","responsible":"Principal","remarks":""},
+    {"date":"23rd","activity":"Staff meeting and Dashain greetings","responsible":"Head Teacher","remarks":""},
     {"date":"25th-31st","activity":"Dashain vacation","responsible":"-","remarks":""}
   ],
   "Kartik": [
@@ -565,14 +564,14 @@ var ANNUAL_PLAN = {
     {"date":"11th-15th","activity":"Teacher educational tour","responsible":"Tour Committee","remarks":""},
     {"date":"23rd-26th","activity":"Tihar vacation","responsible":"-","remarks":""},
     {"date":"27th","activity":"Public holiday","responsible":"-","remarks":""},
-    {"date":"30th","activity":"Staff meeting","responsible":"Principal","remarks":""}
+    {"date":"30th","activity":"Staff meeting","responsible":"Head Teacher","remarks":""}
   ],
   "Mangsir": [
     {"date":"4th","activity":"Inter-house athletics","responsible":"Sports Committee","remarks":""},
     {"date":"11th-23rd","activity":"Second Terminal (4-10), First Terminal (11-12)","responsible":"Exam Committee","remarks":""},
-    {"date":"25th","activity":"Results and prize distribution","responsible":"Exam Committee / Principal","remarks":""},
+    {"date":"25th","activity":"Results and prize distribution","responsible":"Exam Committee / Head Teacher","remarks":""},
     {"date":"26th-29th","activity":"Sports Week","responsible":"Sports Committee","remarks":""},
-    {"date":"29th","activity":"Staff meeting","responsible":"Principal","remarks":""}
+    {"date":"29th","activity":"Staff meeting","responsible":"Head Teacher","remarks":""}
   ],
   "Poush": [
     {"date":"1st-2nd","activity":"Sports Week","responsible":"Sports Committee","remarks":""},
@@ -586,21 +585,21 @@ var ANNUAL_PLAN = {
   "Magh": [
     {"date":"8th","activity":"Inter-Secondary School Quiz","responsible":"ECA Coordinator","remarks":""},
     {"date":"11th-21st","activity":"Pre-board (5, 8, 10) and Second Terminal (11-12)","responsible":"Exam Committee","remarks":""},
-    {"date":"22nd","activity":"Results and parent interaction","responsible":"Class Teachers / Principal","remarks":""},
+    {"date":"22nd","activity":"Results and parent interaction","responsible":"Class Teachers / Head Teacher","remarks":""},
     {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""},
-    {"date":"29th","activity":"Textbook Quiz and staff meeting","responsible":"Subject Teachers / Principal","remarks":""}
+    {"date":"29th","activity":"Textbook Quiz and staff meeting","responsible":"Subject Teachers / Head Teacher","remarks":""}
   ],
   "Falgun": [
     {"date":"4th","activity":"Inter-Basic School Solo Dance","responsible":"ECA Coordinator","remarks":""},
     {"date":"Last Wed & Thu","activity":"Monthly Class Test","responsible":"Subject Teachers / Exam Committee","remarks":""},
-    {"date":"30th","activity":"Staff meeting","responsible":"Principal","remarks":""}
+    {"date":"30th","activity":"Staff meeting","responsible":"Head Teacher","remarks":""}
   ],
   "Chaitra": [
     {"date":"1st-11th","activity":"Pre-board (11-12)","responsible":"Exam Committee","remarks":""},
     {"date":"As per NEB schedule","activity":"SEE Examination","responsible":"NEB / Exam Committee","remarks":""},
     {"date":"15th-23rd","activity":"Annual Examination","responsible":"Exam Committee","remarks":""},
-    {"date":"30th","activity":"Results, prize distribution and analysis","responsible":"Exam Committee / Principal","remarks":""},
-    {"date":"-","activity":"Preparation of next Annual Work Plan, Academic Calendar, Improvement and Training Plans","responsible":"Principal / SMC","remarks":""}
+    {"date":"30th","activity":"Results, prize distribution and analysis","responsible":"Exam Committee / Head Teacher","remarks":""},
+    {"date":"-","activity":"Preparation of next Annual Work Plan, Academic Calendar, Improvement and Training Plans","responsible":"Head Teacher / SMC","remarks":""}
   ]
 };
 var MONTH_ORDER = ['Baisakh','Jestha','Ashadh','Shrawan','Bhadra','Ashwin','Kartik','Mangsir','Poush','Magh','Falgun','Chaitra'];
