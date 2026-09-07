@@ -6,7 +6,7 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 
 - **Public pages**: Open any `.html` directly in a browser (no build step). Contact/about maps are static `maps.app.goo.gl` links — **not** iframes. When Supabase is unreachable, `DataStore` falls back to `sss_` localStorage, so pages still render.
 - **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:306-307`).
-- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (7972-line file, ~6880-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
+- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (7977-line file, ~6880-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
 
 ## Script load order (critical)
 
@@ -21,6 +21,10 @@ supabase.js → cache.js → data.js → [bs_calendar.js] → main.js (or admin.
 - `admin.html` loads five scripts synchronously (`...admin.js` instead of `main.js`).
 - **Exception**: `notices.html` loads only `supabase.js + cache.js + data.js` (no `main.js`) with an inline fetch script using `DataStore` + `ANNUAL_PLAN` directly.
 - `Login_portal.html` loads `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js` + `js/exam_helper.js` + `js/bs_calendar.js`.
+
+## Verification
+
+There is no test/lint/CI. The only syntax check is `node --check`: for `Login_portal.html` (and other big inline `<script>` blocks), extract the range between `<script>` / `</script>` and run `node --check` on it.
 
 ## Data architecture
 
@@ -113,7 +117,7 @@ Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_
 - On every load it syncs those relational tables into an `exam_portal_kv` table (`structure` + `auth` blobs); the app reads STRUCT from that blob. Photos are deliberately stripped before persisting (`persistStructure()`), so cached rows are image-less.
 - Own auth (username/password per student/teacher), own caching (`examCache`), own column maps (`EXAM_COLUMNS` in `exam_helper.js`).
 - **STRUCT naming differs from DB columns**: classes use `name` not `class_label`, students use `name`/`roll`/`classId` not `full_name`/`school_roll_no`/`class_id`. Inline code maps between them via `EXAM_COLUMNS`.
-- `Login_portal.html` is a ~7970-line file; the main inline `<script>` spans lines 1091–7969 (~6880 lines of JS between the tags) — prefer targeted edits over bulk rewrites. Syntax-check it by extracting that range and running `node --check`.
+- `Login_portal.html` is a ~7980-line file; the main inline `<script>` spans lines 1096–7973 (~6880 lines of JS between the tags) — prefer targeted edits over bulk rewrites. Syntax-check it by extracting that range and running `node --check`.
 
 ### Exam Portal credentials
 
@@ -144,4 +148,4 @@ Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_
 - `graphify-out/` and `.graphify_*` files are analysis artifacts, not part of the application.
 - No `.gitignore` — git tracks everything. Large generated files (e.g. `sql/teacher_photo_updates.sql` at ~12 MB) are committed.
 - `robots.txt` and `sitemap.xml` present at root.
-- Git identity is NOT configured in this repo. To commit/push, pass explicit identity on each command, e.g. `git -c user.name="Amit Rajbanshi" -c user.email="infosaraswatimavijohang@gmail.com" commit -m "..."` (repo commits use this author).
+- Git identity is NOT configured (no local or global `user.name`/`user.email`). Pass explicit identity on each commit so it matches repo history (`Amit Rajbanshi` / `infosaraswatimavijohang@gmail.com`), e.g. `git -c user.name="Amit Rajbanshi" -c user.email="infosaraswatimavijohang@gmail.com" commit -m "..."`.

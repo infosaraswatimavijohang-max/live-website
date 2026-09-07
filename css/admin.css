@@ -337,14 +337,15 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
+  .sidebar { transform: translateX(-100%); padding-top: env(safe-area-inset-top); }
   .sidebar.show { transform: translateX(0); }
-  .main-content { margin-left: 0; }
+  .main-content { margin-left: 0; padding-bottom: env(safe-area-inset-bottom); }
   .form-grid { grid-template-columns: 1fr; }
   .items-grid, .gallery-grid, .testimonials-grid { grid-template-columns: repeat(2, 1fr); }
+  #loginForm input, .form-group input, .form-group select { font-size: 16px; }
 }
 @media (max-width: 480px) {
   .items-grid, .gallery-grid, .testimonials-grid { grid-template-columns: 1fr; }
-  .top-bar { padding: 10px 14px; }
+  .top-bar { padding: 10px 14px; padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
   .top-left h1 { font-size: 0.9rem; }
 }
