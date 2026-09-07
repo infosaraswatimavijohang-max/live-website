@@ -320,11 +320,11 @@ async function seedData() {
 
     await supabase.upsert('about', { id: 1,
       history: 'We started our journey on 17th Bhadra, 2016 B.S. with a simple but powerful dream: to bring quality education to the children of Gulmi.',
-      vision: 'To be a center of excellence in education.',
-      mission: 'To provide quality education that empowers students.',
-      values: 'Excellence, Integrity, Growth, Leadership, and Community.',
+      vision: 'To be a recognized leader in technical and vocational education that produces competent, innovative, and globally competitive professionals. Empowering students to drive economic growth and adapt to changing industry technologies.',
+      mission: 'To provide high-quality, hands-on training that bridges the gap between education and employment. Equipping learners with practical skills, fostering entrepreneurship, and meeting the specific needs of local and global labor markets.',
+      values: 'Quality: Maintaining high standards in teaching, tools, and student performance.\nInclusivity: Offering equal access, fair treatment, and support for all diverse and marginalized learners.\nIntegrity: Acting with honesty, accountability, and strong professional ethics.\nInnovation: Encouraging creative thinking, modern digital tools, and problem-solving.\nCollaboration: Building strong partnerships with local businesses and industries to secure jobs for graduates.',
       principal_name: 'Mr. Man Bahadur Thapa',
-      principal_message: 'Dear Students, Parents, and Well-wishers.',
+      principal_message: 'Dear Students, Parents, and Well-wishers, it is my privilege to welcome you to Shree Saraswati Secondary School, where general and technical education go hand in hand. With a dedicated team of teachers and staff, we are committed to quality education that builds strong character, practical skills, and a lifelong love of learning. I believe every child can succeed when supported by caring teachers and engaged families, and I look forward to working together to help each student reach their full potential.',
       principal_photo: 'assets/images/Teaching Staff/Man Bahadur Thapa.webp',
       general_block: 'Our General Block offers comprehensive education from ECD through Grade 12.',
       technical_block: 'Our Technical Block offers Computer Engineering education for Grade 9-12.'

@@ -148,11 +148,12 @@ img{max-width:100%;height:auto;display:block}
 .about-card{display:flex;gap:16px;padding:20px 24px;background:var(--bg);border-radius:var(--radius-lg);border:1px solid var(--border)}
 .about-card i{font-size:1.25rem;color:var(--teal);margin-top:3px;width:28px;flex-shrink:0}
 .about-card h3{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:4px}
-.about-card p{font-size:0.875rem;color:var(--text-muted);line-height:1.55}
+.about-card p{font-size:0.875rem;color:var(--text-muted);line-height:1.55;white-space:pre-line}
 .principal-spotlight{padding:32px;background:var(--teal-ghost);border-radius:var(--radius-lg);border:1px solid oklch(0.55 0.12 175 / 0.12)}
 .principal-spotlight img{width:120px;height:120px;border-radius:50%;object-fit:cover;margin-bottom:16px;border:3px solid var(--surface)}
 .principal-spotlight blockquote{font-size:0.9375rem;font-style:italic;color:var(--text);line-height:1.7;margin-bottom:12px}
 .principal-spotlight cite{font-weight:700;color:var(--navy);font-style:normal;font-size:0.875rem}
+.principal-spotlight .principal-role{display:block;margin-top:2px;font-size:0.6875rem;font-weight:700;color:var(--teal);letter-spacing:0.6px;text-transform:uppercase}
 .blocks-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:48px}
 .block-card{position:relative;border-radius:var(--radius-lg);overflow:hidden;background:var(--navy)}
 .block-card img{width:100%;height:240px;object-fit:cover;opacity:0.6}

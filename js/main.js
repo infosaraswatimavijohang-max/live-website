@@ -214,6 +214,7 @@ var App = {
   },
 
   renderAbout() { return DataStore.get('ABOUT').then(function (about) {
+    if (Array.isArray(about)) about = about[0] || null;
     about = about || {};
     var settings = App._settings || {};
     var estEl = document.getElementById('establishedDate');
@@ -221,15 +222,15 @@ var App = {
     var histEl = document.getElementById('aboutHistory');
     if (histEl) histEl.textContent = about.history || 'Shree Saraswati Secondary School is committed to providing quality education.';
     var visEl = document.getElementById('aboutVision');
-    if (visEl) visEl.textContent = about.vision || 'To be a center of excellence.';
+    if (visEl) visEl.textContent = about.vision || 'To be a recognized leader in technical and vocational education that produces competent, innovative, and globally competitive professionals. Empowering students to drive economic growth and adapt to changing industry technologies.';
     var missEl = document.getElementById('aboutMission');
-    if (missEl) missEl.textContent = about.mission || 'To provide quality education.';
+    if (missEl) missEl.textContent = about.mission || 'To provide high-quality, hands-on training that bridges the gap between education and employment. Equipping learners with practical skills, fostering entrepreneurship, and meeting the specific needs of local and global labor markets.';
     var valEl = document.getElementById('aboutValues');
-    if (valEl) valEl.textContent = about.values || 'Integrity, Excellence, Innovation.';
+    if (valEl) valEl.textContent = about.values || 'Quality: Maintaining high standards in teaching, tools, and student performance.\nInclusivity: Offering equal access, fair treatment, and support for all diverse and marginalized learners.\nIntegrity: Acting with honesty, accountability, and strong professional ethics.\nInnovation: Encouraging creative thinking, modern digital tools, and problem-solving.\nCollaboration: Building strong partnerships with local businesses and industries to secure jobs for graduates.';
     var pnEl = document.getElementById('principalName');
-    if (pnEl) pnEl.textContent = about.principal_name || about.principalName || 'Head Teacher';
+    if (pnEl) pnEl.textContent = about.principal_name || about.principalName || 'Mr. Man Bahadur Thapa';
     var pmEl = document.getElementById('principalMessage');
-    if (pmEl) pmEl.textContent = about.principal_message || about.principalMessage || 'Welcome to our school.';
+    if (pmEl) pmEl.textContent = about.principal_message || about.principalMessage || 'Dear Students, Parents, and Well-wishers, it is my privilege to welcome you to Shree Saraswati Secondary School, where general and technical education go hand in hand. With a dedicated team of teachers and staff, we are committed to quality education that builds strong character, practical skills, and a lifelong love of learning. I believe every child can succeed when supported by caring teachers and engaged families, and I look forward to working together to help each student reach their full potential.';
     var gbEl = document.getElementById('generalBlockDesc');
     if (gbEl) gbEl.textContent = about.general_block || about.generalBlock || 'General Block';
     var tbEl = document.getElementById('technicalBlockDesc');

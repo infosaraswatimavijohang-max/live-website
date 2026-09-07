@@ -232,7 +232,9 @@ const Admin = {
   },
 
   async loadAbout() {
-    var about = await DataStore.get('ABOUT') || {};
+    var about = await DataStore.get('ABOUT');
+    if (Array.isArray(about)) about = about[0] || null;
+    about = about || {};
     setVal('aboutHistory', about.history || '');
     setVal('aboutVision', about.vision || '');
     setVal('aboutMission', about.mission || '');
