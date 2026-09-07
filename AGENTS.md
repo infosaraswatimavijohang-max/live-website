@@ -6,7 +6,7 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 
 - **Public pages**: Open any `.html` directly in a browser (no build step). Contact/about maps are static `maps.app.goo.gl` links — **not** iframes. When Supabase is unreachable, `DataStore` falls back to `sss_` localStorage, so pages still render.
 - **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:306-307`).
-- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (7977-line file, ~6880-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
+- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~8100-line file, ~6990-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
 
 ## Script load order (critical)
 
@@ -107,6 +107,7 @@ Run in Supabase SQL Editor in numeric order:
 | `sql/007_bs_date_columns.sql` | BS date columns: `admissions.dob_bs`, `notices.date_bs`, `events.date_bs`, `students.dob_bs`, `teachers.joining_date_bs`, `assignments.due_date_bs` |
 | `sql/007_gallery_storage.sql` | Legacy — public `gallery` storage bucket + `storage.objects` RLS (no longer required; public gallery renders local `galleryData` files) |
 | `sql/008_alumni.sql` | `alumni_students`, `alumni_teachers` + `public_all` RLS |
+| `sql/009_exam_documents.sql` | `exam_documents` table + `exam_documents` storage bucket & RLS (for exported ledgers/gradesheets) |
 
 Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_updates.sql`, `teacher_photo_updates.sql`) are one-time data migrations, not schema changes.
 
@@ -116,8 +117,9 @@ Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_
 - Separate DB tables: `classes, subjects, teachers, students, exams, marks, images, assignments, notes`.
 - On every load it syncs those relational tables into an `exam_portal_kv` table (`structure` + `auth` blobs); the app reads STRUCT from that blob. Photos are deliberately stripped before persisting (`persistStructure()`), so cached rows are image-less.
 - Own auth (username/password per student/teacher), own caching (`examCache`), own column maps (`EXAM_COLUMNS` in `exam_helper.js`).
+- **Export to Supabase storage**: the Class Ledger and Gradesheet views have a **Export** button (`exportLedgerNow()` / `exportGradesheetNow()` in the inline script). It archives the rendered document as a self-contained HTML file (all app `<style>` blocks inlined, `.no-print` chrome stripped, `@media print` rules dropped) into the `exam_documents` storage bucket under `YYYY-MM-DD/<ledgers|gradesheets>/<exam>-<class>[-<student>]-<ts>.html`, then records a row in the `exam_documents` table (see `sql/009_exam_documents.sql`). Export context is set by `GS_EXPORT_CTX`/`CL_EXPORT_CTX` inside `buildGradesheetHTML()`/`buildClassLedgerHTML()`.
 - **STRUCT naming differs from DB columns**: classes use `name` not `class_label`, students use `name`/`roll`/`classId` not `full_name`/`school_roll_no`/`class_id`. Inline code maps between them via `EXAM_COLUMNS`.
-- `Login_portal.html` is a ~7980-line file; the main inline `<script>` spans lines 1096–7973 (~6880 lines of JS between the tags) — prefer targeted edits over bulk rewrites. Syntax-check it by extracting that range and running `node --check`.
+- `Login_portal.html` is a ~8100-line file; the main inline `<script>` spans lines 1097–8082 (~6990 lines of JS between the tags) — prefer targeted edits over bulk rewrites. Syntax-check it by extracting that range and running `node --check`.
 
 ### Exam Portal credentials
 

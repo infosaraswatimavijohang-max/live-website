@@ -56,6 +56,7 @@ Run in Supabase SQL Editor in order:
 | `sql/002_required_columns.sql` | Required column additions |
 | `sql/004_assignments_notes_queries.sql` | Assignments, notes, queries |
 | `sql/006_fee_management.sql` | Fee tables: `fee_categories`, `class_fees`, `student_fees`, `fee_collections`, `bill_sequence`, `student_discounts` + RLS policies |
+| `sql/009_exam_documents.sql` | `exam_documents` table + storage bucket & RLS for exported ledgers/gradesheets |
 
 ## Exam Portal (`Login_portal.html`)
 - Uses supabase-js v2 from CDN (different stack from public site)

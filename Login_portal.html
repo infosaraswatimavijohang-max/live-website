@@ -4821,6 +4821,7 @@ async function buildGradesheetHTML(examId, studentId){
   const gsInstanceId = 'gs-inst-' + (++GS_INSTANCE_COUNTER);
   const ex = EXAMS.find(e=>e.id===examId);
   const student = STRUCT.students.find(s=>s.id===studentId);
+  GS_EXPORT_CTX = { examId, studentId, classId: student.classId };
   // Ranks need every student in this class, so fetch marks scoped to the
   // class once and reuse it below for both this student's row and the
   // rank calculations — rather than each of those independently querying
@@ -5021,11 +5022,117 @@ async function buildGradesheetHTML(examId, studentId){
       </div>
       <div class="no-print" style="text-align:center;margin-top:20px;">
         <button class="btn btn-gold" onclick="printGradesheetNow()">Print Gradesheet</button>
+        <button class="btn btn-outline" id="gs-export-btn" onclick="exportGradesheetNow()" title="Save this gradesheet to Supabase storage for future use">💾 Export</button>
         <div style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;">Tip: in the print dialog, open <b>More settings</b> and make sure <b>Background graphics</b> is turned on — otherwise the school logo watermark and colored headers may not print. The zoom level above is only for on-screen viewing — printing always uses the correct full page scale automatically.</div>
       </div>
     </div>
   `;
 }
+
+/* ================= EXPORT GRADESHEET / CLASS LEDGER TO SUPABASE =================
+   Archives the currently rendered document as a self-contained .html file (all
+   app styles inlined) into the `exam_documents` storage bucket, and records the
+   file in the `exam_documents` table for future retrieval. Requires
+   sql/009_exam_documents.sql. On-screen controls (.no-print) are stripped from
+   the archived copy and @media print rules are dropped, so opening or printing
+   the saved file later stays predictable. */
+let GS_EXPORT_CTX = null, CL_EXPORT_CTX = null;   // set by the *HTML builders above
+
+function exportDocSlug(str){
+  return String(str || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60) || 'untitled';
+}
+function exportDocEscape(str){
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function collectAppCss(){
+  let css = '';
+  document.querySelectorAll('style').forEach(st => { if(st.textContent) css += st.textContent + '\n'; });
+  return css;
+}
+// Removes every `@media print { ... }` block (nested braces handled) so the
+// portal's global "hide everything except .bill-print-area / .admit-card"
+// print rules can't wipe out the archived document when it's printed later.
+function stripPrintMedia(css){
+  let out = '', i = 0;
+  while(i < css.length){
+    const at = css.indexOf('@media', i);
+    if(at === -1){ out += css.slice(i); break; }
+    out += css.slice(i, at);
+    const lb = css.indexOf('{', at);
+    if(lb === -1){ out += css.slice(at); break; }
+    const pre = css.slice(at + 6, lb);
+    if(/\bprint\b/.test(pre)){
+      let depth = 0, k = lb;
+      for(; k < css.length; k++){
+        if(css[k] === '{') depth++;
+        else if(css[k] === '}'){ depth--; if(depth === 0){ k++; break; } }
+      }
+      i = k;
+    } else { i = lb; }
+  }
+  return out;
+}
+function exportablePrintHtml(){
+  const clone = document.getElementById('print-area').cloneNode(true);
+  clone.querySelectorAll('.no-print').forEach(el => el.remove());
+  return clone.innerHTML;
+}
+function standaloneDocHtml(title, bodyHtml){
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+    + '<title>' + exportDocEscape(title) + '</title>\n'
+    + '<style>' + stripPrintMedia(collectAppCss()) + '\n'
+    + '@media print{body{background:#fff !important;padding:0 !important;'
+    + '-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}}'
+    + '</style>\n</head>\n'
+    + '<body style="background:#e9ebf1;padding:24px;">' + bodyHtml + '</body>\n</html>';
+}
+async function uploadExamDocument(type, title){
+  const ctx = type === 'ledger' ? CL_EXPORT_CTX : GS_EXPORT_CTX;
+  if(!ctx || !ctx.examId){ toast('Nothing to export yet'); return; }
+  const html = standaloneDocHtml(title, exportablePrintHtml());
+  if(html.length < 800){ toast('Nothing to export yet'); return; }
+  const ex = EXAMS.find(e => e.id === ctx.examId);
+  const cls = STRUCT.classes.find(c => c.id === ctx.classId);
+  const st = ctx.studentId ? STRUCT.students.find(s => s.id === ctx.studentId) : null;
+  const folder = type === 'ledger' ? 'ledgers' : 'gradesheets';
+  const filePath = new Date().toISOString().slice(0,10) + '/' + folder + '/'
+    + exportDocSlug(ex && ex.name) + '-'
+    + exportDocSlug(cls && cls.name) + (st ? '-' + exportDocSlug(st.name) : '')
+    + '-' + Date.now() + '.html';
+  const btn = type === 'ledger' ? document.getElementById('cl-export-btn') : document.getElementById('gs-export-btn');
+  setBtnBusy(btn, true, 'Exporting…');
+  try {
+    const file = new File([html], filePath.split('/').pop(), { type: 'text/html' });
+    const { error: upErr } = await supabaseClient.storage
+      .from('exam_documents')
+      .upload(filePath, file, { contentType: 'text/html', upsert: false });
+    if(upErr) throw upErr;
+    const { data: pubObj } = supabaseClient.storage.from('exam_documents').getPublicUrl(filePath);
+    const publicUrl = pubObj ? pubObj.publicUrl : null;
+    const { error: insErr } = await supabaseClient.from('exam_documents').insert({
+      doc_type: type,
+      exam_id: ctx.examId,
+      class_id: ctx.classId || null,
+      student_id: ctx.studentId || null,
+      title: title || '',
+      file_path: filePath,
+      file_size: html.length,
+      mime_type: 'text/html',
+      public_url: publicUrl,
+      created_by: (SESSION && SESSION.username) || null
+    });
+    if(insErr) throw insErr;
+    toast((type === 'ledger' ? 'Ledger' : 'Gradesheet') + ' saved to storage');
+  } catch(e){
+    console.error('Export to storage failed', e);
+    toast('Export failed: ' + ((e && e.message) || e));
+  } finally {
+    setBtnBusy(btn, false);
+  }
+}
+function exportGradesheetNow(){ return uploadExamDocument('gradesheet', 'Gradesheet'); }
+function exportLedgerNow(){ return uploadExamDocument('ledger', 'Class Ledger'); }
 
 /* ================= ADMIN: CLASS LEDGER ================= */
 const CL_DEFAULT_SETTINGS = {
@@ -5208,6 +5315,7 @@ async function showClassLedger(){
 async function buildClassLedgerHTML(examId, classId){
   const ex = EXAMS.find(e=>e.id===examId);
   const cls = STRUCT.classes.find(c=>c.id===classId);
+  CL_EXPORT_CTX = { examId, classId };
   const subs = STRUCT.subjects.filter(s=>s.classId===classId)
     .slice().sort((a,b)=> (a.serialNo - b.serialNo) || a.name.localeCompare(b.name));
   const studs = sortStudentsByRollThenName(STRUCT.students.filter(s=>s.classId===classId));
@@ -5475,6 +5583,7 @@ async function buildClassLedgerHTML(examId, classId){
       </div>
       <div class="no-print" style="text-align:center;margin-top:20px;">
         <button class="btn btn-gold" onclick="printLedgerPreview()">Print Ledger</button>
+        <button class="btn btn-outline" id="cl-export-btn" onclick="exportLedgerNow()" title="Save this class ledger to Supabase storage for future use">💾 Export</button>
       </div>
     </div>
   `;
