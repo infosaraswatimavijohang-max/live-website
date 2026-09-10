@@ -108,6 +108,7 @@ Run in Supabase SQL Editor in numeric order:
 | `sql/007_gallery_storage.sql` | Legacy — public `gallery` storage bucket + `storage.objects` RLS (no longer required; public gallery renders local `galleryData` files) |
 | `sql/008_alumni.sql` | `alumni_students`, `alumni_teachers` + `public_all` RLS |
 | `sql/009_exam_documents.sql` | `exam_documents` table + `exam_documents` storage bucket & RLS (for exported ledgers/gradesheets) |
+| `sql/010_school_documents.sql` | `school_documents` table + `school_documents` storage bucket & RLS (Backup tab — file uploads with visibility controls) |
 
 Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_updates.sql`, `teacher_photo_updates.sql`) are one-time data migrations, not schema changes.
 
@@ -119,7 +120,7 @@ Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_
 - Own auth (username/password per student/teacher), own caching (`examCache`), own column maps (`EXAM_COLUMNS` in `exam_helper.js`).
 - **Export to Supabase storage**: the Class Ledger and Gradesheet views have a **Export** button (`exportLedgerNow()` / `exportGradesheetNow()` in the inline script). It archives the rendered document as a self-contained HTML file (all app `<style>` blocks inlined, `.no-print` chrome stripped, `@media print` rules dropped) into the `exam_documents` storage bucket under `YYYY-MM-DD/<ledgers|gradesheets>/<exam>-<class>[-<student>]-<ts>.html`, then records a row in the `exam_documents` table (see `sql/009_exam_documents.sql`). Export context is set by `GS_EXPORT_CTX`/`CL_EXPORT_CTX` inside `buildGradesheetHTML()`/`buildClassLedgerHTML()`.
 - **STRUCT naming differs from DB columns**: classes use `name` not `class_label`, students use `name`/`roll`/`classId` not `full_name`/`school_roll_no`/`class_id`. Inline code maps between them via `EXAM_COLUMNS`.
-- `Login_portal.html` is a ~8100-line file; the main inline `<script>` spans lines 1097–8082 (~6990 lines of JS between the tags) — prefer targeted edits over bulk rewrites. Syntax-check it by extracting that range and running `node --check`.
+- `Login_portal.html` is a ~8600-line file; the main inline `<script>` spans ~7500 lines — prefer targeted edits over bulk rewrites. Syntax-check it by extracting the `<script>` range and running `node --check`.
 
 ### Exam Portal credentials
 
@@ -140,6 +141,15 @@ Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_
 - Admin-only **Alumni** tab lists passed-out/left-school students (`ALUMNI.students`) and former staff (`ALUMNI.teachers`). Data lives in `alumni_students` / `alumni_teachers` tables (see `sql/008_alumni.sql`), loaded lazily by `loadAlumniData()` (cached via `ALUMNI_LOADED`).
 - **Leave School** button (on each student row and staff card) calls `moveStudentToAlumni()` / `moveTeacherToAlumni()`. These COPY the row into the alumni table (with `left_on` timestamp + photo), then DELETE it from the active `students`/`teachers` table; fee/marks history is untouched. Credentials in the kv `structure`/`auth` blobs are removed when the active row is dropped.
 - The in-memory alumni rows pushed by `move*ToAlumni()` use DB-shaped field names (`full_name`, `roll`, `class_id`, `photo_url`, `left_on`) so `renderAlumni()` reads them and the DB rows consistently — not the STRUCT/AUTH-shaped names.
+
+## Backup / Documents (in `Login_portal.html`)
+
+- **Backup** tab visible to admin, all teachers, and students. Upload PDF, DOCX, PNG, JPG, GIF, HTML files (max 10 MB) to the `school_documents` storage bucket. Metadata stored in `school_documents` table (see `sql/010_school_documents.sql`).
+- **Categories**: `class_ledger`, `gradesheet`, `invoice`, `exam_paper`, `admit_card`, `assignment`, `notes`, `other`.
+- **Visibility controls**: `public` (everyone), `private` (uploader + admin only), `class` (specific class students/teachers + admin), `student` (specific student + admin). Visibility is enforced client-side by `backupCanView()`.
+- **Admin privileges**: full edit (title, description, category, visibility) and delete (storage file + metadata row). Teachers can only upload and view; students see only documents visible to them.
+- **Search/filter**: by title/filename/uploader, category, doc type, and visibility. `BACKUP_FILTER` object drives client-side filtering.
+- **Storage path**: `YYYY-MM-DD/<category>/<timestamp>_<sanitized-filename>`. Files uploaded to the public `school_documents` bucket.
 
 ## Domain
 

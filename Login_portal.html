@@ -57,6 +57,12 @@
 [data-theme="dark"] .loader-slider-track{background:var(--line);}
 [data-theme="dark"] .modal{background:var(--paper-card);}
 [data-theme="dark"] .admit-card{background:var(--paper-card);}
+[data-theme="dark"] .backup-card{background:var(--paper-card);border-color:var(--line);}
+[data-theme="dark"] .backup-card-icon.pdf{background:#3a1a1a;}
+[data-theme="dark"] .backup-card-icon.docx{background:#1a2a4a;}
+[data-theme="dark"] .backup-card-icon.img{background:#1a3a2a;}
+[data-theme="dark"] .backup-card-icon.html{background:#3a3020;}
+[data-theme="dark"] .backup-card-icon.other{background:var(--paper);}
 [data-theme="dark"] .id-card.id-student,.id-card.id-teacher,.id-card.id-staff{background:var(--paper-card);}
 [data-theme="dark"] .bill-preview{background:var(--paper-card);}
 [data-theme="dark"] .field input:focus{background:var(--paper-card);border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,165,58,.15);}
@@ -985,6 +991,38 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 @media print{.id-card-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:0;}.id-card{box-shadow:none;border:1px solid #ddd;page-break-after:always;}}
 .bs-date-display{display:block;font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
 .bs-date-display.bs-date-display-empty{display:none;}
+
+/* ---------- BACKUP / DOCUMENTS TAB ---------- */
+.backup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+.backup-card{background:var(--paper-card);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s;}
+.backup-card:hover{border-color:var(--navy-mid);}
+.backup-card:has(> div > img){padding-top:0;}
+.backup-card-icon{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.backup-card-icon.pdf{background:#fee2e2;color:#b91c1c;}
+.backup-card-icon.docx{background:#dbeafe;color:#1d4ed8;}
+.backup-card-icon.img{background:#d1fae5;color:#047857;}
+.backup-card-icon.html{background:#fef3c7;color:#92400e;}
+.backup-card-icon.other{background:var(--paper);color:var(--ink-soft);}
+.backup-card-head{display:flex;align-items:flex-start;gap:10px;}
+.backup-card-info{flex:1;min-width:0;}
+.backup-card-title{font-size:13.5px;font-weight:600;color:var(--navy-deep);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.backup-card-meta{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.backup-card-desc{font-size:12px;color:var(--ink-soft);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.backup-card-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid var(--line);}
+.backup-badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em;}
+.backup-badge.pub{background:#d1fae5;color:#047857;}
+.backup-badge.priv{background:#fee2e2;color:#b91c1c;}
+.backup-badge.cls{background:#dbeafe;color:#1d4ed8;}
+.backup-badge.stu{background:#fef3c7;color:#92400e;}
+.backup-actions{display:flex;gap:4px;}
+.backup-upload-zone{border:2px dashed var(--line);border-radius:8px;padding:32px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;}
+.backup-upload-zone:hover,.backup-upload-zone.dragover{border-color:var(--gold);background:rgba(184,149,47,.04);}
+.backup-upload-zone input[type=file]{display:none;}
+.backup-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:18px;}
+.backup-filters .field{min-width:140px;flex:1;}
+.backup-filters .field label{display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px;}
+.backup-filters .field select,.backup-filters .field input{width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:13px;}
+@media(max-width:600px){.backup-grid{grid-template-columns:1fr;}.backup-filters{flex-direction:column;}.backup-filters .field{min-width:0;}}
 </style>
 <!-- The @page rule that controls print orientation/margins is set dynamically
      by JS (see setPrintPage() in the router) depending on which document
@@ -2477,6 +2515,7 @@ const ADMIN_NAV = [
   {id:'teacher-id-cards', label:'Teacher IDs'},
   {id:'staff-id-cards', label:'Staff IDs'},
   {id:'alumni', label:'Alumni'},
+  {id:'backup', label:'Backup'},
  ];
 const TEACHER_NAV_BASE = [
   {id:'my-subjects', label:'My Subjects'},
@@ -2510,6 +2549,7 @@ function getTeacherNav(){
     extra.push({id:'admit-cards', label:'Admit Cards'});
     extra.push({id:'student-id-cards', label:'Student IDs'});
   }
+  if(SESSION.role === 'teacher') extra.push({id:'backup', label:'Backup'});
   if(!extra.length) return base;
   return [...base, ...extra];
 }
@@ -2517,6 +2557,7 @@ const STUDENT_NAV = [
   {id:'my-result', label:'My Result'},
   {id:'assignments', label:'Assignments'},
   {id:'notes', label:'Notes/Notices'},
+  {id:'backup', label:'Backup'},
 ];
 function renderNav(){
   const nav = SESSION.role === 'admin' ? ADMIN_NAV : SESSION.role === 'teacher' ? getTeacherNav() : STUDENT_NAV;
@@ -2580,6 +2621,7 @@ async function renderTab(){
     'teacher-id-cards':['Access Control','Teacher ID Cards'],
     'staff-id-cards':['Access Control','Staff ID Cards'],
     'alumni':['Records','Alumni'],
+    'backup':['Backup','Documents & Backup'],
   };
   document.getElementById('topbar-crumb').textContent = titles[currentTab][0];
   document.getElementById('topbar-title').textContent = titles[currentTab][1];
@@ -2628,6 +2670,7 @@ async function renderTab(){
   if(currentTab==='assignments') return renderAssignments();
   if(currentTab==='notes') return renderNotes();
   if(currentTab==='alumni') return renderAlumni();
+  if(currentTab==='backup') return renderBackup();
 }
 
 /* ================= ADMIN: OVERVIEW ================= */
@@ -2714,6 +2757,513 @@ async function renderAlumni(){
   `;
 }
 window.renderAlumni = renderAlumni;
+
+/* ================= BACKUP / DOCUMENTS ================= */
+let BACKUP_DOCS = [];
+let BACKUP_FILTER = { category:'all', docType:'all', visibility:'all', search:'' };
+const BACKUP_CATEGORIES = [
+  {value:'class_ledger', label:'Class Ledger'},
+  {value:'gradesheet', label:'Gradesheet'},
+  {value:'invoice', label:'Invoice/Bill'},
+  {value:'exam_paper', label:'Exam Paper'},
+  {value:'admit_card', label:'Admit Card'},
+  {value:'assignment', label:'Assignment'},
+  {value:'notes', label:'Notes'},
+  {value:'other', label:'Other'},
+];
+const BACKUP_DOC_TYPES = [
+  {value:'pdf', label:'PDF'},
+  {value:'docx', label:'DOCX'},
+  {value:'png', label:'PNG'},
+  {value:'jpg', label:'JPG'},
+  {value:'jpeg', label:'JPEG'},
+  {value:'gif', label:'GIF'},
+  {value:'html', label:'HTML'},
+  {value:'other', label:'Other'},
+];
+const BACKUP_VIS = [
+  {value:'public', label:'Public'},
+  {value:'private', label:'Private'},
+  {value:'class', label:'Specific Class'},
+  {value:'student', label:'Specific Student'},
+];
+function backupIconClass(mime, name){
+  if(!mime && !name) return 'other';
+  const m = (mime||'').toLowerCase();
+  const n = (name||'').toLowerCase();
+  if(m.includes('pdf') || n.endsWith('.pdf')) return 'pdf';
+  if(m.includes('word') || m.includes('document') || n.endsWith('.docx') || n.endsWith('.doc')) return 'docx';
+  if(m.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp)$/i.test(n)) return 'img';
+  if(m.includes('html') || n.endsWith('.html') || n.endsWith('.htm')) return 'html';
+  return 'other';
+}
+function backupIconLabel(mime, name){
+  const cls = backupIconClass(mime, name);
+  if(cls==='pdf') return 'fa-file-pdf';
+  if(cls==='docx') return 'fa-file-word';
+  if(cls==='img') return 'fa-file-image';
+  if(cls==='html') return 'fa-file-code';
+  return 'fa-file';
+}
+function backupCatLabel(cat){
+  const f = BACKUP_CATEGORIES.find(c=>c.value===cat);
+  return f ? f.label : cat;
+}
+function backupVisBadge(vis){
+  const cls = vis==='public'?'pub':vis==='private'?'priv':vis==='class'?'cls':'stu';
+  const lbl = vis==='public'?'Public':vis==='private'?'Private':vis==='class'?'Class':'Student';
+  return `<span class="backup-badge ${cls}">${lbl}</span>`;
+}
+function backupFileSize(bytes){
+  if(!bytes) return '—';
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+function backupDate(d){
+  if(!d) return '—';
+  return new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+}
+function backupClassLabel(id){
+  if(!id) return '—';
+  const cl = STRUCT.classes.find(c=>c.id===id);
+  return cl ? cl.name : '—';
+}
+function backupStudentLabel(id){
+  if(!id) return '—';
+  const st = STRUCT.students.find(s=>s.id===id);
+  return st ? st.name : '—';
+}
+
+async function loadBackupDocs(){
+  try{
+    const { data, error } = await supabaseClient
+      .from('school_documents')
+      .select('*')
+      .order('created_at', {ascending:false});
+    if(error) throw error;
+    BACKUP_DOCS = data || [];
+  }catch(e){
+    console.error('load backup docs failed', e);
+    BACKUP_DOCS = [];
+  }
+}
+
+function backupCanView(doc){
+  if(SESSION.role === 'admin') return true;
+  if(doc.visibility === 'public') return true;
+  if(doc.visibility === 'private') return doc.created_by === SESSION.username;
+  if(doc.visibility === 'class'){
+    if(doc.created_by === SESSION.username) return true;
+    if(SESSION.role === 'teacher'){
+      const t = AUTH.teachers.find(x=>x.id===SESSION.teacherId);
+      if(t && Array.isArray(t.classTeacherOf) && t.classTeacherOf.includes(doc.class_id)) return true;
+      return (PERMS||[]).some(p=>p.teacherId===SESSION.teacherId && p.classId===doc.class_id);
+    }
+    if(SESSION.role === 'student') return STRUCT.students.find(s=>s.id===SESSION.studentId)?.classId === doc.class_id;
+  }
+  if(doc.visibility === 'student'){
+    if(doc.created_by === SESSION.username) return true;
+    return SESSION.studentId === doc.student_id;
+  }
+  return false;
+}
+
+function backupIsAdmin(){
+  return SESSION.role === 'admin';
+}
+
+async function renderBackup(){
+  const c = document.getElementById('content-area');
+  c.innerHTML = '<div class="empty">Loading documents…</div>';
+  await loadBackupDocs();
+  renderBackupContent();
+}
+window.renderBackup = renderBackup;
+
+function renderBackupContent(){
+  const c = document.getElementById('content-area');
+  const isAdmin = backupIsAdmin();
+  const canUpload = isAdmin || (SESSION.role === 'teacher' && !isNonTeachingStaff(AUTH.teachers.find(x=>x.id===SESSION.teacherId)));
+  const visibleDocs = isAdmin ? BACKUP_DOCS : BACKUP_DOCS.filter(d=>backupCanView(d));
+  const filtered = visibleDocs.filter(d=>{
+    const f = BACKUP_FILTER;
+    if(f.category !== 'all' && d.category !== f.category) return false;
+    if(f.docType !== 'all' && d.doc_type !== f.docType) return false;
+    if(f.visibility !== 'all' && d.visibility !== f.visibility) return false;
+    if(f.search){
+      const q = f.search.toLowerCase();
+      if(!(d.title||'').toLowerCase().includes(q) && !(d.file_name||'').toLowerCase().includes(q) && !(d.created_by_name||'').toLowerCase().includes(q) && !(d.description||'').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+  const classOpts = STRUCT.classes.map(cl=>`<option value="${cl.id}">${esc(cl.name)}</option>`).join('');
+  const studentOpts = STRUCT.students.map(s=>`<option value="${s.id}">${esc(s.name)} (${esc(s.roll||'')})</option>`).join('');
+  c.innerHTML = `
+    ${canUpload ? `
+    <div class="card no-print">
+      <h3>Upload Document</h3>
+      <div id="backup-upload-zone" class="backup-upload-zone" onclick="document.getElementById('backup-file-input').click()">
+        <i class="fas fa-cloud-upload-alt" style="font-size:28px;color:var(--gold);margin-bottom:8px;"></i>
+        <div style="font-size:13.5px;color:var(--navy);font-weight:600;">Click to browse or drag & drop files</div>
+        <div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px;">PDF, DOCX, PNG, JPG, GIF, HTML — max 10 MB</div>
+        <input type="file" id="backup-file-input" accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.gif,.html,.htm,.webp,.bmp,.txt,.csv,.xlsx,.xls,.pptx" multiple onchange="backupFileSelected(this)">
+      </div>
+      <div id="backup-file-list" style="margin-top:12px;"></div>
+      <div id="backup-upload-form" style="display:none;margin-top:14px;">
+        <div class="row-form" style="margin-bottom:0;">
+          <div class="field"><label>Title</label><input id="bk-title" placeholder="Document title"></div>
+          <div class="field"><label>Category</label><select id="bk-category">${BACKUP_CATEGORIES.map(c=>`<option value="${c.value}">${c.label}</option>`).join('')}</select></div>
+          <div class="field"><label>Visibility</label><select id="bk-visibility" onchange="backupVisChanged()">${BACKUP_VIS.map(v=>`<option value="${v.value}">${v.label}</option>`).join('')}</select></div>
+        </div>
+        <div id="bk-class-row" style="display:none;" class="row-form">
+          <div class="field"><label>Class</label><select id="bk-class-id" onchange="backupUpdateStudentList()"><option value="">— Select Class —</option>${classOpts}</select></div>
+        </div>
+        <div id="bk-student-row" style="display:none;" class="row-form">
+          <div class="field"><label>Student</label><select id="bk-student-id" style="width:100%;"><option value="">— Select Student —</option>${studentOpts}</select></div>
+        </div>
+        <div class="row-form" style="margin-bottom:0;">
+          <div class="field" style="flex:2;"><label>Description (optional)</label><input id="bk-desc" placeholder="Brief description"></div>
+          <div style="display:flex;gap:8px;align-items:flex-end;">
+            <button class="btn btn-navy" id="bk-upload-btn" onclick="backupUpload()">Upload</button>
+            <button class="btn btn-outline" onclick="backupCancelUpload()">Cancel</button>
+          </div>
+        </div>
+        <div class="loader-slider" id="bk-upload-loader"></div>
+      </div>
+    </div>` : `
+    <div class="card no-print" style="text-align:center;color:var(--ink-soft);font-size:13px;padding:18px;">
+      <i class="fas fa-eye" style="margin-right:6px;"></i> You can view and download documents below. Only teaching staff and admin can upload.
+    </div>`}
+    <div class="card no-print">
+      <h3>Search & Filter</h3>
+      <div class="backup-filters">
+        <div class="field">
+          <label>Search</label>
+          <input id="bk-search" placeholder="Title, file, uploader…" value="${esc(BACKUP_FILTER.search)}" oninput="backupSetFilter('search',this.value)">
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select id="bk-filter-cat" onchange="backupSetFilter('category',this.value)">
+            <option value="all">All Categories</option>
+            ${BACKUP_CATEGORIES.map(c=>`<option value="${c.value}" ${BACKUP_FILTER.category===c.value?'selected':''}>${c.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>File Type</label>
+          <select id="bk-filter-type" onchange="backupSetFilter('docType',this.value)">
+            <option value="all">All Types</option>
+            ${BACKUP_DOC_TYPES.map(t=>`<option value="${t.value}" ${BACKUP_FILTER.docType===t.value?'selected':''}>${t.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Visibility</label>
+          <select id="bk-filter-vis" onchange="backupSetFilter('visibility',this.value)">
+            <option value="all">All</option>
+            ${BACKUP_VIS.map(v=>`<option value="${v.value}" ${BACKUP_FILTER.visibility===v.value?'selected':''}>${v.label}</option>`).join('')}
+          </select>
+        </div>
+        <div style="flex:0 0 auto;">
+          <button class="btn btn-outline btn-sm" onclick="backupClearFilters()">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--ink-soft);">${filtered.length} document${filtered.length!==1?'s':''}</div>
+      <button class="btn btn-outline btn-sm" onclick="renderBackup()">⟳ Refresh</button>
+    </div>
+    ${filtered.length ? `<div class="backup-grid">${filtered.map(d=>backupCardHtml(d)).join('')}</div>` : '<div class="empty"><b>No documents found</b>Upload files using the form above, or adjust your filters.</div>'}
+  `;
+  // setup drag & drop
+  const zone = document.getElementById('backup-upload-zone');
+  if(zone){
+    zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', ()=>zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e=>{ e.preventDefault(); zone.classList.remove('dragover'); if(e.dataTransfer.files.length) backupHandleFiles(e.dataTransfer.files); });
+  }
+}
+
+function backupCardHtml(d){
+  const ico = backupIconClass(d.mime_type, d.file_name);
+  const icoFa = backupIconLabel(d.mime_type, d.file_name);
+  const isAdmin = backupIsAdmin();
+  const isImage = (d.mime_type||'').startsWith('image/');
+  return `
+    <div class="backup-card" data-id="${d.id}">
+      ${isImage && d.public_url ? `<div style="margin:-16px -16px 0;border-radius:6px 6px 0 0;overflow:hidden;max-height:140px;"><img src="${esc(d.public_url)}" alt="" style="width:100%;height:140px;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'"></div>` : ''}
+      <div class="backup-card-head">
+        <div class="backup-card-icon ${ico}"><i class="fas ${icoFa}"></i></div>
+        <div class="backup-card-info">
+          <div class="backup-card-title" title="${esc(d.title || d.file_name)}">${esc(d.title || d.file_name)}</div>
+          <div class="backup-card-meta">${esc(d.file_name)} &middot; ${backupFileSize(d.file_size)}</div>
+        </div>
+      </div>
+      ${d.description ? `<div class="backup-card-desc">${esc(d.description)}</div>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+        ${backupVisBadge(d.visibility)}
+        <span style="font-size:11px;color:var(--ink-soft);">${esc(backupCatLabel(d.category))}</span>
+        ${d.visibility==='class' && d.class_id ? `<span style="font-size:11px;color:var(--ink-soft);">&middot; ${esc(backupClassLabel(d.class_id))}</span>` : ''}
+        ${d.visibility==='student' && d.student_id ? `<span style="font-size:11px;color:var(--ink-soft);">&middot; ${esc(backupStudentLabel(d.student_id))}</span>` : ''}
+      </div>
+      <div class="backup-card-foot">
+        <div style="font-size:10.5px;color:var(--ink-soft);">by ${esc(d.created_by_name || d.created_by || '—')} &middot; ${backupDate(d.created_at)}</div>
+        <div class="backup-actions">
+          ${d.public_url ? `<a class="btn btn-outline btn-sm" href="${esc(d.public_url)}" download="${esc(d.file_name)}" title="Download"><i class="fas fa-download"></i></a>` : ''}
+          ${d.public_url ? `<button class="btn btn-outline btn-sm" onclick="window.open('${esc(d.public_url)}','_blank')" title="Open"><i class="fas fa-external-link-alt"></i></button>` : ''}
+          ${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="openBackupEditModal('${d.id}')" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+          ${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="backupDelete('${d.id}')" title="Delete" style="color:var(--red);"><i class="fas fa-trash"></i></button>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function backupSetFilter(key, val){
+  BACKUP_FILTER[key] = val;
+  renderBackupContent();
+}
+function backupClearFilters(){
+  BACKUP_FILTER = { category:'all', docType:'all', visibility:'all', search:'' };
+  renderBackupContent();
+}
+
+let _backupPendingFiles = [];
+let _backupBlobUrls = [];
+function backupFileSelected(input){
+  backupHandleFiles(input.files);
+  input.value = '';
+}
+function backupHandleFiles(fileList){
+  const maxSize = 10 * 1024 * 1024;
+  for(const f of fileList){
+    if(f.size > maxSize){ toast(f.name + ' exceeds 10 MB limit.'); continue; }
+    _backupPendingFiles.push(f);
+  }
+  backupRenderFileList();
+}
+function backupRenderFileList(){
+  const el = document.getElementById('backup-file-list');
+  const form = document.getElementById('backup-upload-form');
+  if(!el) return;
+  _backupBlobUrls.forEach(u => URL.revokeObjectURL(u));
+  _backupBlobUrls = [];
+  if(!_backupPendingFiles.length){ el.innerHTML = ''; if(form) form.style.display='none'; return; }
+  if(form) form.style.display = '';
+  const totalSize = _backupPendingFiles.reduce((s,f)=>s+f.size, 0);
+  const fileItems = _backupPendingFiles.map((f,i)=>{
+    let iconHtml;
+    if(f.type && f.type.startsWith('image/')){
+      const url = URL.createObjectURL(f);
+      _backupBlobUrls.push(url);
+      iconHtml = `<img src="${url}" alt="" style="width:36px;height:36px;border-radius:4px;object-fit:cover;border:1px solid var(--line);flex-shrink:0;">`;
+    } else {
+      iconHtml = `<i class="fas ${backupIconLabel(f.type, f.name)}" style="color:var(--navy-mid);"></i>`;
+    }
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--paper);border-radius:4px;margin-bottom:6px;">
+      ${iconHtml}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</div>
+        <div style="font-size:11px;color:var(--ink-soft);">${backupFileSize(f.size)}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="backupRemoveFile(${i})" style="color:var(--red);"><i class="fas fa-times"></i></button>
+    </div>`;
+  }).join('');
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <span style="font-size:12px;color:var(--ink-soft);">${_backupPendingFiles.length} file${_backupPendingFiles.length>1?'s':''} &middot; ${backupFileSize(totalSize)}</span>
+      <button class="btn btn-outline btn-sm" onclick="backupCancelUpload()" style="font-size:11px;padding:3px 8px;"><i class="fas fa-times"></i> Clear all</button>
+    </div>
+    ${fileItems}
+  `;
+  // auto-fill title from first file name
+  const titleInput = document.getElementById('bk-title');
+  if(titleInput && _backupPendingFiles.length === 1 && !titleInput.value){
+    titleInput.value = _backupPendingFiles[0].name.replace(/\.[^.]+$/,'');
+  }
+}
+function backupRemoveFile(idx){
+  _backupPendingFiles.splice(idx, 1);
+  backupRenderFileList();
+}
+function backupCancelUpload(){
+  _backupPendingFiles = [];
+  backupRenderFileList();
+}
+function backupVisChanged(){
+  const vis = document.getElementById('bk-visibility').value;
+  const classRow = document.getElementById('bk-class-row');
+  const studentRow = document.getElementById('bk-student-row');
+  if(classRow) classRow.style.display = vis === 'class' ? '' : 'none';
+  if(studentRow) studentRow.style.display = vis === 'student' ? '' : 'none';
+  // update student list when class changes
+  if(vis === 'class') backupUpdateStudentList();
+}
+function backupUpdateStudentList(){
+  const classId = document.getElementById('bk-class-id')?.value;
+  const sel = document.getElementById('bk-student-id');
+  if(!sel) return;
+  const students = classId ? STRUCT.students.filter(s=>s.classId===classId) : STRUCT.students;
+  sel.innerHTML = '<option value="">— Select Student —</option>' + students.map(s=>`<option value="${s.id}">${esc(s.name)} (${esc(s.roll||'')})</option>`).join('');
+}
+async function backupUpload(){
+  if(!_backupPendingFiles.length){ toast('Select files first.'); return; }
+  if(SESSION.role === 'student'){ toast('Students cannot upload documents.'); return; }
+  if(!backupIsAdmin() && SESSION.role === 'teacher' && isNonTeachingStaff(AUTH.teachers.find(x=>x.id===SESSION.teacherId))){ toast('Only teaching staff and admin can upload.'); return; }
+  const title = document.getElementById('bk-title').value.trim();
+  const category = document.getElementById('bk-category').value;
+  const visibility = document.getElementById('bk-visibility').value;
+  const classId = visibility === 'class' ? (document.getElementById('bk-class-id')?.value || null) : null;
+  const studentId = visibility === 'student' ? (document.getElementById('bk-student-id')?.value || null) : null;
+  const description = document.getElementById('bk-desc').value.trim();
+  const btn = document.getElementById('bk-upload-btn');
+  setBtnBusy(btn, true, 'Uploading…');
+  showLoaderBar('bk-upload-loader', 'Uploading ' + _backupPendingFiles.length + ' file(s)…');
+  try{
+    const uploadedPaths = [];
+    for(const f of _backupPendingFiles){
+      const filePath = new Date().toISOString().slice(0,10) + '/' + category + '/' + Date.now() + '_' + f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const { error: upErr } = await supabaseClient.storage
+        .from('school_documents')
+        .upload(filePath, f, { contentType: f.type || 'application/octet-stream', upsert: false });
+      if(upErr) throw upErr;
+      uploadedPaths.push(filePath);
+      const { data: pubObj } = supabaseClient.storage.from('school_documents').getPublicUrl(filePath);
+      const publicUrl = pubObj ? pubObj.publicUrl : null;
+      const docType = backupGuessDocType(f.name, f.type);
+      const row = {
+        title: title || f.name,
+        description,
+        file_name: f.name,
+        file_path: filePath,
+        file_size: f.size,
+        mime_type: f.type || '',
+        public_url: publicUrl,
+        category,
+        doc_type: docType,
+        visibility,
+        class_id: classId,
+        student_id: studentId,
+        created_by: SESSION.username,
+        created_by_name: SESSION.name,
+        created_by_role: SESSION.role,
+      };
+      const { error: insErr } = await supabaseClient.from('school_documents').insert(row);
+      if(insErr) throw insErr;
+    }
+    toast(_backupPendingFiles.length + ' file(s) uploaded successfully.');
+    _backupPendingFiles = [];
+    await renderBackup();
+  }catch(e){
+    console.error('backup upload failed', e);
+    toast('Upload failed: ' + (e.message || e));
+    if(typeof uploadedPaths !== 'undefined' && uploadedPaths.length){
+      try{ await supabaseClient.storage.from('school_documents').remove(uploadedPaths); }catch(_){/* best-effort cleanup */}
+    }
+  }finally{
+    setBtnBusy(btn, false);
+    hideLoaderBar('bk-upload-loader');
+  }
+}
+function backupGuessDocType(name, mime){
+  const m = (mime||'').toLowerCase();
+  const n = (name||'').toLowerCase();
+  if(m.includes('pdf') || n.endsWith('.pdf')) return 'pdf';
+  if(m.includes('word') || m.includes('document') || n.endsWith('.docx') || n.endsWith('.doc')) return 'docx';
+  if(m.includes('png') || n.endsWith('.png')) return 'png';
+  if(n.endsWith('.jpeg') || m === 'image/jpeg') return 'jpeg';
+  if(m.includes('jpeg') || n.endsWith('.jpg')) return 'jpg';
+  if(m.includes('gif') || n.endsWith('.gif')) return 'gif';
+  if(m.includes('html') || n.endsWith('.html') || n.endsWith('.htm')) return 'html';
+  return 'other';
+}
+
+function openBackupEditModal(id){
+  const doc = BACKUP_DOCS.find(d=>d.id===id);
+  if(!doc) return;
+  const isAdmin = backupIsAdmin();
+  const classOpts = STRUCT.classes.map(cl=>`<option value="${cl.id}" ${doc.class_id===cl.id?'selected':''}>${esc(cl.name)}</option>`).join('');
+  const studentOpts = STRUCT.students.map(s=>`<option value="${s.id}" ${doc.student_id===s.id?'selected':''}>${esc(s.name)} (${esc(s.roll||'')})</option>`).join('');
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-overlay" id="backup-edit-overlay">
+      <div class="modal modal-wide">
+        <h3>Edit Document</h3>
+        <div class="field"><label>Title</label><input id="bke-title" value="${esc(doc.title)}"></div>
+        <div class="field"><label>Description</label><input id="bke-desc" value="${esc(doc.description || '')}"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="field"><label>Category</label><select id="bke-category">${BACKUP_CATEGORIES.map(c=>`<option value="${c.value}" ${doc.category===c.value?'selected':''}>${c.label}</option>`).join('')}</select></div>
+          <div class="field"><label>Visibility</label><select id="bke-visibility" onchange="backupEditVisChanged()">${BACKUP_VIS.map(v=>`<option value="${v.value}" ${doc.visibility===v.value?'selected':''}>${v.label}</option>`).join('')}</select></div>
+        </div>
+        <div id="bke-class-row" style="display:${doc.visibility==='class'?'':'none'};margin-top:14px;" class="field"><label>Class</label><select id="bke-class-id" onchange="backupEditUpdateStudents()"><option value="">— Select Class —</option>${classOpts}</select></div>
+        <div id="bke-student-row" style="display:${doc.visibility==='student'?'':'none'};margin-top:14px;" class="field"><label>Student</label><select id="bke-student-id" style="width:100%;"><option value="">— Select Student —</option>${studentOpts}</select></div>
+        <div style="margin-top:14px;padding:12px;background:var(--paper);border-radius:4px;font-size:12px;color:var(--ink-soft);">
+          <b>File:</b> ${esc(doc.file_name)} &middot; ${backupFileSize(doc.file_size)} &middot; ${esc(doc.mime_type || 'unknown')}<br>
+          <b>Uploaded by:</b> ${esc(doc.created_by_name || doc.created_by || '—')} &middot; ${backupDate(doc.created_at)}
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+          ${isAdmin ? `<button class="btn btn-navy" id="bke-save-btn" onclick="backupSaveEdit('${doc.id}')">Save Changes</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+function backupEditVisChanged(){
+  const vis = document.getElementById('bke-visibility').value;
+  document.getElementById('bke-class-row').style.display = vis === 'class' ? '' : 'none';
+  document.getElementById('bke-student-row').style.display = vis === 'student' ? '' : 'none';
+  if(vis === 'class') backupEditUpdateStudents();
+}
+function backupEditUpdateStudents(){
+  const classId = document.getElementById('bke-class-id')?.value;
+  const sel = document.getElementById('bke-student-id');
+  if(!sel) return;
+  const students = classId ? STRUCT.students.filter(s=>s.classId===classId) : STRUCT.students;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Select Student —</option>' + students.map(s=>`<option value="${s.id}" ${s.id===current?'selected':''}>${esc(s.name)} (${esc(s.roll||'')})</option>`).join('');
+}
+async function backupSaveEdit(id){
+  const title = document.getElementById('bke-title').value.trim();
+  const description = document.getElementById('bke-desc').value.trim();
+  const category = document.getElementById('bke-category').value;
+  const visibility = document.getElementById('bke-visibility').value;
+  const classId = visibility === 'class' ? (document.getElementById('bke-class-id')?.value || null) : null;
+  const studentId = visibility === 'student' ? (document.getElementById('bke-student-id')?.value || null) : null;
+  const btn = document.getElementById('bke-save-btn');
+  setBtnBusy(btn, true, 'Saving…');
+  try{
+    const updates = { title, description, category, visibility, class_id: classId, student_id: studentId, updated_at: new Date().toISOString() };
+    const { error } = await supabaseClient.from('school_documents').update(updates).eq('id', id);
+    if(error) throw error;
+    const doc = BACKUP_DOCS.find(d=>d.id===id);
+    if(doc) Object.assign(doc, updates);
+    closeModal();
+    toast('Document updated');
+    renderBackupContent();
+  }catch(e){
+    console.error('backup edit failed', e);
+    toast('Update failed: ' + (e.message || e));
+  }finally{
+    setBtnBusy(btn, false);
+  }
+}
+async function backupDelete(id){
+  const doc = BACKUP_DOCS.find(d=>d.id===id);
+  if(!doc) return;
+  if(!confirm('Delete "' + (doc.title || doc.file_name) + '"? This cannot be undone.')) return;
+  try{
+    // delete from storage first
+    if(doc.file_path){
+      await supabaseClient.storage.from('school_documents').remove([doc.file_path]);
+    }
+    const { error } = await supabaseClient.from('school_documents').delete().eq('id', id);
+    if(error) throw error;
+    BACKUP_DOCS = BACKUP_DOCS.filter(d=>d.id!==id);
+    toast('Document deleted');
+    renderBackupContent();
+  }catch(e){
+    console.error('backup delete failed', e);
+    toast('Delete failed: ' + (e.message || e));
+  }
+}
 
 /* ================= ADMIN: CLASSES & SUBJECTS ================= */
 function renderClasses(){
