@@ -631,9 +631,9 @@ var App = {
     var faEl = document.getElementById('footerAddress');
     if (faEl) faEl.textContent = settings.address || 'Satyawati-6, Gulmi';
     var fpEl = document.getElementById('footerPhone');
-    if (fpEl) fpEl.textContent = settings.phone || '+977-9857062876';
+    if (fpEl) fpEl.textContent = settings.phone || '+977-9857064140';
     var feEl = document.getElementById('footerEmail');
-    if (feEl) feEl.textContent = settings.email || 'infosaraswatimavijohang@gmail.com';
+    if (feEl) feEl.textContent = settings.email || 'saraswatischool60@gmail.com';
   },
 
   async renderHeroSlides() {
