@@ -1157,6 +1157,16 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
    Sweeper, Coordinator, Incharge, etc.) already existed and needs no
    migration — it's informational only and doesn't itself grant access.
 
+    ⚠ REQUIRED ONE-TIME DATABASE SETUP for Subject Credit Hours:
+    Credit hours power the credit-weighted overall GPA on Gradesheets and
+    Class Ledgers (GPA = Σ Grade Point × Credit Hour ÷ Σ Credit Hour, per
+    the "Gradesheet Back" reference). Run this once in the Supabase SQL
+    editor (see `sql/011_subject_credit_hours.sql`), or subject load/save
+    will fall back to no credit hours — which is fine, existing subjects
+    then count as 1 credit hour each (equal to the old simple GPA average):
+
+      ALTER TABLE subjects ADD COLUMN IF NOT EXISTS credit_hour numeric NOT NULL DEFAULT 1;
+
     ⚠ REQUIRED ONE-TIME DATABASE SETUP for Assignments & Notes/Notices:
     The Assignments and Notes/Notices tabs need dedicated tables. Run these once
     in the Supabase SQL editor before using those tabs:
@@ -1550,20 +1560,35 @@ async function dbDeleteClass(id){
   }
   return true;
 }
-async function dbInsertSubject({name, classId, code, serialNo, showInGradesheet}){
-  const { data, error } = await supabaseClient
-    .from('subjects')
-    .insert({ subject_name: name, class_id: classId, subject_code: code || null, display_order: serialNo, show_in_gradesheet: showInGradesheet })
-    .select('id')
-    .single();
+/* True when PostgREST/Postgres says a referenced column doesn't exist.
+   SELECT with a missing column is parsed by Postgres → `column "x" does not
+   exist` (42703); INSERT/UPDATE is validated by PostgREST's schema cache
+   first → PGRST204 "Could not find the 'x' column ... in the schema cache".
+   Both mean the schema predates the migration that adds the column. */
+function isMissingColumnErr(e){
+  return /(column .* does not exist|pgrst204|could not find the .* column)/i.test((e && (e.message || '')) + (e && (e.details || '')));
+}
+async function dbInsertSubject({name, classId, code, serialNo, showInGradesheet, creditHour}){
+  const payload = { subject_name: name, class_id: classId, subject_code: code || null, display_order: serialNo, show_in_gradesheet: showInGradesheet };
+  if(creditHour) payload.credit_hour = Number(creditHour);
+  let { data, error } = await supabaseClient.from('subjects').insert(payload).select('id').single();
+  // If the credit_hour column isn't there yet (migration 011 not applied), retry without it.
+  if(error && payload.credit_hour && isMissingColumnErr(error)){
+    delete payload.credit_hour;
+    ({ data, error } = await supabaseClient.from('subjects').insert(payload).select('id').single());
+  }
   if(error){ console.error('insert subject failed', error); toast('Could not save the subject to the database.'); return null; }
   return data.id;
 }
-async function dbUpdateSubject(id, {name, classId, code, serialNo, showInGradesheet}){
-  const { error } = await supabaseClient
-    .from('subjects')
-    .update({ subject_name: name, class_id: classId, subject_code: code || null, display_order: serialNo, show_in_gradesheet: showInGradesheet })
-    .eq('id', id);
+async function dbUpdateSubject(id, {name, classId, code, serialNo, showInGradesheet, creditHour}){
+  const payload = { subject_name: name, class_id: classId, subject_code: code || null, display_order: serialNo, show_in_gradesheet: showInGradesheet };
+  if(creditHour) payload.credit_hour = Number(creditHour);
+  let { error } = await supabaseClient.from('subjects').update(payload).eq('id', id);
+  // If the credit_hour column isn't there yet (migration 011 not applied), retry without it.
+  if(error && payload.credit_hour && isMissingColumnErr(error)){
+    delete payload.credit_hour;
+    ({ error } = await supabaseClient.from('subjects').update(payload).eq('id', id));
+  }
   if(error){ console.error('update subject failed', error); toast('Could not save changes to the database.'); return false; }
   return true;
 }
@@ -1783,9 +1808,8 @@ async function fetchAllFromTables(){
   // only the columns actually needed here keeps this query small; photos
   // are fetched separately by hydratePhotoUrls() below, and only for
   // records that don't already have one cached.
-  const [cls, subs, teachers, students] = await Promise.all([
+  const [cls, teachers, students] = await Promise.all([
     supabaseClient.from('classes').select('id,class_label,grade,stream,academic_year').order('academic_year', {ascending:false}).order('grade'),
-    supabaseClient.from('subjects').select('id,subject_name,class_id,subject_code,display_order,show_in_gradesheet').order('display_order'),
     supabaseClient.from('teachers')
       .select('id, full_name, phone, email, qualification, designation, joining_date, address, username, password, class_teacher_of')
       .order('full_name'),
@@ -1793,6 +1817,14 @@ async function fetchAllFromTables(){
       .select('id, full_name, school_roll_no, class_id, student_id, serial_no, current_class, dob, gender, father_name, mother_name, guardian_contact, address, blood_group, username, password')
       .order('full_name'),
   ]);
+  // Subjects are fetched separately (not in the Promise.all above) so the
+  // credit_hour column can be requested with a retry-without fallback —
+  // on a pre-011 schema the whole select would otherwise fail with a
+  // "column does not exist" (PGRST204) error and subjects would go empty.
+  let subs = await supabaseClient.from('subjects').select('id,subject_name,class_id,subject_code,display_order,show_in_gradesheet,credit_hour').order('display_order');
+  if(subs && subs.error && isMissingColumnErr(subs.error)){
+    subs = await supabaseClient.from('subjects').select('id,subject_name,class_id,subject_code,display_order,show_in_gradesheet').order('display_order');
+  }
   const errors = [cls.error, subs.error, teachers.error, students.error].filter(Boolean);
   if(errors.length) console.error('fetchAllFromTables errors', errors);
   return {
@@ -1908,6 +1940,7 @@ async function syncFromRelationalTables(showToast){
     code: s.subject_code || '',
     serialNo: (s.display_order !== null && s.display_order !== undefined) ? s.display_order : 0,
     showInGradesheet: typeof s.show_in_gradesheet === 'boolean' ? s.show_in_gradesheet : true,
+    creditHour: (Number(s.credit_hour) > 0) ? Number(s.credit_hour) : 1,
   })).sort((a,b)=> (a.serialNo - b.serialNo) || a.name.localeCompare(b.name));
   STRUCT.students = students.map(s=>{
     const old = oldStudentsById[s.id] || {};
@@ -2100,6 +2133,25 @@ function gradeFor(pct){
   const scale = gradeScaleFor();
   for(const g of scale){ if(pct >= g.min) return g; }
   return scale[scale.length-1];
+}
+/* Builds the printed "Grading scale" footnote text straight from
+   gradeScaleFor() so the printed scale and the actual grade points can
+   never drift. Intervals mirror the reference "Gradesheet Back" docx:
+   "90 to 100" at the top, "X to below Y" in between, "below 35" at the
+   bottom. */
+function gradeScaleFootnoteText(compact){
+  const scale = gradeScaleFor();
+  return scale.map((g,i)=>{
+    const top = i === 0;
+    const hi = top ? 100 : scale[i-1].min; // exclusive upper bound of this interval
+    let interval;
+    if(g.min === 0) interval = compact ? `below ${hi}%` : `below ${hi}`;
+    else if(top)    interval = compact ? `${g.min}-100%` : `${g.min}-100`;
+    else            interval = compact ? `${g.min}-${hi-1}%` : `${g.min}-below ${hi}`;
+    return compact
+      ? `${g.grade} ${interval} (${g.gpa.toFixed(1)}, ${g.remark})`
+      : `${interval} ${g.grade} ${g.gpa.toFixed(1)} (${g.remark})`;
+  }).join(' · ');
 }
 
 /* ---------------- app state ---------------- */
@@ -3308,6 +3360,7 @@ function renderClasses(){
         <div class="row-form">
           <div class="field"><label>Subject code (optional)</label><input id="new-subj-code" placeholder="e.g. ENG-01"></div>
           <div class="field"><label>S.No.</label><input id="new-subj-sno" type="number" min="0" placeholder="Print order"></div>
+          <div class="field"><label>Credit hour</label><input id="new-subj-credit" type="number" min="0.5" step="0.5" placeholder="e.g. 4"></div>
           <div class="checkbox-row"><input type="checkbox" id="new-subj-show" checked><label for="new-subj-show" style="font-weight:400;">Show S.No. &amp; code in gradesheet</label></div>
         </div>
         <div class="loader-slider" id="subj-add-loader"></div>
@@ -3323,10 +3376,10 @@ function renderClasses(){
           </div>
         </div>
         <table>
-          <thead><tr><th>S.No.</th><th>Subject</th><th>Code</th><th>Class</th><th>In gradesheet</th><th></th></tr></thead>
+          <thead><tr><th>S.No.</th><th>Subject</th><th>Code</th><th>Class</th><th>Cr. Hr.</th><th>In gradesheet</th><th></th></tr></thead>
           <tbody id="subject-rows"></tbody>
         </table>
-        <div class="hint">S.No. sets the print order and the "S.No." column value on gradesheets; the checkbox controls whether S.No. and Code columns appear on the printed gradesheet at all (set under the Gradesheets tab).</div>
+        <div class="hint">S.No. sets the print order and the "S.No." column value on gradesheets; the checkbox controls whether S.No. and Code columns appear on the printed gradesheet at all (set under the Gradesheets tab). Credit hour weights the subject in the overall GPA — GPA = Σ(Grade Point × Credit Hour) ÷ Σ(Credit Hour); leave blank for 1.</div>
       </div>
     </div>
   `;
@@ -3347,12 +3400,13 @@ function renderSubjectRows(){
       <td>${sb.name}</td>
       <td class="mono">${sb.code || '—'}</td>
       <td>${classNameOf(sb.classId)}</td>
+      <td class="mono">${sb.creditHour ?? 1}</td>
       <td>${sb.showInGradesheet ? '<span class="pill pill-green">Yes</span>' : '<span class="pill pill-red">No</span>'}</td>
       <td style="white-space:nowrap;">
         <button class="btn-edit-outline" onclick="openEditSubjectModal('${sb.id}')">Edit</button>
         <button class="btn-danger-outline" style="margin-left:6px;" onclick="removeSubject('${sb.id}')">Remove</button>
       </td>
-    </tr>`).join('') : '<tr><td colspan="6" class="empty">No subjects match your search</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="7" class="empty">No subjects match your search</td></tr>';
 }
 function classNameOf(id){ const cl = STRUCT.classes.find(c=>c.id===id); return cl ? cl.name : '—'; }
 /* ---- shared student ordering: ascending roll no (numeric-aware), then name ----
@@ -3398,17 +3452,19 @@ async function addSubject(){
   const code = document.getElementById('new-subj-code').value.trim();
   const serialNo = Number(document.getElementById('new-subj-sno').value) || 0;
   const showInGradesheet = document.getElementById('new-subj-show').checked;
+  const creditHourInput = Number(document.getElementById('new-subj-credit').value);
+  const creditHour = creditHourInput > 0 ? creditHourInput : 1;
   if(!name || !classId) return toast('Enter subject name and select a class');
   const btn = document.getElementById('add-subj-btn');
   setBtnBusy(btn, true, 'Adding…');
   showLoaderBar('subj-add-loader', 'Saving subject…');
   try{
-    const newId = await dbInsertSubject({name, classId, code, serialNo, showInGradesheet});
+    const newId = await dbInsertSubject({name, classId, code, serialNo, showInGradesheet, creditHour});
     if(!newId) return;
     // Same as addClass() above — append locally rather than reloading
     // every class/subject/teacher/student from Supabase just to show one
     // new subject in this one class.
-    STRUCT.subjects.push({ id:newId, name, classId, code, serialNo, showInGradesheet });
+    STRUCT.subjects.push({ id:newId, name, classId, code, serialNo, showInGradesheet, creditHour });
     await persistStructure();
     toast('Subject added'); renderClasses();
   } finally {
@@ -3481,6 +3537,7 @@ function openEditSubjectModal(id){
         </div>
         <div class="field"><label>Subject code (optional)</label><input id="edit-subj-code" value="${(sb.code||'').replace(/"/g,'&quot;')}"></div>
         <div class="field"><label>S.No.</label><input id="edit-subj-sno" type="number" min="0" value="${sb.serialNo ?? 0}"></div>
+        <div class="field"><label>Credit hour</label><input id="edit-subj-credit" type="number" min="0.5" step="0.5" value="${sb.creditHour ?? 1}"></div>
         <div class="checkbox-row"><input type="checkbox" id="edit-subj-show" ${sb.showInGradesheet ? 'checked' : ''}><label for="edit-subj-show" style="font-weight:400;">Show S.No. &amp; code in gradesheet</label></div>
         <div class="loader-slider" id="edit-subj-loader"></div>
         <div class="login-error" id="edit-subj-error"></div>
@@ -3499,13 +3556,15 @@ async function submitEditSubject(id){
   const code = document.getElementById('edit-subj-code').value.trim();
   const serialNo = Number(document.getElementById('edit-subj-sno').value) || 0;
   const showInGradesheet = document.getElementById('edit-subj-show').checked;
+  const creditHourInput = Number(document.getElementById('edit-subj-credit').value);
+  const creditHour = creditHourInput > 0 ? creditHourInput : 1;
   if(!name || !classId){ document.getElementById('edit-subj-error').textContent = 'Fill in all fields.'; return; }
   const btn = document.getElementById('edit-subj-save-btn');
   setBtnBusy(btn, true, 'Saving…');
   showLoaderBar('edit-subj-loader', 'Saving changes…');
   try{
-    const updated = {name, classId, code, serialNo, showInGradesheet};
-    const current = {name: sb.name, classId: sb.classId, code: sb.code, serialNo: sb.serialNo, showInGradesheet: sb.showInGradesheet};
+    const updated = {name, classId, code, serialNo, showInGradesheet, creditHour};
+    const current = {name: sb.name, classId: sb.classId, code: sb.code, serialNo: sb.serialNo, showInGradesheet: sb.showInGradesheet, creditHour: sb.creditHour};
     if(Object.keys(diffFields(current, updated)).length){
       const ok = await dbUpdateSubject(id, updated);
       if(!ok) return;
@@ -4620,7 +4679,7 @@ function renderExams(){
     ${EXAMS.length ? renderPubPanel() : ''}
     <div class="card">
       <h3>Existing Exams</h3>
-      <div class="hint" style="margin-bottom:14px;">Grading scale (applies to every subject, regardless of its full marks — the percentage obtained decides the grade): A+ 90-100% (4.0, Outstanding) · A 80-89% (3.6, Excellent) · B+ 70-79% (3.2, Very Good) · B 60-69% (2.8, Good) · C+ 50-59% (2.4, Satisfactory) · C 40-49% (2.0, Acceptable) · D 35-39% (1.6, Basic) · NG below 35% (0.0, Not Graded).</div>
+      <div class="hint" style="margin-bottom:14px;">Grading scale (applies to every subject, regardless of its full marks — the percentage obtained decides the grade): ${gradeScaleFootnoteText(true)}.</div>
       ${EXAMS.length ? EXAMS.map(ex => renderExamConfigBlock(ex)).join('') : '<div class="empty"><b>No exams yet</b>Create one above to begin configuring subject marks.</div>'}
     </div>
   `;
@@ -4728,7 +4787,7 @@ function renderExamSubjectsTable(examId){
     return;
   }
   wrap.innerHTML = `<table>
-    <thead><tr><th>Subject</th>${showClassCol ? '<th>Class</th>' : ''}<th>Theory full</th><th>Theory pass</th><th>Practical full</th><th>Practical pass</th></tr></thead>
+    <thead><tr><th>Subject</th>${showClassCol ? '<th>Class</th>' : ''}<th>Theory full</th><th>Theory pass</th><th>Practical full</th><th>Practical pass</th><th>Gradesheet &amp; ledger</th></tr></thead>
     <tbody>${filtered.map(sb=>{
       const cfg = (ex.subjectMarks && ex.subjectMarks[sb.id]) || {theoryFull:100, theoryPass:35, practFull:0, practPass:0};
       return `<tr>
@@ -4738,6 +4797,7 @@ function renderExamSubjectsTable(examId){
         <td><input type="number" style="width:70px" value="${cfg.theoryPass}" onchange="updateExamCfg('${ex.id}','${sb.id}','theoryPass',this.value)"></td>
         <td><input type="number" style="width:70px" value="${cfg.practFull}" onchange="updateExamCfg('${ex.id}','${sb.id}','practFull',this.value)"></td>
         <td><input type="number" style="width:70px" value="${cfg.practPass}" onchange="updateExamCfg('${ex.id}','${sb.id}','practPass',this.value)"></td>
+        <td style="text-align:center;"><input type="checkbox" ${examSubIncluded(ex, sb) ? 'checked' : ''} onchange="toggleExamSubjectInclude('${ex.id}','${sb.id}',this.checked)" title="Untick to exclude this subject from the gradesheet and class ledger"></td>
       </tr>`;
     }).join('')}</tbody>
   </table>`;
@@ -4811,7 +4871,11 @@ async function applyClasswiseDefaultMarks(examId){
   const subs = STRUCT.subjects.filter(sb=>sb.classId===classId);
   if(!subs.length) return toast('No subjects found for that class');
   if(!ex.subjectMarks) ex.subjectMarks = {};
-  subs.forEach(sb=>{ ex.subjectMarks[sb.id] = {theoryFull, theoryPass, practFull, practPass}; });
+  subs.forEach(sb=>{
+    const prev = ex.subjectMarks[sb.id] || {};
+    const keep = (prev.included !== undefined) ? {included: prev.included} : {};
+    ex.subjectMarks[sb.id] = {theoryFull, theoryPass, practFull, practPass, ...keep};
+  });
   const ok = await dbUpdateExam(examId, {subjectMarks: ex.subjectMarks});
   if(!ok) return;
   toast(`Default marks applied to ${subs.length} subject${subs.length===1?'':'s'} in ${classNameOf(classId)}`);
@@ -4945,6 +5009,20 @@ async function updateExamCfg(examId, subjectId, field, value){
   ex.subjectMarks[subjectId][field] = Number(value) || 0;
   await dbUpdateExam(examId, {subjectMarks: ex.subjectMarks});
 }
+/* Per-exam, per-subject "Include in gradesheet & ledger" checkbox
+   (renderExamSubjectsTable). Absent flag = included, so existing exams
+   keep every subject until an admin explicitly unticks one. */
+function examSubIncluded(ex, sb){
+  return !(ex && ex.subjectMarks && ex.subjectMarks[sb.id] && ex.subjectMarks[sb.id].included === false);
+}
+async function toggleExamSubjectInclude(examId, subjectId, checked){
+  const ex = EXAMS.find(e=>e.id===examId);
+  if(!ex) return;
+  if(!ex.subjectMarks) ex.subjectMarks = {};
+  if(!ex.subjectMarks[subjectId]) ex.subjectMarks[subjectId] = {theoryFull:100, theoryPass:35, practFull:0, practPass:0};
+  ex.subjectMarks[subjectId].included = !!checked;
+  await dbUpdateExam(examId, {subjectMarks: ex.subjectMarks});
+}
 
 /* ================= ADMIN: MARKS OVERVIEW ================= */
 async function renderMarksOverview(){
@@ -5007,13 +5085,14 @@ const GS_DEFAULT_SETTINGS = {
   showGrade: true, showGPA: true, showResult: true, showSubjectRank: true, showRank: true,
   showFinalRemarks: true, showTotalMarks: true, showPercentage: true, showSubjectRemarks: true,
   showStudentName: true, showEmisId: true, showRollNo: true, showClass: true,
-  showDOB: true,
+  showDOB: true, showCreditHour: false,
   showParentage: true, showAddress: true, showExamName: true, showExamDates: true,
   showDeptIncharge: false, showDeptCoordinator: false,
 };
 const GS_COLUMN_OPTIONS = [
   {key:'showSerialNo', label:'S.No.'},
   {key:'showSubjectCode', label:'Subject Code'},
+  {key:'showCreditHour', label:'Credit Hour (per subject)'},
   {key:'showFullMarks', label:'Full Marks'},
   {key:'showObtained', label:'Obtained Marks'},
   {key:'showGrade', label:'Grade'},
@@ -5276,7 +5355,7 @@ async function computeClassRanks(examId, classId, marksAll){
   const ex = EXAMS.find(e=>e.id===examId);
   const studs = STRUCT.students.filter(s=>s.classId===classId);
   if(!marksAll) marksAll = await dbFetchMarksMap(examId, studs.map(s=>s.id));
-  const subs = STRUCT.subjects.filter(s=>s.classId===classId);
+  const subs = STRUCT.subjects.filter(s=>s.classId===classId && examSubIncluded(ex,s));
   const results = studs.map(st=>{
     const sm = marksAll[st.id] || {};
     let fullTotal = 0, obtTotal = 0, pass = subs.length > 0;
@@ -5308,7 +5387,7 @@ async function computeSubjectRanks(examId, classId, marksAll){
   const ex = EXAMS.find(e=>e.id===examId);
   const studs = STRUCT.students.filter(s=>s.classId===classId);
   if(!marksAll) marksAll = await dbFetchMarksMap(examId, studs.map(s=>s.id));
-  const subs = STRUCT.subjects.filter(s=>s.classId===classId);
+  const subs = STRUCT.subjects.filter(s=>s.classId===classId && examSubIncluded(ex,s));
   const bySubject = {};
   subs.forEach(sb=>{
     const cfg = (ex.subjectMarks && ex.subjectMarks[sb.id]) || {theoryFull:100, theoryPass:35, practFull:0, practPass:0};
@@ -5382,6 +5461,7 @@ async function buildGradesheetHTML(examId, studentId){
   const marksAll = await dbFetchMarksMap(examId, classStudentIds(student.classId));
   const studentMarks = marksAll[studentId] || {};
   const subs = STRUCT.subjects.filter(s=>s.classId===student.classId)
+    .filter(sb=>examSubIncluded(ex, sb))
     .slice().sort((a,b)=> (a.serialNo - b.serialNo) || a.name.localeCompare(b.name));
 
   const showSno = !!GS_SETTINGS.showSerialNo;
@@ -5393,6 +5473,7 @@ async function buildGradesheetHTML(examId, studentId){
   const showResult = !!GS_SETTINGS.showResult;
   const showSubjRank = !!GS_SETTINGS.showSubjectRank;
   const showSubjRemarks = !!GS_SETTINGS.showSubjectRemarks;
+  const showCreditHour = !!GS_SETTINGS.showCreditHour;
   const showRank = !!GS_SETTINGS.showRank;
   const showRemarks = !!GS_SETTINGS.showFinalRemarks;
   const showTotalMarks = !!GS_SETTINGS.showTotalMarks;
@@ -5417,7 +5498,7 @@ async function buildGradesheetHTML(examId, studentId){
 
   const subjectRanks = showSubjRank ? await computeSubjectRanks(examId, student.classId, marksAll) : {};
 
-  let gpaSum = 0, gpaCount = 0, overallPass = true, fullTotal=0, obtTotal=0;
+  let gpaWeightedSum = 0, totalCredit = 0, overallPass = true, fullTotal=0, obtTotal=0;
   const subjRows = []; // {name, pct, passed} — used to build the Final Remarks line
   const rows = subs.map((sb, idx)=>{
     const cfg = (ex.subjectMarks && ex.subjectMarks[sb.id]) || {theoryFull:100, theoryPass:35, practFull:0, practPass:0};
@@ -5426,9 +5507,10 @@ async function buildGradesheetHTML(examId, studentId){
     const subjObt = (m.theory||0) + (m.practical||0);
     const pct = subjFull > 0 ? (subjObt/subjFull*100) : 0;
     const g = gradeFor(pct);
+    const creditHour = (Number(sb.creditHour) > 0) ? Number(sb.creditHour) : 1;
     const passed = (m.theory||0) >= cfg.theoryPass && (cfg.practFull ? (m.practical||0) >= cfg.practPass : true);
     if(!passed) overallPass = false;
-    gpaSum += g.gpa; gpaCount++;
+    gpaWeightedSum += g.gpa * creditHour; totalCredit += creditHour;
     fullTotal += subjFull; obtTotal += subjObt;
     subjRows.push({ name: sb.name, pct, passed });
     const canShow = sb.showInGradesheet !== false; // per-subject opt-out of S.No./code even when columns are on
@@ -5442,6 +5524,7 @@ async function buildGradesheetHTML(examId, studentId){
       showSno ? `<td>${canShow ? (sb.serialNo || (idx+1)) : ''}</td>` : '',
       `<td class="subj-name">${sb.name}</td>`,
       showCode ? `<td class="mono">${canShow ? (sb.code || '—') : ''}</td>` : '',
+      showCreditHour ? `<td>${creditHour}</td>` : '',
       showFull ? `<td>${subjFull}</td>` : '',
       showObt ? `<td>${subjObt}</td>` : '',
       showGrade ? `<td><span class="gs-grade-pill ${gradePillClass(g.grade)}">${g.grade}</span></td>` : '',
@@ -5453,12 +5536,12 @@ async function buildGradesheetHTML(examId, studentId){
     return `<tr>${cells}</tr>`;
   }).join('');
   const colCount = 1 /* subject name always shown */
-    + (showSno?1:0) + (showCode?1:0) + (showFull?1:0) + (showObt?1:0) + (showGrade?1:0) + (showGPA?1:0) + (showResult?1:0) + (showSubjRank?1:0) + (showSubjRemarks?1:0);
+    + (showSno?1:0) + (showCode?1:0) + (showCreditHour?1:0) + (showFull?1:0) + (showObt?1:0) + (showGrade?1:0) + (showGPA?1:0) + (showResult?1:0) + (showSubjRank?1:0) + (showSubjRemarks?1:0);
   const overallPct = fullTotal ? (obtTotal/fullTotal*100) : 0;
   // A student who fails (NG) in even one subject is Not Graded overall:
   // the overall GPA shows as 0.0 and the overall grade shows as NG,
   // regardless of how the passing subjects individually averaged out.
-  const gpaAvg = overallPass ? (gpaCount ? (gpaSum/gpaCount) : 0) : 0;
+  const gpaAvg = overallPass ? (totalCredit ? (gpaWeightedSum/totalCredit) : 0) : 0;
   const overallGrade = overallPass ? gradeFor(overallPct).grade : 'NG';
   await ensurePersonPhoto('students', student.id, student);
   const photoInner = student.photo
@@ -5541,6 +5624,7 @@ async function buildGradesheetHTML(examId, studentId){
                 ${showSno ? '<th>S.No.</th>' : ''}
                 <th style="text-align:left;">Subject</th>
                 ${showCode ? '<th>Code</th>' : ''}
+                ${showCreditHour ? '<th>Cr. Hr.</th>' : ''}
                 ${showFull ? '<th>Full Marks</th>' : ''}
                 ${showObt ? '<th>Obtained</th>' : ''}
                 ${showGrade ? '<th>Grade</th>' : ''}
@@ -5569,7 +5653,7 @@ async function buildGradesheetHTML(examId, studentId){
           ${showDeptCoordinator ? '<div class="ac-sig-dc">' + acSigHtml('dc') + '</div>' : ''}
           <div class="ac-sig-ht">${acSigHtml('ht')}</div>
         </div>
-        <div class="gs-scale">Grading scale: A+ above 90-100 (4.0) · A above 80-90 (3.6) · B+ above 70-80 (3.2) · B above 60-70 (2.8) · C+ above 50-60 (2.4) · C above 40-50 (2.0) · D above 35-40 (1.6) · NG below 35 (Not Graded). Overall Class Rank is calculated among students in the same class who passed every subject of this examination. Rank in Subject is calculated among students in the same class who passed that specific subject.</div>
+        <div class="gs-scale">Grading scale — intervals and grade points: ${gradeScaleFootnoteText()} · Overall GPA = Σ(Grade Point × Credit Hour) ÷ Σ(Credit Hour). Overall Class Rank is calculated among students in the same class who passed every subject of this examination. Rank in Subject is calculated among students in the same class who passed that specific subject.</div>
         </div>
       </div>
       <div class="no-print" style="text-align:center;margin-top:20px;">
@@ -5869,6 +5953,7 @@ async function buildClassLedgerHTML(examId, classId){
   const cls = STRUCT.classes.find(c=>c.id===classId);
   CL_EXPORT_CTX = { examId, classId };
   const subs = STRUCT.subjects.filter(s=>s.classId===classId)
+    .filter(sb=>examSubIncluded(ex, sb))
     .slice().sort((a,b)=> (a.serialNo - b.serialNo) || a.name.localeCompare(b.name));
   const studs = sortStudentsByRollThenName(STRUCT.students.filter(s=>s.classId===classId));
 
@@ -5983,7 +6068,7 @@ async function buildClassLedgerHTML(examId, classId){
   // per-subject array, not one joined string, so they can be re-grouped
   // into whichever block they fall into), plus identity/summary cells.
   const studentRows = studs.map((st, idx)=>{
-    let obtTotal = 0, fullTotal = 0, gpaSum = 0, gpaCount = 0, overallPass = true;
+    let obtTotal = 0, fullTotal = 0, gpaWeightedSum = 0, totalCredit = 0, overallPass = true;
     const subjCellsBySubject = subs.map((sb,si)=>{
       const cfg = subjCfg[si];
       const m = (marksAll[st.id] && marksAll[st.id][sb.id]) || {theory:0, practical:0};
@@ -5991,9 +6076,10 @@ async function buildClassLedgerHTML(examId, classId){
       const subjObt = (m.theory||0) + (m.practical||0);
       const pct = subjFull > 0 ? (subjObt/subjFull*100) : 0;
       const g = gradeFor(pct);
+      const creditHour = (Number(sb.creditHour) > 0) ? Number(sb.creditHour) : 1;
       const passed = (m.theory||0) >= cfg.theoryPass && (cfg.practFull ? (m.practical||0) >= cfg.practPass : true);
       if(!passed) overallPass = false;
-      gpaSum += g.gpa; gpaCount++;
+      gpaWeightedSum += g.gpa * creditHour; totalCredit += creditHour;
       fullTotal += subjFull; obtTotal += subjObt;
       const cells = [];
       if(cfg.practFull){ cells.push(`<td>${m.theory||0}</td>`); cells.push(`<td>${m.practical||0}</td>`); }
@@ -6007,7 +6093,7 @@ async function buildClassLedgerHTML(examId, classId){
     // A student who fails (NG) in even one subject is Not Graded overall:
     // the overall GPA shows as 0.0 and the overall grade shows as NG,
     // regardless of how the passing subjects individually averaged out.
-    const gpaAvg = overallPass ? (gpaCount ? (gpaSum/gpaCount) : 0) : 0;
+    const gpaAvg = overallPass ? (totalCredit ? (gpaWeightedSum/totalCredit) : 0) : 0;
     const g = overallPass ? gradeFor(overallPct) : {grade:'NG', gpa:0.0, remark:'Not Graded'};
     const rank = overallPass ? rankMap[st.id] : null;
     if(rank) rankedStudents.push({rank, name: st.name, roll: st.roll, gpa: gpaAvg});
@@ -6123,7 +6209,7 @@ async function buildClassLedgerHTML(examId, classId){
           ${metaParts ? `<div class="ledger-meta">${metaParts}</div>` : ''}
           ${blocksHtml}
           ${top3Html}
-          <div class="ledger-scale">Grading scale: A+ above 90-100 (4.0) · A above 80-90 (3.6) · B+ above 70-80 (3.2) · B above 60-70 (2.8) · C+ above 50-60 (2.4) · C above 40-50 (2.0) · D above 35-40 (1.6) · NG below 35 (Not Graded). Rank is calculated among students in the class who passed every subject of this examination.</div>
+          <div class="ledger-scale">Grading scale — intervals and grade points: ${gradeScaleFootnoteText()} · Overall GPA = Σ(Grade Point × Credit Hour) ÷ Σ(Credit Hour). Rank is calculated among students in the class who passed every subject of this examination.</div>
           <div class="gs-sign">
             <div class="ac-sig-ct">${acSigHtml('ct')}</div>
             <div class="ac-sig-ec">${acSigHtml('ec')}</div>

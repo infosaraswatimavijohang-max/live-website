@@ -6,7 +6,7 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 
 - **Public pages**: Open any `.html` directly in a browser (no build step). Contact/about maps are static `maps.app.goo.gl` links — **not** iframes. When Supabase is unreachable, `DataStore` falls back to `sss_` localStorage, so pages still render.
 - **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:306-307`).
-- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~8100-line file, ~6990-line inline `<script>`), uses CDN supabase-js v2 (different stack from public pages).
+- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (now ~8724 lines; see Exam Portal section for details), uses CDN supabase-js v2 (different stack from public pages).
 
 ## Script load order (critical)
 
@@ -24,7 +24,7 @@ supabase.js → cache.js → data.js → [bs_calendar.js] → main.js (or admin.
 
 ## Verification
 
-There is no test/lint/CI. The only syntax check is `node --check`: for `Login_portal.html` (and other big inline `<script>` blocks), extract the range between `<script>` / `</script>` and run `node --check` on it.
+There is no test/lint/CI. The only syntax check is `node --check`: for `Login_portal.html` (and other big inline `<script>` blocks), extract the range between `<script>` / `</script>` and run `node --check` on it. In `Login_portal.html` the main inline `<script>` opens near line 1136 and runs to ~8721.
 
 ## Data architecture
 
@@ -69,7 +69,7 @@ Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. 
 - Teal `oklch(0.55 0.12 175)`: primary interactive accent — links, active states, CTAs
 - Gold `oklch(0.72 0.13 85)`: warm accent for `btn-primary`, hero highlights, stars
 - Prefer OKLCH tokens from `:root` over hex. Spacing base: 8px. Transitions: `0.35s cubic-bezier(0.22, 1, 0.36, 1)`.
-- Dark mode: `[data-theme="dark"]` on `<html>` redefines the tokens (`style.css:29`). Theme persisted in `sss_theme` localStorage, initialized by an inline script at the top of every public page. Keep new colors working under both token sets.
+- Dark mode: `[data-theme="dark"]` on `<html>` redefines the tokens (`style.css:30`). Theme persisted in `sss_theme` localStorage, initialized by an inline script at the top of every public page. Keep new colors working under both token sets.
 - Full guidelines: `DESIGN.md` | Brand/voice: `PRODUCT.md`
 
 ## Layout
@@ -109,6 +109,7 @@ Run in Supabase SQL Editor in numeric order:
 | `sql/008_alumni.sql` | `alumni_students`, `alumni_teachers` + `public_all` RLS |
 | `sql/009_exam_documents.sql` | `exam_documents` table + `exam_documents` storage bucket & RLS (for exported ledgers/gradesheets) |
 | `sql/010_school_documents.sql` | `school_documents` table + `school_documents` storage bucket & RLS (Backup tab — file uploads with visibility controls) |
+| `sql/011_subject_credit_hours.sql` | `subjects.credit_hour numeric DEFAULT 1` — powers credit-weighted GPA on Gradesheets/Class Ledgers |
 
 Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_updates.sql`, `teacher_photo_updates.sql`) are one-time data migrations, not schema changes.
 
@@ -120,7 +121,9 @@ Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_
 - Own auth (username/password per student/teacher), own caching (`examCache`), own column maps (`EXAM_COLUMNS` in `exam_helper.js`).
 - **Export to Supabase storage**: the Class Ledger and Gradesheet views have a **Export** button (`exportLedgerNow()` / `exportGradesheetNow()` in the inline script). It archives the rendered document as a self-contained HTML file (all app `<style>` blocks inlined, `.no-print` chrome stripped, `@media print` rules dropped) into the `exam_documents` storage bucket under `YYYY-MM-DD/<ledgers|gradesheets>/<exam>-<class>[-<student>]-<ts>.html`, then records a row in the `exam_documents` table (see `sql/009_exam_documents.sql`). Export context is set by `GS_EXPORT_CTX`/`CL_EXPORT_CTX` inside `buildGradesheetHTML()`/`buildClassLedgerHTML()`.
 - **STRUCT naming differs from DB columns**: classes use `name` not `class_label`, students use `name`/`roll`/`classId` not `full_name`/`school_roll_no`/`class_id`. Inline code maps between them via `EXAM_COLUMNS`.
-- `Login_portal.html` is a ~8600-line file; the main inline `<script>` spans ~7500 lines — prefer targeted edits over bulk rewrites. Syntax-check it by extracting the `<script>` range and running `node --check`.
+- **Subject credit hours & GPA**: each subject has a `creditHour` in STRUCT (mapped from `subjects.credit_hour`, defaults to 1). Overall GPA on Gradesheets and Class Ledgers is credit-weighted: `Σ(grade point × credit hour) ÷ Σ(credit hour)` (formula per the "Gradesheet Back" reference); a `Cr. Hr.` column on the gradesheet is optional via the `showCreditHour` setting (default off; ledger prints credit hours on the Classes/Subjects tab only). Grade points follow the reference scale in `Gradesheet Back.docx`: A+ 4.0 → D 1.6 → NG 0.0, intervals 90-100 / 80-below 90 / … / 35-below 40 (D) / below 35 (NG) (`gradeScaleFor()`). One source of truth: the printed "Grading scale" footnotes on gradesheets/ledgers and the admin hint are all generated by `gradeScaleFootnoteText(false|true)` from `gradeScaleFor()`. Pre-migration DBs keep working — the subjects fetch/insert/update retry without the `credit_hour` column (same pattern as the `_bs` retries).
+- **Include in gradesheet & ledger**: the exam's subject table has a per-subject checkbox (`examSubIncluded()` / `toggleExamSubjectInclude()`, flag stored as `exams.subjectMarks.<subj>.included`). Excluded subjects are filtered out of `buildGradesheetHTML()`, `buildClassLedgerHTML()`, `computeClassRanks()`, and `computeSubjectRanks()` — they don't print and don't count toward totals, GPA, or pass. Marks entry still shows all subjects. `applyClasswiseDefaultMarks()` preserves an existing `included` flag.
+- `Login_portal.html` is a 8724-line file; the main inline `<script>` (line ~1136 onward) spans ~7580 lines — prefer targeted edits over bulk rewrites. Syntax-check it by extracting the `<script>` range and running `node --check`.
 
 ### Exam Portal credentials
 
@@ -153,11 +156,11 @@ Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_
 
 ## Domain
 
-`saraswatisecschool.edu.np` — set in `CNAME` + canonical tag in `index.html`. Note: the `google-site-verification` meta (`index.html:16`) is still the placeholder `YOUR_GOOGLE_VERIFICATION_CODE`.
+`saraswatisecschool.edu.np` — set in `CNAME` and the canonical tag in `index.html`.
 
 ## Notes
 
-- `graphify-out/` and `.graphify_*` files are analysis artifacts, not part of the application.
+- `graphify-out/` (including `.graphify_*` files) — analysis artifacts, not part of the application.
 - No `.gitignore` — git tracks everything. Large generated files (e.g. `sql/teacher_photo_updates.sql` at ~12 MB) are committed.
 - `robots.txt` and `sitemap.xml` present at root.
 - Git identity is NOT configured (no local or global `user.name`/`user.email`). Pass explicit identity on each commit so it matches repo history (`Amit Rajbanshi` / `infosaraswatimavijohang@gmail.com`), e.g. `git -c user.name="Amit Rajbanshi" -c user.email="infosaraswatimavijohang@gmail.com" commit -m "..."`.
