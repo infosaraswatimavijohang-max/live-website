@@ -808,10 +808,12 @@ var App = {
         var data = Object.fromEntries(formData.entries());
         delete data.studentPhoto; delete data.birthCertificate; delete data.bleCertificate;
         data.dob_bs = data.dob ? adToBsStr(data.dob) : '';
+        var birthEl = document.getElementById('birthCertificate');
+        var bleEl = document.getElementById('bleCertificate');
         var files = await Promise.all([
           photoFile ? fileToDataUrl(photoFile) : null,
-          (document.getElementById('birthCertificate') || {}).files ? fileToDataUrl(document.getElementById('birthCertificate').files[0]) : null,
-          (document.getElementById('bleCertificate') || {}).files ? fileToDataUrl(document.getElementById('bleCertificate').files[0]) : null
+          (birthEl && birthEl.files && birthEl.files[0]) ? fileToDataUrl(birthEl.files[0]) : null,
+          (bleEl && bleEl.files && bleEl.files[0]) ? fileToDataUrl(bleEl.files[0]) : null
         ]);
         var application = {
           id: 'app_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),

@@ -120,7 +120,6 @@ const supabase = (() => {
     const elapsed = performance.now() - startTime;
     SPB_MONITOR.logSlowQuery(table, elapsed);
 
-    if (data) data._count = null;
     return { data, error };
   }
 
@@ -218,16 +217,34 @@ const supabase = (() => {
       const returnCols = opts.returnColumns || ['id'];
       const url = buildUrl(table, { select: returnCols.join(',') });
       const body = Array.isArray(records) ? records : [records];
+      try {
+        const data = await this._upsertWrite(url, body, table);
+        return { data, error: null };
+      } catch (err) {
+        if (_isColumnError(err.message) && _hasBsKey(body[0])) {
+          const cleaned = body.map(_stripBsKeys).filter(function (r) { return Object.keys(r).length; });
+          if (!cleaned.length) {
+            console.warn('Supabase upsert ' + table + ': all records filtered out after stripping _bs keys, retrying with original error');
+            throw err;
+          }
+          const data = await this._upsertWrite(url, cleaned, table);
+          return { data, error: null };
+        }
+        throw err;
+      }
+    },
+
+    async _upsertWrite(url, body, table) {
       const raw = await fetch(url, {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=representation,resolution=merge-duplicates' },
         body: JSON.stringify(body)
       });
-      if (!raw.ok) throw new Error('Supabase upsert ' + table + ': ' + raw.statusText);
       const text = await raw.text();
+      if (!raw.ok) throw new Error('Supabase upsert ' + table + ': ' + raw.statusText + (text ? ' — ' + text : ''));
       SPB_MONITOR.log('upload', JSON.stringify(body).length);
       SPB_MONITOR.log('download', text.length);
-      return { data: JSON.parse(text), error: null };
+      return JSON.parse(text);
     },
 
     async delete(table, id) {

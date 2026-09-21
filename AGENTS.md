@@ -5,8 +5,8 @@ Static HTML/CSS/JS site — no build, test, lint, or CI pipeline. No `package.js
 ## Running
 
 - **Public pages**: Open any `.html` directly in a browser (no build step). Contact/about maps are static `maps.app.goo.gl` links — **not** iframes. When Supabase is unreachable, `DataStore` falls back to `sss_` localStorage, so pages still render.
-- **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:306-307`).
-- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (now ~8724 lines; see Exam Portal section for details), uses CDN supabase-js v2 (different stack from public pages).
+- **Admin**: `admin.html` — login with `adminUsername`/`adminPassword` from `site_settings` table; falls back to `amitrazbanc` / `school1122@` (`admin.js:25-26`, also seed defaults in `data.js:332-333`).
+- **Exam Portal / Account**: `Login_portal.html` — standalone SPA (~8819 lines; see Exam Portal section for details), uses CDN supabase-js v2 (different stack from public pages).
 
 ## Script load order (critical)
 
@@ -24,12 +24,14 @@ supabase.js → cache.js → data.js → [bs_calendar.js] → main.js (or admin.
 
 ## Verification
 
-There is no test/lint/CI. The only syntax check is `node --check`: for `Login_portal.html` (and other big inline `<script>` blocks), extract the range between `<script>` / `</script>` and run `node --check` on it. In `Login_portal.html` the main inline `<script>` opens near line 1136 and runs to ~8721.
+There is no test/lint/CI. The only syntax check is `node --check`: for `Login_portal.html` (and other big inline `<script>` blocks), extract the range between `<script>` / `</script>` and run `node --check` on it. In `Login_portal.html` the main inline `<script>` opens near line 1143 and runs to ~8816.
 
 ## Data architecture
 
 - **Primary**: Supabase REST API via raw `fetch` (`js/supabase.js`). Column whitelist (`COLUMN_MAP`, `supabase.js:47`), in-flight request dedup (`_inFlight` map).
 - **Fallback**: localStorage with `sss_` prefix. All `DataStore` ops write through to both.
+- **`supabase` methods resolve, never reject on HTTP/network failure** — they return `{ data, error }`. `DataStore.get` therefore checks `error` and throws so its `catch` → localStorage fallback actually fires (`data.js`). Don't pattern-match `await` calls without checking `error`.
+- **`HOMEPAGE_VISIBILITY` is local-only**: no Supabase table exists for it (mapped via `DataStore.LOCAL_ONLY_KEYS`, `data.js:13`), so `main.js:11` and `admin.js:115` never hit the network for it. Don't add it to `COLUMN_MAP`/SQL — visibility persists in `sss_HOMEPAGE_VISIBILITY`.
 - **Cache**: `CacheManager` (`js/cache.js`) — two-tier (memory + localStorage, `sss_cache_` prefix) with per-key TTL. Used by `DataStore` in `data.js`.
 - **Reset**: DevTools → Application → clear all `sss_*` and `sss_cache_*` keys.
 - **Admin auth**: `sessionStorage` key `sss_admin_auth`.
@@ -38,7 +40,7 @@ There is no test/lint/CI. The only syntax check is `node --check`: for `Login_po
 ## Auto-seed (`seedData` in `js/data.js`)
 
 Fires on **both** triggers:
-1. `window.onload` in `data.js:730-736` (runs on every public page load)
+1. `window.onload` in `data.js:755-761` (runs on every public page load)
 2. Admin login (`admin.js:16`) calls `seedData()` after auth check
 
 Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. If absent → seeds site_settings, slides, and about first, then teachers/staff/gallery.
@@ -76,7 +78,7 @@ Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. 
 
 - Public pages render shared header/footer via `App.renderHeader()` / `App.renderFooter()`.
 - Sections lazy-loaded via `IntersectionObserver` with 200px rootMargin; falls back to eager if `prefers-reduced-motion`.
-- **Showcase marquees**: Gallery, Teachers, and Staff render as auto-scrolling strips — `.gallery-track` / `.teachers-track` / `.staff-track` inside an `overflow:hidden` wrapper, each `width:fit-content`, content doubled, `gmarquee` keyframes (`translateX(-50%)`) at 90s, pausing on hover. Cards are 260px wide (`flex:0 0 260px`; 165px on small phones), people cards use a 128px round photo.
+- **Showcase marquees**: Gallery, Teachers, and Staff render as auto-scrolling strips — `.gallery-track` / `.teachers-track` / `.staff-track` inside an `overflow:hidden` wrapper, each `width:fit-content`, content doubled, `gmarquee` keyframes (`translateX(-50%)`) at 90s, pausing on hover. Cards are 260px wide (`flex:0 0 260px`); people cards (`.teacher-card` / `.staff-card`) narrow to 200px at ≤480px and 165px at ≤360px, while `.gallery-item` stays 260px. People cards use a 128px round photo.
 
 ## Annual Work Plan & Calendar (BS 2083)
 
@@ -85,13 +87,13 @@ Logic: if `site_settings` already exists → seeds teachers/staff/gallery only. 
 - Date parsing handles: `From X`, `X-Y` ranges, `Last Wed & Thu`, plain numbers — regular hyphens, not en-dashes.
 - **BS 2083 month lengths** (`BS_MONTH_DAYS`, `data.js`): `[31,31,32,31,31,31,30,29,30,29,30,30]` (365 days) — verified against hamro patro. Anchors: Baisakh 1 = Apr 14 2026, Jestha 1 = May 15, Ashadh 1 = Jun 15, Shrawan 1 = Jul 17, Bhadra 1 = Aug 17, Ashwin 1 = Sep 17, Kartik 1 = Oct 18, Mangsir 1 = Nov 17, Poush 1 = Dec 16, Magh 1 = Jan 15 2027, Falgun 1 = Feb 13, Chaitra 1 = Mar 15.
 - **Public holidays**: `BS_HOLIDAYS` object in `data.js` (keyed by Nepali month name → `{day, name}`), sourced from hamro patro's 2083 holiday list. `renderBsCalendar()` merges them into cells as `cal-holiday` (badge shows festival name), and `showMonthActivities()` lists them at the top of the plan panel. To change which holidays appear, edit `BS_HOLIDAYS`.
-- `NepaliDate.convertToBS()` (used by `main.js` event timeline) and `bsDateFromAd()` are both anchored to Baisakh 1 2083 = Apr 14 2026 and agree with hamro patro for the 2083 academic year.
+- `NepaliDate.convertToBS()` (used by `main.js` event timeline) delegates to `adToBs` from `bs_calendar.js` when loaded (falls back to its own 2083-anchored math otherwise); `bsDateFromAd()` stays anchored to Baisakh 1 2083 = Apr 14 2026. Both agree with hamro patro for the 2083 academic year; `convertToBS` also handles dates outside 2083 correctly via `adToBs`.
 
 ## BS (Nepali) date fields
 
 - Every `<input type="date">` on `index.html`, `admin.html`, and `Login_portal.html` automatically shows a read-only BS date span under it (`js/bs_calendar.js`). `initBsDateDisplays()` uses a `MutationObserver` so dynamically-rendered inputs (exam rows, modals) get decorated too. The AD field stays the source of truth — the BS display is derived, never edited.
 - Converter: `adToBs()` / `bsToAd()` cover BS 1975–2099 from the `BS_YEARS` month-length table in `bs_calendar.js` (epoch Baisakh 1 2000 BS = Apr 14 1943 AD). The 2083-only `BS_MONTH_DAYS`/`bsDateFromAd()` in `data.js` are separate and untouched.
-- Persistence: BS values are saved alongside the AD values — `dob_bs` on `admissions`/`students`, `date_bs` on `notices`/`events`, `joining_date_bs` on `teachers`, `due_date_bs` on `assignments` (see `sql/007_bs_date_columns.sql`); exam dates ride inside the existing `exams.subject_marks` JSONB blob (`_startDateBs`, `_endDateBs`, `_publishFromBs`, `_publishUntilBs`). Nothing breaks pre-migration: public/admin writes go through `supabase.insert`/`update`, which detect a missing-column error (PGRST204) and retry once with `_bs` keys stripped (`js/supabase.js`); the exam portal has its own per-call retry-without-`_bs` fallbacks.
+- Persistence: BS values are saved alongside the AD values — `dob_bs` on `admissions`/`students`, `date_bs` on `notices`/`events`, `joining_date_bs` on `teachers`, `due_date_bs` on `assignments` (see `sql/007_bs_date_columns.sql`); exam dates ride inside the existing `exams.subject_marks` JSONB blob (`_startDateBs`, `_endDateBs`, `_publishFromBs`, `_publishUntilBs`). Nothing breaks pre-migration: public/admin writes go through `supabase.insert`/`update`/`upsert`, which detect a missing-column error (PGRST204) and retry once with `_bs` keys stripped (`js/supabase.js`); the exam portal has its own per-call retry-without-`_bs` fallbacks.
 - If a form sets a date input's value programmatically (e.g. admin edit), call `updateBsDate(inputEl)` after — `setVal()`/`clearForm()` in `admin.js` already do.
 
 ## SQL migrations
@@ -164,3 +166,4 @@ Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_
 - No `.gitignore` — git tracks everything. Large generated files (e.g. `sql/teacher_photo_updates.sql` at ~12 MB) are committed.
 - `robots.txt` and `sitemap.xml` present at root.
 - Git identity is NOT configured (no local or global `user.name`/`user.email`). Pass explicit identity on each commit so it matches repo history (`Amit Rajbanshi` / `infosaraswatimavijohang@gmail.com`), e.g. `git -c user.name="Amit Rajbanshi" -c user.email="infosaraswatimavijohang@gmail.com" commit -m "..."`.
+- `Login_portal.html` is mostly a few giant single lines (max ~253 KB). Regex search across the repo (including that file) can blow up ripgrep's 65536-byte record limit; fixed-string/literal searches and searching single files are fine. Prefer the OpenCode `grep` tool confined to a specific file or `node --check` when working inside its inline `<script>`.

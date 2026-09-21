@@ -990,7 +990,14 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 .id-card.id-staff .id-photo,.id-card.id-staff .id-photo-placeholder{border-color:oklch(0.29 0.045 260);color:oklch(0.29 0.045 260);}
 .id-card.id-staff .id-role{color:oklch(0.29 0.045 260);}
 .id-card.id-staff .id-bar{background:linear-gradient(90deg,oklch(0.29 0.045 260),oklch(0.22 0.04 260));}
-@media print{.id-card-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:0;}.id-card{box-shadow:none;border:1px solid #ddd;page-break-after:always;}}
+.id-card .idc-print-one{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:11px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.85;z-index:3;}
+.id-card .idc-print-one:hover{opacity:1;background:var(--navy);color:#fff;}
+.idc-search-wrap{position:relative;flex:1;min-width:170px;}
+.idc-search-wrap input{width:100%;padding:6px 10px 6px 26px;border:1px solid var(--line);border-radius:3px;font-size:13px;background:var(--paper);color:var(--ink);}
+.idc-search-wrap .idc-search-ic{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--ink-soft);pointer-events:none;}
+.idc-size-ctl{display:flex;align-items:center;gap:6px;}
+.idc-size-ctl select{padding:6px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;background:var(--paper);color:var(--ink);max-width:210px;}
+@media print{.id-card-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:0;}.id-card{box-shadow:none;border:1px solid #ddd;page-break-after:always;}.idc-print-one{display:none!important;}}
 .bs-date-display{display:block;font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
 .bs-date-display.bs-date-display-empty{display:none;}
 
@@ -8517,8 +8524,8 @@ function toggleIdField(type){
   ID_FIELDS[type] = f;
   saveIdFields();
   if(type === 'student') { var sel=document.getElementById('idc-select-class'); if(sel&&sel.value) generateStudentIdCards(); }
-  else if(type === 'teacher') { var g=document.getElementById('idc-teacher-grid'); if(g) g.innerHTML=teacherCardsHtml(); }
-  else if(type === 'staff') { var g=document.getElementById('idc-staff-grid'); if(g) g.innerHTML=staffCardsHtml(); }
+  else if(type === 'teacher') { var g=document.getElementById('idc-teacher-grid'); if(g){ g.innerHTML=teacherCardsHtml(); filterIdCards('idc-search-teacher', '#idc-teacher-grid'); } }
+  else if(type === 'staff') { var g=document.getElementById('idc-staff-grid'); if(g){ g.innerHTML=staffCardsHtml(); filterIdCards('idc-search-staff', '#idc-staff-grid'); } }
 }
 
 function idCardSignatureHtml(){
@@ -8550,6 +8557,17 @@ function saveIdValidity(val){
   document.querySelectorAll('.id-valid').forEach(function(el){ el.textContent = ID_VALIDITY ? 'Valid till: ' + ID_VALIDITY + ' BS' : 'Valid ' + new Date().getFullYear(); });
 }
 
+function filterIdCards(inputId, gridSel){
+  var inp = document.getElementById(inputId);
+  if(!inp) return;
+  var q = inp.value.trim().toLowerCase();
+  var cards = document.querySelectorAll(gridSel + ' .id-card');
+  for(var i=0;i<cards.length;i++){
+    var name = (cards[i].getAttribute('data-name') || '').toLowerCase();
+    cards[i].style.display = (!q || name.indexOf(q) !== -1) ? '' : 'none';
+  }
+}
+
 function attachSignature(file){
   if(!file) return;
   var reader = new FileReader();
@@ -8573,7 +8591,7 @@ function idCardStudentHtml(st, cls, fields){
   if(!fields || fields.address) rows += '<tr><td class="id-lbl">Address</td><td class="id-val">' + esc(st.address || '—') + '</td></tr>';
   if(!fields || fields.blood) rows += '<tr><td class="id-lbl">Blood</td><td class="id-val">' + esc(st.bloodGroup || '—') + '</td></tr>';
   if(!fields || fields.username) rows += '<tr><td class="id-lbl">Username</td><td class="id-val">' + esc(st.username || '—') + '</td></tr>';
-  return '<div class="id-card id-student"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (st.photo ? '<img class="id-photo" src="' + st.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(st.name) + '</div><div class="id-role">Student</div><div class="id-body"><table>' + rows + '</table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+  return '<div class="id-card id-student" data-name="' + esc(st.name || '') + '" data-person="' + st.id + '"><button type="button" class="idc-print-one" title="Print this card" onclick="printIdCards(\'student\',\'' + st.id + '\')">🖨</button><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (st.photo ? '<img class="id-photo" src="' + st.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(st.name) + '</div><div class="id-role">Student</div><div class="id-body"><table>' + rows + '</table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
 }
 
 function studentCardsHtml(){
@@ -8598,7 +8616,8 @@ function staffCardsHtml(){
 async function renderStudentIdCards(){
   var c = document.getElementById('content-area');
   var classes = SESSION.role === 'admin' ? STRUCT.classes : STRUCT.classes.filter(function(cl){ return myClassTeacherClassIds().includes(cl.id); });
-  c.innerHTML = '<div class="card"><h3>Student ID Cards</h3><div class="hint" style="margin-bottom:14px;">Select a class to generate student ID cards.</div><div class="id-card-controls"><div class="field"><label>Class</label><select id="idc-select-class" style="width:100%;"><option value="">— Select Class —</option>' + classes.map(function(cl){ return '<option value="' + cl.id + '">' + esc(cl.name) + '</option>'; }).join('') + '</select></div><button class="btn btn-navy" onclick="generateStudentIdCards()">Generate</button><div class="field" style="flex:0 0 130px;"><label>Validity (BS)</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="idc-fields-student">' + idFieldCheckboxes('student') + '</div><div id="idc-results"></div></div><div id="idc-print-area" style="display:none;"></div>';
+  c.innerHTML = '<div class="card"><h3>Student ID Cards</h3><div class="hint" style="margin-bottom:14px;">Select a class to generate student ID cards.</div><div class="id-card-controls"><div class="field"><label>Class</label><select id="idc-select-class" style="width:100%;"><option value="">— Select Class —</option>' + classes.map(function(cl){ return '<option value="' + cl.id + '">' + esc(cl.name) + '</option>'; }).join('') + '</select></div><button class="btn btn-navy" onclick="generateStudentIdCards()">Generate</button><div class="idc-search-wrap"><span class="idc-search-ic">🔍</span><input type="text" id="idc-search-student" placeholder="Search student…" oninput="filterIdCards(\'idc-search-student\',\'#idc-results\')"></div><div class="idc-size-ctl"><select id="idc-size" title="Card size for individual print" onchange="saveIdSize(this.value)"><option value="CR80">CR80 (ID-1) — 54×85.6mm portrait</option><option value="CR79">CR79 — 20.6×83.8mm strip</option><option value="CR100">CR100 — 67×98.5mm portrait</option><option value="ID2">ID-2 — 74×105mm portrait</option></select><button class="btn btn-navy" onclick="printFilteredSized(\'student\')" style="padding:8px 14px;font-size:13px;white-space:nowrap;">🖨 Print Sized</button></div><div class="field" style="flex:0 0 130px;"><label>Validity (BS)</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="idc-fields-student">' + idFieldCheckboxes('student') + '</div><div id="idc-results"></div></div><div id="idc-print-area" style="display:none;"></div>';
+  restoreIdSize();
 }
 window.renderStudentIdCards = renderStudentIdCards;
 
@@ -8613,6 +8632,7 @@ function generateStudentIdCards(){
   students.forEach(function(st){ html += idCardStudentHtml(st, cls, fields); });
   html += '</div>';
   document.getElementById('idc-results').innerHTML = html;
+  filterIdCards('idc-search-student', '#idc-results');
 }
 window.generateStudentIdCards = generateStudentIdCards;
 
@@ -8635,13 +8655,14 @@ function idCardTeacherHtml(t, fields){
   if(!fields || fields.joined) rows += '<tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr>';
   if(!fields || fields.address) rows += '<tr><td class="id-lbl">Address</td><td class="id-val">' + esc(t.address || '—') + '</td></tr>';
   if(!fields || fields.username) rows += '<tr><td class="id-lbl">Username</td><td class="id-val">' + esc(t.username || '—') + '</td></tr>';
-  return '<div class="id-card id-teacher"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Teacher') + '</div><div class="id-body"><table>' + rows + '</table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+  return '<div class="id-card id-teacher" data-name="' + esc(t.name || '') + '" data-person="' + t.id + '"><button type="button" class="idc-print-one" title="Print this card" onclick="printIdCards(\'teacher\',\'' + t.id + '\')">🖨</button><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Teacher') + '</div><div class="id-body"><table>' + rows + '</table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
 }
 
 function renderTeacherIdCards(){
   var c = document.getElementById('content-area');
   var teachers = AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
-  c.innerHTML = '<div class="card"><h3>Teacher ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + teachers.length + ' teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'teacher\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="idc-fields-teacher">' + idFieldCheckboxes('teacher') + '</div><div class="id-card-grid" id="idc-teacher-grid">' + teacherCardsHtml() + '</div></div>';
+  c.innerHTML = '<div class="card"><h3>Teacher ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + teachers.length + ' teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'teacher\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div class="idc-search-wrap"><span class="idc-search-ic">🔍</span><input type="text" id="idc-search-teacher" placeholder="Search teacher…" oninput="filterIdCards(\'idc-search-teacher\',\'#idc-teacher-grid\')"></div><div class="idc-size-ctl"><select id="idc-size" title="Card size for individual print" onchange="saveIdSize(this.value)"><option value="CR80">CR80 (ID-1) — 54×85.6mm portrait</option><option value="CR79">CR79 — 20.6×83.8mm strip</option><option value="CR100">CR100 — 67×98.5mm portrait</option><option value="ID2">ID-2 — 74×105mm portrait</option></select><button class="btn btn-navy" onclick="printFilteredSized(\'teacher\')" style="padding:8px 14px;font-size:13px;white-space:nowrap;">🖨 Print Sized</button></div><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="idc-fields-teacher">' + idFieldCheckboxes('teacher') + '</div><div class="id-card-grid" id="idc-teacher-grid">' + teacherCardsHtml() + '</div></div>';
+  restoreIdSize();
 }
 window.renderTeacherIdCards = renderTeacherIdCards;
 
@@ -8656,13 +8677,14 @@ function idCardStaffHtml(t, fields){
   if(!fields || fields.joined) rows += '<tr><td class="id-lbl">Joined</td><td class="id-val">' + esc(t.joiningDate || '—') + '</td></tr>';
   if(!fields || fields.address) rows += '<tr><td class="id-lbl">Address</td><td class="id-val">' + esc(t.address || '—') + '</td></tr>';
   if(!fields || fields.username) rows += '<tr><td class="id-lbl">Username</td><td class="id-val">' + esc(t.username || '—') + '</td></tr>';
-  return '<div class="id-card id-staff"><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Staff') + '</div><div class="id-body"><table>' + rows + '</table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
+  return '<div class="id-card id-staff" data-name="' + esc(t.name || '') + '" data-person="' + t.id + '"><button type="button" class="idc-print-one" title="Print this card" onclick="printIdCards(\'staff\',\'' + t.id + '\')">🖨</button><div class="id-top"><img class="id-seal" src="assets/images/School circular logo.webp" alt="" onerror="this.style.display=\'none\'"><div class="id-school-name">Shree Saraswati<br>Secondary School</div><div class="id-school-sub">Satyawati-06 Johang, Gulmi</div></div><div class="id-photo-wrap">' + (t.photo ? '<img class="id-photo" src="' + t.photo + '" alt="">' : '<div class="id-photo-placeholder">' + esc(initial) + '</div>') + '</div><div class="id-name">' + esc(t.name) + '</div><div class="id-role">' + esc(t.designation || 'Staff') + '</div><div class="id-body"><table>' + rows + '</table></div><div class="id-footer"><span class="id-valid">' + validText + '</span><span class="id-sig">' + idCardSignatureHtml() + '</span></div><div class="id-bar"></div></div>';
 }
 
 function renderStaffIdCards(){
   var c = document.getElementById('content-area');
   var staff = AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
-  c.innerHTML = '<div class="card"><h3>Staff ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + staff.length + ' non-teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'staff\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="idc-fields-staff">' + idFieldCheckboxes('staff') + '</div><div class="id-card-grid" id="idc-staff-grid">' + staffCardsHtml() + '</div></div>';
+  c.innerHTML = '<div class="card"><h3>Staff ID Cards</h3><div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:13px;color:var(--ink-soft);">' + staff.length + ' non-teaching staff</span><button class="btn btn-navy" onclick="printIdCards(\'staff\')" style="padding:8px 18px;font-size:14px;">🖨 Print All</button><div class="idc-search-wrap"><span class="idc-search-ic">🔍</span><input type="text" id="idc-search-staff" placeholder="Search staff…" oninput="filterIdCards(\'idc-search-staff\',\'#idc-staff-grid\')"></div><div class="idc-size-ctl"><select id="idc-size" title="Card size for individual print" onchange="saveIdSize(this.value)"><option value="CR80">CR80 (ID-1) — 54×85.6mm portrait</option><option value="CR79">CR79 — 20.6×83.8mm strip</option><option value="CR100">CR100 — 67×98.5mm portrait</option><option value="ID2">ID-2 — 74×105mm portrait</option></select><button class="btn btn-navy" onclick="printFilteredSized(\'staff\')" style="padding:8px 14px;font-size:13px;white-space:nowrap;">🖨 Print Sized</button></div><div style="display:flex;align-items:center;gap:6px;margin-left:auto;"><label style="font-size:11px;color:var(--ink-soft);white-space:nowrap;">Valid till (BS):</label><input type="text" id="idc-validity" placeholder="mm-dd-yyyy" value="' + esc(ID_VALIDITY) + '" oninput="saveIdValidity(this.value)" style="width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></div><button class="btn btn-outline" onclick="openIdSignaturePicker()">' + (ID_SIG ? 'Change Signature' : '+ Attach Signature') + '</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="idc-fields-staff">' + idFieldCheckboxes('staff') + '</div><div class="id-card-grid" id="idc-staff-grid">' + staffCardsHtml() + '</div></div>';
+  restoreIdSize();
 }
 window.renderStaffIdCards = renderStaffIdCards;
 
@@ -8680,39 +8702,112 @@ function openIdSignaturePicker(){
   existing.click();
 }
 
+/* ==================== ID CARD PRINT CSS (shared) ==================== */
+function getIdCardBaseCss(){
+  return '*{box-sizing:border-box;margin:0;padding:0;}body{font-family:"Segoe UI",Arial,sans-serif;background:#eee;padding:15px;}.id-card{width:210px;min-height:330px;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;font-family:"Segoe UI",Arial,sans-serif;}.id-card .id-top{text-align:center;padding:16px 14px 10px;}.id-card .id-top .id-school-name{font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;line-height:1.3;}.id-card .id-top .id-school-sub{font-size:7px;opacity:.7;margin-top:1px;}.id-card .id-top .id-seal{width:28px;height:28px;border-radius:50%;object-fit:contain;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto;}.id-card .id-photo-wrap{display:flex;justify-content:center;margin:6px 0 8px;}.id-card .id-photo{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2.5px solid;}.id-card .id-photo-placeholder{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;border:2.5px solid;}.id-card .id-name{text-align:center;font-size:13px;font-weight:700;line-height:1.2;padding:0 10px;}.id-card .id-role{text-align:center;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:0 10px;margin-top:2px;}.id-card .id-body{padding:10px 14px 12px;flex:1;}.id-card .id-body table{width:100%;border-collapse:collapse;font-size:9px;}.id-card .id-body table tr td{padding:2px 0;}.id-card .id-body .id-lbl{opacity:.6;width:52px;vertical-align:top;}.id-card .id-body .id-val{font-weight:500;}.id-card .id-footer{padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-size:7px;}.id-card .id-footer .id-valid{opacity:.6;}.id-card .id-footer .id-sig{text-align:right;}.id-card .id-footer .id-sig img{max-width:70px;max-height:20px;object-fit:contain;display:block;margin-left:auto;}.id-card .id-footer .id-sig .id-sig-placeholder{border-top:1px solid #ccc;padding-top:2px;display:inline-block;width:60px;}.id-card .id-bar{height:3px;width:100%;flex-shrink:0;}';
+}
+function getIdCardVariantCss(){
+  return '.id-card.id-student .id-school-name,.id-card.id-student .id-role{color:oklch(0.72 0.13 85);}.id-card.id-student .id-photo,.id-card.id-student .id-photo-placeholder{border-color:oklch(0.72 0.13 85);color:oklch(0.72 0.13 85);}.id-card.id-student .id-top{background:linear-gradient(180deg,oklch(0.72 0.13 85/0.12),transparent 80%);}.id-card.id-student .id-bar{background:linear-gradient(90deg,oklch(0.72 0.13 85),oklch(0.62 0.1 85));}.id-card.id-teacher .id-school-name,.id-card.id-teacher .id-role{color:oklch(0.55 0.12 175);}.id-card.id-teacher .id-photo,.id-card.id-teacher .id-photo-placeholder{border-color:oklch(0.55 0.12 175);color:oklch(0.55 0.12 175);}.id-card.id-teacher .id-top{background:linear-gradient(180deg,oklch(0.55 0.12 175/0.12),transparent 80%);}.id-card.id-teacher .id-bar{background:linear-gradient(90deg,oklch(0.55 0.12 175),oklch(0.45 0.1 175));}.id-card.id-staff .id-school-name,.id-card.id-staff .id-role{color:oklch(0.29 0.045 260);}.id-card.id-staff .id-photo,.id-card.id-staff .id-photo-placeholder{border-color:oklch(0.29 0.045 260);color:oklch(0.29 0.045 260);}.id-card.id-staff .id-top{background:linear-gradient(180deg,oklch(0.29 0.045 260/0.1),transparent 80%);}.id-card.id-staff .id-bar{background:linear-gradient(90deg,oklch(0.29 0.045 260),oklch(0.22 0.04 260));}';
+}
+
 /* ==================== ID CARD PRINT ==================== */
-function printIdCards(type){
+function printIdCards(type, personId){
   var cards = [];
+  var matchPerson = function(list){ return list.find(function(x){ return String(x.id) === String(personId); }); };
   if(type === 'student'){
     var classId = document.getElementById('idc-select-class')?.value;
     if(!classId){ toast('Select a class first.'); return; }
     var students = STRUCT.students.filter(function(s){ return s.classId === classId; }).sort(function(a,b){ return (a.roll||'').localeCompare(b.roll||''); });
     var cls = STRUCT.classes.find(function(c){ return c.id === classId; });
     var sf = ID_FIELDS.student || {};
-    students.forEach(function(st){ cards.push(idCardStudentHtml(st, cls, sf)); });
+    if(personId){ var sOne = matchPerson(students); if(!sOne){ toast('Student not found in this class.'); return; } cards.push(idCardStudentHtml(sOne, cls, sf)); }
+    else students.forEach(function(st){ cards.push(idCardStudentHtml(st, cls, sf)); });
   } else if(type === 'teacher'){
     var tf = ID_FIELDS.teacher || {};
-    AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardTeacherHtml(t, tf)); });
+    var tList = AUTH.teachers.filter(function(t){ return !isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+    if(personId){ var tOne = matchPerson(tList); if(!tOne){ toast('Teacher not found.'); return; } cards.push(idCardTeacherHtml(tOne, tf)); }
+    else tList.forEach(function(t){ cards.push(idCardTeacherHtml(t, tf)); });
   } else if(type === 'staff'){
     var sf2 = ID_FIELDS.staff || {};
-    AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(t){ cards.push(idCardStaffHtml(t, sf2)); });
+    var stList = AUTH.teachers.filter(function(t){ return isNonTeachingStaff(t); }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+    if(personId){ var stOne = matchPerson(stList); if(!stOne){ toast('Staff not found.'); return; } cards.push(idCardStaffHtml(stOne, sf2)); }
+    else stList.forEach(function(t){ cards.push(idCardStaffHtml(t, sf2)); });
   }
-  if(!cards.length){ toast('No cards to print.'); return; }
+if(!cards.length){ toast('No cards to print.'); return; }
   var win = window.open('', '_blank', 'width=500,height=600');
   if(!win){ toast('Please allow pop-ups for printing.'); return; }
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + (type === 'student' ? 'Student' : type === 'teacher' ? 'Teacher' : 'Staff') + ' ID Cards</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:"Segoe UI",Arial,sans-serif;background:#eee;padding:15px;}.id-print-wrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}.id-card{width:210px;min-height:330px;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;font-family:"Segoe UI",Arial,sans-serif;}.id-card .id-top{text-align:center;padding:16px 14px 10px;}.id-card .id-top .id-school-name{font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;line-height:1.3;}.id-card .id-top .id-school-sub{font-size:7px;opacity:.7;margin-top:1px;}.id-card .id-top .id-seal{width:28px;height:28px;border-radius:50%;object-fit:contain;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto;}.id-card .id-photo-wrap{display:flex;justify-content:center;margin:6px 0 8px;}.id-card .id-photo{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2.5px solid;}.id-card .id-photo-placeholder{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;border:2.5px solid;}.id-card .id-name{text-align:center;font-size:13px;font-weight:700;line-height:1.2;padding:0 10px;}.id-card .id-role{text-align:center;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:0 10px;margin-top:2px;}.id-card .id-body{padding:10px 14px 12px;flex:1;}.id-card .id-body table{width:100%;border-collapse:collapse;font-size:9px;}.id-card .id-body table tr td{padding:2px 0;}.id-card .id-body .id-lbl{opacity:.6;width:52px;vertical-align:top;}.id-card .id-body .id-val{font-weight:500;}.id-card .id-footer{padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-size:7px;}.id-card .id-footer .id-number{font-family:"Courier New",monospace;font-weight:600;letter-spacing:.04em;}.id-card .id-footer .id-valid{opacity:.6;}.id-card .id-bar{height:3px;width:100%;flex-shrink:0;}');
-  win.document.write('.id-card.id-student .id-school-name,.id-card.id-student .id-role{color:oklch(0.72 0.13 85);}.id-card.id-student .id-photo,.id-card.id-student .id-photo-placeholder{border-color:oklch(0.72 0.13 85);color:oklch(0.72 0.13 85);}.id-card.id-student .id-top{background:linear-gradient(180deg,oklch(0.72 0.13 85/0.12),transparent 80%);}.id-card.id-student .id-bar{background:linear-gradient(90deg,oklch(0.72 0.13 85),oklch(0.62 0.1 85));}');
-  win.document.write('.id-card.id-teacher .id-school-name,.id-card.id-teacher .id-role{color:oklch(0.55 0.12 175);}.id-card.id-teacher .id-photo,.id-card.id-teacher .id-photo-placeholder{border-color:oklch(0.55 0.12 175);color:oklch(0.55 0.12 175);}.id-card.id-teacher .id-top{background:linear-gradient(180deg,oklch(0.55 0.12 175/0.12),transparent 80%);}.id-card.id-teacher .id-bar{background:linear-gradient(90deg,oklch(0.55 0.12 175),oklch(0.45 0.1 175));}');
-  win.document.write('.id-card.id-staff .id-school-name,.id-card.id-staff .id-role{color:oklch(0.29 0.045 260);}.id-card.id-staff .id-photo,.id-card.id-staff .id-photo-placeholder{border-color:oklch(0.29 0.045 260);color:oklch(0.29 0.045 260);}.id-card.id-staff .id-top{background:linear-gradient(180deg,oklch(0.29 0.045 260/0.1),transparent 80%);}.id-card.id-staff .id-bar{background:linear-gradient(90deg,oklch(0.29 0.045 260),oklch(0.22 0.04 260));}');
-  win.document.write('@media print{body{background:#fff;padding:5px;}.id-print-wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;}.id-card{box-shadow:none;border-radius:0;border:1px solid #ddd;}}</style></head><body><div class="id-print-wrap">' + cards.join('') + '</div></body></html>');
+  var baseCss = getIdCardBaseCss();
+  var variantCss = getIdCardVariantCss();
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + (type === 'student' ? 'Student' : type === 'teacher' ? 'Teacher' : 'Staff') + ' ID Cards</title><style>' + baseCss + '.id-print-wrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}' + variantCss + '@media print{.idc-print-one{display:none!important;}body{background:#fff;padding:5px;}.id-print-wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;}.id-card{box-shadow:none;border-radius:0;border:1px solid #ddd;}}</style></head><body><div class="id-print-wrap">' + cards.join('') + '</div></body></html>');
   win.document.close();
   setTimeout(function(){ win.focus(); win.print(); }, 200);
 }
 window.printIdCards = printIdCards;
 
+/* ==================== ID CARD SIZED PRINT (RFID card sizes) ==================== */
+/* Prints the SAME portrait ID card design at the physical size of each RFID
+   card standard. Sizes are in mm; w/h are the shorter/longer side of the card
+   (portrait orientation). The 210x330px design maps to ~55.6 x 87.3 mm at 96dpi,
+   so a scale transform fits it exactly into the requested format. */
+var ID_CARD_SIZE = 'CR80';
+var ID_CARD_SIZES = {
+  CR80: { w: 53.98, h: 85.6 },
+  CR79: { w: 20.6, h: 83.8 },
+  CR100: { w: 67, h: 98.5 },
+  ID2: { w: 74, h: 105 }
+};
+function loadIdSize(){ try { var s = localStorage.getItem('sss_id_size'); if(s && ID_CARD_SIZES[s]) ID_CARD_SIZE = s; } catch(e) {} }
+function saveIdSize(v){ if(ID_CARD_SIZES[v]) ID_CARD_SIZE = v; try { localStorage.setItem('sss_id_size', ID_CARD_SIZE); } catch(e) {} }
+function restoreIdSize(){ var sz = document.getElementById('idc-size'); if(sz) sz.value = ID_CARD_SIZE; }
+
+function printFilteredSized(type){
+  var gridSel = type === 'student' ? '#idc-results' : type === 'teacher' ? '#idc-teacher-grid' : '#idc-staff-grid';
+  var sizeSel = document.getElementById('idc-size');
+  var sizeKey = (sizeSel && sizeSel.value) || ID_CARD_SIZE;
+  var cards = Array.prototype.slice.call(document.querySelectorAll(gridSel + ' .id-card')).filter(function(c){ return c.style.display !== 'none'; });
+  if(cards.length !== 1){ toast(cards.length ? 'Please search for exactly one person to print their card.' : 'No matching person found — search first.'); return; }
+  var id = cards[0].getAttribute('data-person');
+  printIdCardSized(type, id, sizeKey);
+}
+
+function findIdPerson(type, id){
+  if(type === 'student'){ return STRUCT.students.find(function(x){ return String(x.id) === String(id); }) || null; }
+  return AUTH.teachers.filter(function(t){ return type === 'teacher' ? !isNonTeachingStaff(t) : isNonTeachingStaff(t); }).find(function(x){ return String(x.id) === String(id); }) || null;
+}
+
+function printIdCardSized(type, id, sizeKey){
+  var size = ID_CARD_SIZES[sizeKey] || ID_CARD_SIZES.CR80;
+  var p = findIdPerson(type, id);
+  if(!p){ toast('Person not found.'); return; }
+  var cardHtml = '';
+  if(type === 'student'){
+    var cls = STRUCT.classes.find(function(c){ return c.id === p.classId; });
+    cardHtml = idCardStudentHtml(p, cls, ID_FIELDS.student || {});
+  } else if(type === 'teacher'){
+    cardHtml = idCardTeacherHtml(p, ID_FIELDS.teacher || {});
+  } else {
+    cardHtml = idCardStaffHtml(p, ID_FIELDS.staff || {});
+  }
+  var win = window.open('', '_blank', 'width=620,height=820');
+  if(!win){ toast('Please allow pop-ups for printing.'); return; }
+  var baseCss = getIdCardBaseCss().replace('min-height:330px', 'height:330px');
+  var variantCss = getIdCardVariantCss();
+  var cardCss = '*{box-sizing:border-box;margin:0;padding:0;}body{font-family:"Segoe UI",Arial,sans-serif;background:#eee;padding:12px;display:flex;justify-content:center;}@page{margin:0;}'
+    + baseCss
+    + variantCss
+    + '@media print{.idc-print-one{display:none!important;}.id-card{box-shadow:none;border:1px solid #ddd;}}';
+  var NAT_W = 55.56, NAT_H = 87.31;
+  var scale = Math.min(size.w / NAT_W, size.h / NAT_H);
+  var title = (type === 'student' ? 'Student' : type === 'teacher' ? 'Teacher' : 'Staff') + ' ID Card (' + sizeKey + ')';
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title><style>' + cardCss + '</style></head><body><div class="id-scale" style="transform:scale(' + scale + ');transform-origin:top left;">' + cardHtml + '</div></body></html>');
+  win.document.close();
+  setTimeout(function(){ win.focus(); win.print(); }, 250);
+}
+window.printFilteredSized = printFilteredSized;
+
 /* ---------------- init ---------------- */
 (async function init(){
-  loadIdSig(); loadIdValidity(); loadIdFields(); loadAcSigs(); await loadAcSettings();
+  loadIdSig(); loadIdValidity(); loadIdFields(); loadIdSize(); loadAcSigs(); await loadAcSettings();
   document.querySelectorAll('img[src="LOGO_PLACEHOLDER"]').forEach(img => img.src = LOGO_DATA);
   INITIAL_LOAD_PROMISE = loadAll();
   await INITIAL_LOAD_PROMISE;

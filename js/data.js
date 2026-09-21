@@ -8,6 +8,10 @@
 const DataStore = {
   PREFIX: 'sss_',
 
+  /* Keys that live only in localStorage/CacheManager — there is no Supabase
+     table behind them, so a network call is wasted (and always fails). */
+  LOCAL_ONLY_KEYS: { HOMEPAGE_VISIBILITY: true },
+
   TABLES: {
     SETTINGS: 'site_settings',
     SLIDES: 'slides',
@@ -38,6 +42,21 @@ const DataStore = {
     const table = this.TABLES[key] || key;
     if (this._cache[key] && !opts.force) return this._cache[key];
 
+    if (this.LOCAL_ONLY_KEYS[key]) {
+      const cached = CacheManager.get(key);
+      if (cached !== null && !opts.force) {
+        this._cache[key] = cached;
+        return cached;
+      }
+      const localOnly = localStorage.getItem(this.PREFIX + key);
+      const parsed = localOnly ? JSON.parse(localOnly) : null;
+      if (parsed !== null) {
+        this._cache[key] = parsed;
+        CacheManager.set(key, parsed);
+      }
+      return parsed;
+    }
+
     const cached = CacheManager.get(key);
     if (cached !== null && !opts.force) {
       this._cache[key] = cached;
@@ -48,7 +67,8 @@ const DataStore = {
     if (!qOpts.select) qOpts.select = this.getColumns(key);
 
     try {
-      const { data } = await supabase.select(table, qOpts);
+      const { data, error } = await supabase.select(table, qOpts);
+      if (error) throw error;
       let result;
       if (table === 'site_settings') {
         result = data && data.length ? data[0] : null;
@@ -80,6 +100,12 @@ const DataStore = {
   },
 
   async set(key, value) {
+    if (this.LOCAL_ONLY_KEYS[key]) {
+      this._cache[key] = value;
+      CacheManager.invalidate(key);
+      try { localStorage.setItem(this.PREFIX + key, JSON.stringify(value)); } catch (e) {}
+      return value;
+    }
     const table = this.TABLES[key] || key;
     this._cache[key] = value;
     CacheManager.invalidate(key);
@@ -122,6 +148,16 @@ const DataStore = {
   },
 
   async push(key, item) {
+    if (this.LOCAL_ONLY_KEYS[key]) {
+      const arr = JSON.parse(localStorage.getItem(this.PREFIX + key) || '[]');
+      item.id = item.id || (Date.now() + Math.random().toString(36).substr(2, 9));
+      item.created_at = new Date().toISOString();
+      arr.push(item);
+      localStorage.setItem(this.PREFIX + key, JSON.stringify(arr));
+      this._cache[key] = arr;
+      CacheManager.invalidate(key);
+      return item;
+    }
     const table = this.TABLES[key] || key;
     item.id = item.id || (Date.now() + Math.random().toString(36).substr(2, 9));
     item.created_at = new Date().toISOString();
@@ -145,6 +181,17 @@ const DataStore = {
   },
 
   async update(key, id, newData) {
+    if (this.LOCAL_ONLY_KEYS[key]) {
+      const arr = JSON.parse(localStorage.getItem(this.PREFIX + key) || '[]');
+      const idx = arr.findIndex(item => String(item.id) === String(id));
+      if (idx !== -1) {
+        arr[idx] = { ...arr[idx], ...newData, updatedAt: new Date().toISOString() };
+        localStorage.setItem(this.PREFIX + key, JSON.stringify(arr));
+        this._cache[key] = arr;
+        CacheManager.invalidate(key);
+      }
+      return;
+    }
     const table = this.TABLES[key] || key;
     CacheManager.invalidate(key);
     try {
@@ -169,6 +216,14 @@ const DataStore = {
   },
 
   async delete(key, id) {
+    if (this.LOCAL_ONLY_KEYS[key]) {
+      const arr = JSON.parse(localStorage.getItem(this.PREFIX + key) || '[]');
+      const filtered = arr.filter(item => String(item.id) !== String(id));
+      localStorage.setItem(this.PREFIX + key, JSON.stringify(filtered));
+      this._cache[key] = filtered;
+      CacheManager.invalidate(key);
+      return;
+    }
     const table = this.TABLES[key] || key;
     CacheManager.invalidate(key);
     try {
@@ -186,6 +241,12 @@ const DataStore = {
   },
 
   async clear(key) {
+    if (this.LOCAL_ONLY_KEYS[key]) {
+      delete this._cache[key];
+      localStorage.removeItem(this.PREFIX + key);
+      CacheManager.invalidate(key);
+      return;
+    }
     const table = this.TABLES[key] || key;
     CacheManager.invalidate(key);
     try {
@@ -210,15 +271,20 @@ const NepaliDate = {
 
   convertToBS(date) {
     const d = date ? new Date(date) : new Date();
+    if (typeof adToBs === 'function') {
+      const converted = adToBs(d);
+      if (converted) return { year: converted.year, month: converted.month, day: converted.day };
+    }
+    // Fallback: 2083 academic year anchored to Baisakh 1 = Apr 14 2026
     const DAY = 86400000;
-    const anchor = new Date(2026, 3, 14); // Baisakh 1, 2083
-    let diff = Math.floor((d.getTime() - anchor.getTime()) / DAY);
+    const anchor = new Date(2026, 3, 14);
+    const diff = Math.floor((d.getTime() - anchor.getTime()) / DAY);
     let year = BS_YEAR;
     if (diff < 0) { year--; diff += 365; }
     let month = 0;
     while (month < 12 && diff >= BS_MONTH_DAYS[month]) { diff -= BS_MONTH_DAYS[month]; month++; }
     if (month >= 12) { year++; month = 0; }
-    return { year: year, month: month + 1, day: diff + 1 };
+    return { year, month: month + 1, day: diff + 1 };
   },
 
   formatDate(dateStr) {
