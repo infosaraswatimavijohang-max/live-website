@@ -112,6 +112,8 @@ Run in Supabase SQL Editor in numeric order:
 | `sql/009_exam_documents.sql` | `exam_documents` table + `exam_documents` storage bucket & RLS (for exported ledgers/gradesheets) |
 | `sql/010_school_documents.sql` | `school_documents` table + `school_documents` storage bucket & RLS (Backup tab — file uploads with visibility controls) |
 | `sql/011_subject_credit_hours.sql` | `subjects.credit_hour numeric DEFAULT 1` — powers credit-weighted GPA on Gradesheets/Class Ledgers |
+| `sql/012_multi_category_discounts.sql` | Drops `student_discounts` `UNIQUE(student_id, academic_year)` so a student can have multiple discounts (per fee head) in one year |
+| `sql/013_discount_months.sql` | `student_discounts.discount_months text DEFAULT 'all'` — whole-year or specific-BS-month scoping (monthly fee heads only) |
 
 Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_updates.sql`, `teacher_photo_updates.sql`) are one-time data migrations, not schema changes.
 
@@ -138,7 +140,7 @@ Each fee table has `public_all` RLS policy. Two other SQL files (`student_photo_
 - Three fee scopes (`school`/`class`/`student`), three frequencies (`monthly`/`yearly`/`event`).
 - Amount resolution: school→`fee_categories.amount`, class→`class_fees`, student→`student_fees`.
 - Bill numbers auto-increment per fiscal year via `getNextBillNo()` (max `bill_no` + local `FEE_COLLS` array).
-- Discounts: `student_discounts` table with `discount_type` (position/category/custom), `discount_percent`, `discount_amount`, `applies_to`.
+- Discounts: `student_discounts` table with `discount_type` (position/category/custom), `discount_percent`, `discount_amount`, `applies_to`. **Per-category model** (`sql/012`): a student may have multiple rows per year, each scoping `applies_to` to a specific fee head, a frequency (`monthly`/`yearly`/`event`), or `all`. For each fee head, matching rows' `discount_percent` STACK additively (capped at 100) — computed by `effectiveDiscount()`/`discAmt()` in `Login_portal.html`. `discount_amount` is NOT per-category: all rows' fixed amounts are summed (`totalFixedDiscount()`) and deducted once at bill/total level (a waiver line on the receipt), preserving pre-012 behavior. UI: the class Fees → Discounts & Scholarships manager renders per-student multi-row editors (`addDiscountRow`/`removeDiscountRow`/`saveDiscounts`); rows with no type or 0%+Rs0 are deleted on Save. Each row also stores `discount_months` (`'all'` or comma-separated BS month numbers 1–12, `sql/013`): **month scope only affects monthly-frequency fee heads** (yearly/event ignore it). The editor has a per-row month picker (`toggleMonthPicker`/`mthsAllToggle`/`mthsSync`); `effectiveDiscount(studentId, feeCat, month)` and `discAmt(base, feeCat, studentId, month)` filter by it when a month is passed (undefined month = whole-year view, no filtering). Monthly fees are ANNUALIZED (×12) in `studentTotalFees()`/`getDiscountedAmount()`, and collection-form monthly Checkboxes / `processCollection` charge per-month discounted amounts via `discAmt(..., month)`, so month-scoped discounts show correctly on balances. Pre-013 DBs keep working: `saveDiscounts` retries insert/update without `discount_months` on a missing-column error (`isMissingColumnErr`). Month inset in summary/collection labels via `discountMonthsLabel()`.
 - Privileges: admin + `designation: 'Accountant'` + class teachers (scoped to own classes).
 
 ## Alumni (in `Login_portal.html`)

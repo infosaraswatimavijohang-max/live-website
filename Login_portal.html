@@ -7135,11 +7135,11 @@ async function dbUpsertStudentFee(studentId, catId, amount, year){
   }
 }
 
-function discAmt(base, feeCat, studentId){
+function discAmt(base, feeCat, studentId, month){
   if(!studentId) return base;
-  var disc = getStudentDiscount(studentId);
-  if(!disc || !discountApplies(disc, feeCat)) return base;
-  return Math.max(0, base - (base * (disc.discount_percent||0) / 100));
+  var eff = effectiveDiscount(studentId, feeCat, month);
+  if(!eff) return base;
+  return Math.max(0, base - (base * eff.discount_percent / 100));
 }
 async function collectFee(studentId, catId, amount, month, billNo){
   var fy = currentFiscalYear();
@@ -7513,13 +7513,13 @@ function renderClassFeeRows(){
     students.forEach(function(s){
       var gross = studentTotalFees(s.id, classId);
       var net = getDiscountedAmount(s.id, classId);
-      var disc = getStudentDiscount(s.id);
+      var discTxt = discountSummaryText(s.id);
       var paidF = studentTotalPaid(s.id);
       var bal = net - paidF;
       var balClass = bal > 0 ? 'style="color:#d32f2f;font-weight:600;"' : 'style="color:#2e7d32;font-weight:600;"';
       html += '<tr><td>' + (s.roll || '—') + '</td><td>' + esc(s.name) + '</td>';
       html += '<td>Rs ' + Number(gross).toLocaleString() + '</td>';
-      html += '<td>' + (disc ? ((disc.discount_percent > 0 ? disc.discount_percent + '%' : '') + (disc.discount_amount > 0 ? ' Rs ' + disc.discount_amount : '')).trim() || '—' : '—') + '</td>';
+      html += '<td style="font-size:11px;">' + (discTxt ? esc(discTxt) : '—') + '</td>';
       html += '<td>Rs ' + Number(net).toLocaleString() + '</td>';
       html += '<td>Rs ' + Number(paidF).toLocaleString() + '</td>';
       html += '<td ' + balClass + '>Rs ' + Number(bal).toLocaleString() + '</td></tr>';
@@ -7531,31 +7531,22 @@ function renderClassFeeRows(){
     html += '<button class="btn btn-navy" onclick="printClassLedger(\'' + classId + '\')">🖨 Print Class Ledger</button>';
     html += '</div>';
 
-    /* Discounts & Scholarships manager */
+    /* Discounts & Scholarships manager — per fee-head, multiple rows per student */
     if(SESSION.role === 'admin' || isAccountant() || isClassTeacherOfAny()){
       html += '<div style="height:16px;"></div>';
-      html += '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">Discounts & Scholarships</div>';
-      html += '<table class="fee-table"><thead><tr><th>Roll</th><th>Student</th><th>Type</th><th>Applies To</th><th>Discount %</th><th>Fixed Amt</th><th>Reason</th><th></th></tr></thead><tbody>';
+      html += '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">Discounts & Scholarships <span style="font-weight:400;font-size:11px;color:var(--ink-soft);">(per fee head — add multiple rows per student)</span></div>';
+      html += '<table class="fee-table"><thead><tr><th>Roll</th><th>Student</th><th style="min-width:360px;">Discounts</th><th></th></tr></thead><tbody>';
       students.forEach(function(s){
-        var d = getStudentDiscount(s.id);
         html += '<tr><td>' + (s.roll || '—') + '</td><td>' + esc(s.name) + '</td>';
-        html += '<td><select id="dtype-' + s.id + '" style="padding:3px 4px;border:1px solid var(--line);border-radius:3px;font-size:12px;">';
-        html += '<option value="">None</option><option value="position"' + (d && d.discount_type==='position'?' selected':'') + '>Position</option>';
-        html += '<option value="category"' + (d && d.discount_type==='category'?' selected':'') + '>Category</option>';
-        html += '<option value="custom"' + (d && d.discount_type==='custom'?' selected':'') + '>Custom</option></select></td>';
-        html += '<td><select id="dapp-' + s.id + '" style="padding:3px 4px;border:1px solid var(--line);border-radius:3px;font-size:12px;">';
-        html += '<option value="all"' + (d && (d.applies_to==='all'||!d.applies_to)?' selected':'') + '>All Fees</option>';
-        html += '<option value="monthly"' + (d && d.applies_to==='monthly'?' selected':'') + '>Monthly Fees</option>';
-        html += '<option value="yearly"' + (d && d.applies_to==='yearly'?' selected':'') + '>Yearly Fees</option>';
-        html += '<option value="event"' + (d && d.applies_to==='event'?' selected':'') + '>Event Fees</option>';
-        FEE_CATS.forEach(function(fc){
-          html += '<option value="' + fc.id + '"' + (d && d.applies_to===fc.id?' selected':'') + '>' + esc(fc.name) + '</option>';
+        html += '<td id="disc-rows-' + s.id + '">';
+        getStudentDiscounts(s.id).forEach(function(d){
+          html += discountRowHtml(d);
         });
-        html += '</select></td>';
-        html += '<td><input type="number" id="dpct-' + s.id + '" value="' + (d ? d.discount_percent : 0) + '" min="0" max="100" style="width:60px;padding:3px 4px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></td>';
-        html += '<td><input type="number" id="damt-' + s.id + '" value="' + (d ? d.discount_amount : 0) + '" min="0" style="width:65px;padding:3px 4px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></td>';
-        html += '<td><input type="text" id="drsn-' + s.id + '" value="' + (d ? esc(d.reason||'') : '') + '" placeholder="e.g. 1st position" style="width:100%;padding:3px 4px;border:1px solid var(--line);border-radius:3px;font-size:12px;"></td>';
-        html += '<td><button class="btn btn-navy btn-sm" onclick="saveDiscount(\'' + s.id + '\',\'' + classId + '\')">' + (d ? 'Update' : 'Set') + '</button></td></tr>';
+        html += '</td>';
+        html += '<td style="white-space:nowrap;">';
+        html += '<button class="btn btn-outline btn-sm" onclick="addDiscountRow(\'' + s.id + '\')">+ Add</button> ';
+        html += '<button class="btn btn-navy btn-sm" onclick="saveDiscounts(\'' + s.id + '\')">Save</button>';
+        html += '</td></tr>';
       });
       html += '</tbody></table>';
       html += '<div class="loader-slider" id="disc-loader"></div>';
@@ -7567,9 +7558,9 @@ function renderClassFeeRows(){
   container.innerHTML = html;
 }
 
-function getStudentDiscount(studentId){
+function getStudentDiscounts(studentId){
   var fy = currentFiscalYear();
-  return DISCOUNTS.find(function(d){ return d.student_id === studentId && d.academic_year === fy; }) || null;
+  return DISCOUNTS.filter(function(d){ return d.student_id === studentId && d.academic_year === fy; }) || [];
 }
 function discountApplies(disc, feeCat){
   if(!disc) return false;
@@ -7580,54 +7571,234 @@ function discountApplies(disc, feeCat){
   if(a === 'event') return feeCat && feeCat.frequency === 'event';
   return a === feeCat.id;
 }
+
+/* Effective PERCENT discount for ONE fee category — every matching row stacks:
+   percents are summed (capped at 100). Fixed Rs amounts are separate bill-level
+   waivers (see totalFixedDiscount), not part of the per-category percent. */
+/* Discount month scope: 'all' (whole year) or comma-separated BS month numbers.
+   Only monthly-frequency fee heads are month-filtered; yearly/event ignore it. */
+function discountMonthsArray(d){
+  var v = (d && d.discount_months) || 'all';
+  if(!v || v === 'all' || v === '') return null;
+  var arr = String(v).split(',').map(function(x){ return parseInt(x, 10); }).filter(function(x){ return x >= 1 && x <= 12; });
+  return arr.length ? arr : null;
+}
+function discountMonthsLabel(d){
+  var arr = discountMonthsArray(d);
+  if(!arr) return 'All';
+  return arr.map(function(m){ return BS_MONTHS[m - 1].substring(0, 3); }).join(',');
+}
+function discountAppliesMonth(d, month){
+  var arr = discountMonthsArray(d);
+  return !arr || arr.indexOf(month) !== -1;
+}
+
+/* Effective PERCENT discount for ONE fee category — every matching row stacks:
+   percents are summed (capped at 100). `month` is the BS month (1-12) being
+   billed; when undefined (whole-year view) month scope is ignored. Fixed Rs
+   amounts are separate bill-level waivers (see totalFixedDiscount). */
+function effectiveDiscount(studentId, feeCat, month){
+  var discs = getStudentDiscounts(studentId).filter(function(d){
+    if(!discountApplies(d, feeCat)) return false;
+    if(feeCat.frequency === 'monthly' && month !== undefined && !discountAppliesMonth(d, month)) return false;
+    return true;
+  });
+  if(!discs.length) return null;
+  var pct = 0, reasons = [];
+  discs.forEach(function(d){
+    pct += Number(d.discount_percent) || 0;
+    if(d.reason && reasons.indexOf(d.reason) === -1) reasons.push(d.reason);
+  });
+  return { discount_percent: Math.min(100, pct), reason: reasons.join(', '), sources: discs, count: discs.length };
+}
+function discountTargetLabel(d){
+  var t = (d && d.applies_to) || 'all';
+  if(t === 'all') return 'All Fees';
+  if(t === 'monthly') return 'Monthly Fees';
+  if(t === 'yearly') return 'Yearly Fees';
+  if(t === 'event') return 'Event Fees';
+  var fc = FEE_CATS.find(function(f){ return f.id === t; });
+  return fc ? fc.name : t;
+}
+function discountSummaryText(studentId){
+  var discs = getStudentDiscounts(studentId);
+  var labels = [];
+  discs.forEach(function(d){
+    var parts = [];
+    if(Number(d.discount_percent) > 0) parts.push(Number(d.discount_percent) + '%');
+    if(Number(d.discount_amount) > 0) parts.push('Rs ' + Number(d.discount_amount));
+    if(!parts.length) return;
+    var mTxt = discountMonthsArray(d) ? ' (' + discountMonthsLabel(d) + ')' : '';
+    labels.push(discountTargetLabel(d) + mTxt + ': ' + parts.join(' + '));
+  });
+  return labels.join('; ');
+}
+function totalFixedDiscount(studentId){
+  return getStudentDiscounts(studentId).reduce(function(m, d){ return m + (Number(d.discount_amount) || 0); }, 0);
+}
+/* Annual net: monthly fee heads are summed across all 12 BS months so
+   month-scoped discounts and paid collections line up; yearly/event once. */
 function getDiscountedAmount(studentId, classId){
-  var disc = getStudentDiscount(studentId);
   var total = 0;
   FEE_CATS.forEach(function(f){
     var base = getFeeAmount(f, studentId, classId);
-    if(discountApplies(disc, f)){
-      total += Math.max(0, base - (base * (disc.discount_percent||0) / 100));
+    if(!base) return;
+    if(f.frequency === 'monthly'){
+      for(var m = 1; m <= 12; m++) total += discAmt(base, f, studentId, m);
     } else {
-      total += base;
+      total += discAmt(base, f, studentId);
     }
   });
-  if(disc && disc.discount_amount > 0) total = Math.max(0, total - disc.discount_amount);
+  var fixed = totalFixedDiscount(studentId);
+  if(fixed > 0) total = Math.max(0, total - fixed);
   return total;
 }
-async function saveDiscount(studentId, classId){
-  var dtype = document.getElementById('dtype-' + studentId)?.value;
-  var dapp = document.getElementById('dapp-' + studentId)?.value || 'all';
-  var dpct = parseFloat(document.getElementById('dpct-' + studentId)?.value) || 0;
-  var damt = parseFloat(document.getElementById('damt-' + studentId)?.value) || 0;
-  var reason = document.getElementById('drsn-' + studentId)?.value?.trim() || '';
-  var fy = currentFiscalYear();
-  if(!dtype){
-    showLoaderBar('disc-loader', 'Clearing discount…');
-    try {
-      var existing = DISCOUNTS.find(function(d){ return d.student_id === studentId && d.academic_year === fy; });
-      if(existing){
-        var r = await supabaseClient.from('student_discounts').delete().eq('id', existing.id);
-        if(r.error){ console.error('saveDiscount delete error:', r.error); toast('Error clearing discount'); return; }
-        DISCOUNTS = DISCOUNTS.filter(function(d){ return d.id !== existing.id; });
-      }
-      toast('Discount cleared');
-      renderClassFeeRows();
-    } finally { hideLoaderBar('disc-loader'); }
-    return;
+
+/* ---- Multi-row discount editor helpers ---- */
+function discountRowHtml(d){
+  var sel = ' style="padding:2px 4px;border:1px solid var(--line);border-radius:3px;font-size:11px;"';
+  var inp = ' style="padding:2px 4px;border:1px solid var(--line);border-radius:3px;font-size:11px;"';
+  var h = '<div class="disc-row" data-did="' + (d && d.id ? d.id : '') + '" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:6px;padding:6px;border:1px solid var(--line);border-radius:4px;background:#fff;">';
+  /* Type */
+  h += '<select class="drow-type"' + sel + '>';
+  h += '<option value="">Type…</option>';
+  ['position','category','custom'].forEach(function(t){
+    h += '<option value="' + t + '"' + (d && d.discount_type === t ? ' selected' : '') + '>' + (t.charAt(0).toUpperCase() + t.slice(1)) + '</option>';
+  });
+  h += '</select>';
+  /* Applies to */
+  h += '<select class="drow-app"' + sel + '>';
+  var cur = (d && (d.applies_to || 'all')) || 'all';
+  var appOpts = [['all','All Fees'],['monthly','Monthly Fees'],['yearly','Yearly Fees'],['event','Event Fees']];
+  appOpts.forEach(function(o){
+    h += '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+  });
+  FEE_CATS.forEach(function(fc){
+    h += '<option value="' + fc.id + '"' + (cur === fc.id ? ' selected' : '') + '>' + esc(fc.name) + '</option>';
+  });
+  if(cur !== 'all' && cur !== 'monthly' && cur !== 'yearly' && cur !== 'event' && !FEE_CATS.some(function(fc){ return fc.id === cur; })){
+    h += '<option value="' + cur + '" selected>' + esc(cur) + ' (removed)</option>';
   }
-  showLoaderBar('disc-loader', 'Saving discount…');
-  try {
-    var existing = DISCOUNTS.find(function(d){ return d.student_id === studentId && d.academic_year === fy; });
-    if(existing){
-      var r = await supabaseClient.from('student_discounts').update({discount_type: dtype, applies_to: dapp, discount_percent: dpct, discount_amount: damt, reason: reason}).eq('id', existing.id);
-      if(r.error){ console.error('saveDiscount update error:', r.error); toast('Error saving discount'); return; }
-      existing.discount_type = dtype; existing.applies_to = dapp; existing.discount_percent = dpct; existing.discount_amount = damt; existing.reason = reason;
-    } else {
-      var r = await supabaseClient.from('student_discounts').insert({student_id: studentId, discount_type: dtype, applies_to: dapp, discount_percent: dpct, discount_amount: damt, reason: reason, academic_year: fy}).select().single();
-      if(r.error){ console.error('saveDiscount insert error:', r.error); toast('Error saving discount'); return; }
-      if(r.data) DISCOUNTS.push(r.data);
+  h += '</select>';
+  /* Percent */
+  h += '<input type="number" class="drow-pct"' + inp + ' value="' + (d ? (Number(d.discount_percent) || 0) : 0) + '" min="0" max="100" style="width:52px;" title="Percent off">';
+  h += '<input type="number" class="drow-amt"' + inp + ' value="' + (d ? (Number(d.discount_amount) || 0) : 0) + '" min="0" style="width:60px;" title="Fixed Rs off">';
+  h += '<input type="text" class="drow-rsn"' + inp + ' value="' + (d ? esc(d.reason || '') : '') + '" placeholder="reason" style="width:96px;">';
+  /* Months: whole year or specific BS months */
+  var mArr = discountMonthsArray(d);
+  h += '<div class="drow-mths-wrap" style="position:relative;">';
+  h += '<button type="button" class="drow-mths-btn" onclick="toggleMonthPicker(this)" title="Whole year or specific months" style="padding:2px 6px;border:1px solid var(--line);border-radius:3px;font-size:11px;background:#fff;cursor:pointer;white-space:nowrap;"><span class="drow-mths-lbl">' + (mArr ? discountMonthsLabel(d) : 'All') + '</span> ▾</button>';
+  h += '<div class="drow-mths-pop" style="display:none;position:absolute;top:24px;left:0;z-index:99;background:#fff;border:1px solid var(--line);border-radius:4px;padding:6px;width:210px;box-shadow:0 2px 8px rgba(0,0,0,0.12);">';
+  h += '<label style="display:block;font-size:11px;margin-bottom:4px;"><input type="checkbox" class="drow-all"' + (!mArr ? ' checked' : '') + ' onchange="mthsAllToggle(this)"> Whole Year (All Months)</label>';
+  h += '<div class="drow-mths-grid" style="display:' + (!mArr ? 'none' : 'grid') + ';grid-template-columns:repeat(3,1fr);gap:3px;">';
+  BS_MONTHS.forEach(function(m, i){
+    var mn = i + 1;
+    h += '<label style="font-size:10px;display:flex;align-items:center;gap:2px;"><input type="checkbox" class="drow-mb" data-m="' + mn + '"' + (mArr && mArr.indexOf(mn) !== -1 ? ' checked' : '') + ' onchange="mthsSync(this)">' + m.substring(0, 3) + '</label>';
+  });
+  h += '</div></div>';
+  h += '<input type="hidden" class="drow-mths-val" value="' + (mArr ? mArr.join(',') : 'all') + '">';
+  h += '</div>';
+  h += '<button class="btn btn-danger-outline btn-sm" onclick="removeDiscountRow(this)" title="Remove discount" style="padding:1px 7px;">✕</button>';
+  h += '</div>';
+  return h;
+}
+function toggleMonthPicker(btn){
+  var wrap = btn.closest('.drow-mths-wrap');
+  if(!wrap) return;
+  var pop = wrap.querySelector('.drow-mths-pop');
+  document.querySelectorAll('.drow-mths-pop').forEach(function(p){ if(p !== pop) p.style.display = 'none'; });
+  pop.style.display = (pop.style.display === 'none') ? 'block' : 'none';
+}
+function mthsAllToggle(cb){
+  var wrap = cb.closest('.drow-mths-wrap');
+  if(!wrap) return;
+  var grid = wrap.querySelector('.drow-mths-grid');
+  if(cb.checked){
+    grid.style.display = 'none';
+    wrap.querySelectorAll('.drow-mb').forEach(function(c){ c.checked = false; });
+    wrap.querySelector('.drow-mths-val').value = 'all';
+    wrap.querySelector('.drow-mths-lbl').textContent = 'All';
+  } else {
+    grid.style.display = 'grid';
+  }
+}
+function mthsSync(mb){
+  var wrap = mb.closest('.drow-mths-wrap');
+  if(!wrap) return;
+  var all = wrap.querySelector('.drow-all');
+  all.checked = false;
+  var sel = [];
+  wrap.querySelectorAll('.drow-mb:checked').forEach(function(c){ sel.push(parseInt(c.getAttribute('data-m'), 10)); });
+  sel.sort(function(a, b){ return a - b; });
+  var val = sel.length ? sel.join(',') : 'all';
+  wrap.querySelector('.drow-mths-val').value = val;
+  wrap.querySelector('.drow-mths-lbl').textContent = sel.length ? sel.map(function(x){ return BS_MONTHS[x - 1].substring(0, 3); }).join(',') : 'All';
+}
+function addDiscountRow(studentId){
+  var c = document.getElementById('disc-rows-' + studentId);
+  if(!c) return;
+  c.insertAdjacentHTML('beforeend', discountRowHtml(null));
+}
+function removeDiscountRow(btn){
+  var row = btn.closest('.disc-row');
+  if(row) row.remove();
+}
+async function saveDiscounts(studentId){
+  var fy = currentFiscalYear();
+  var container = document.getElementById('disc-rows-' + studentId);
+  if(!container) return;
+  var rows = Array.prototype.slice.call(container.querySelectorAll('.disc-row'));
+  var toUpdate = [], toInsert = [], toDelete = [];
+  rows.forEach(function(row){
+    var did = row.getAttribute('data-did');
+    var dtype = (row.querySelector('.drow-type') ? row.querySelector('.drow-type').value : '');
+    var dapp = (row.querySelector('.drow-app') ? row.querySelector('.drow-app').value : 'all') || 'all';
+    var dpct = parseFloat(row.querySelector('.drow-pct').value) || 0;
+    var damt = parseFloat(row.querySelector('.drow-amt').value) || 0;
+    var reason = (row.querySelector('.drow-rsn') ? row.querySelector('.drow-rsn').value : '').trim();
+    if(!dtype || (dpct <= 0 && damt <= 0)){
+      if(did) toDelete.push(did);
+      return;
     }
-    toast('Discount saved');
+    var data = {discount_type: dtype, applies_to: dapp, discount_percent: dpct, discount_amount: damt, reason: reason};
+    data.discount_months = (row.querySelector('.drow-mths-val') ? row.querySelector('.drow-mths-val').value : 'all') || 'all';
+    if(did) toUpdate.push({id: did, data: data});
+    else toInsert.push(data);
+  });
+  var existing = getStudentDiscounts(studentId);
+  existing.forEach(function(d){
+    if(!toUpdate.some(function(u){ return u.id === d.id; }) && toDelete.indexOf(d.id) === -1) toDelete.push(d.id);
+  });
+
+  showLoaderBar('disc-loader', 'Saving discounts…');
+  try {
+    for(var i = 0; i < toDelete.length; i++){
+      var rd = await supabaseClient.from('student_discounts').delete().eq('id', toDelete[i]);
+      if(rd.error) console.error('saveDiscounts delete error:', rd.error);
+    }
+    for(var j = 0; j < toUpdate.length; j++){
+      var upd = Object.assign({}, toUpdate[j].data);
+      var ru = await supabaseClient.from('student_discounts').update(upd).eq('id', toUpdate[j].id);
+      if(ru.error && isMissingColumnErr(ru.error)){
+        delete upd.discount_months;
+        ru = await supabaseClient.from('student_discounts').update(upd).eq('id', toUpdate[j].id);
+      }
+      if(ru.error){ console.error('saveDiscounts update error:', ru.error); toast('Error saving discount'); continue; }
+      var rec = DISCOUNTS.find(function(d){ return d.id === toUpdate[j].id; });
+      if(rec) Object.assign(rec, toUpdate[j].data);
+    }
+    for(var k = 0; k < toInsert.length; k++){
+      var ins = Object.assign({student_id: studentId, academic_year: fy}, toInsert[k]);
+      var ri = await supabaseClient.from('student_discounts').insert(ins).select().single();
+      if(ri.error && isMissingColumnErr(ri.error)){
+        delete ins.discount_months;
+        ri = await supabaseClient.from('student_discounts').insert(ins).select().single();
+      }
+      if(ri.error){ console.error('saveDiscounts insert error:', ri.error); toast('Error saving discount'); continue; }
+      if(ri.data) DISCOUNTS.push(ri.data);
+    }
+    if(toDelete.length) DISCOUNTS = DISCOUNTS.filter(function(d){ return toDelete.indexOf(d.id) === -1; });
+    toast('Discounts saved');
     renderClassFeeRows();
   } finally { hideLoaderBar('disc-loader'); }
 }
@@ -7635,7 +7806,8 @@ async function saveDiscount(studentId, classId){
 function studentTotalFees(studentId, classId){
   var total = 0;
   FEE_CATS.forEach(function(f){
-    total += getFeeAmount(f, studentId, classId);
+    var base = getFeeAmount(f, studentId, classId);
+    total += (f.frequency === 'monthly' ? (base * 12) : base);
   });
   return total;
 }
@@ -7667,9 +7839,6 @@ function toggleFeeDetail(studentId, classId){
   if(btn) btn.textContent = row.style.display === 'none' ? 'Details' : 'Hide';
 }
 function feeDetailHtml(studentId, classId){
-  var disc = getStudentDiscount(studentId);
-  function discAmt(base, feeCat){ if(!disc || !discountApplies(disc, feeCat)) return base; return Math.max(0, base - (base * (disc.discount_percent||0) / 100)); }
-
   var html = '<table class="fee-table" style="font-size:11px;width:100%;"><thead><tr><th>Fee</th><th>Freq</th>';
   BS_MONTHS.forEach(function(m){ html += '<th style="font-size:9px;padding:2px 4px;white-space:nowrap;">' + m.substring(0,3) + '</th>'; });
   html += '<th>Yearly/Event</th><th>Status</th></tr></thead><tbody>';
@@ -7677,16 +7846,17 @@ function feeDetailHtml(studentId, classId){
   FEE_CATS.forEach(function(f){
     var baseAmt = getFeeAmount(f, studentId, classId);
     if(!baseAmt) return;
-    var amt = discAmt(baseAmt, f);
+    var amt = discAmt(baseAmt, f, studentId);
     html += '<tr><td style="font-weight:600;">' + esc(f.name) + '</td><td>' + f.frequency + '</td>';
 
     if(f.frequency === 'monthly'){
       var dueMonths = 0;
       BS_MONTHS.forEach(function(m, mi){
         var monthNum = mi + 1;
+        var mAmt = discAmt(baseAmt, f, studentId, monthNum);
         var paid = studentPaidForFee(studentId, f.id, monthNum);
-        if(paid){ html += '<td style="color:#2e7d32;text-align:center;font-size:10px;">Rs' + Number(amt).toLocaleString() + '</td>'; }
-        else { html += '<td style="color:#d32f2f;text-align:center;font-size:10px;font-weight:600;">Rs' + Number(amt).toLocaleString() + '</td>'; dueMonths++; }
+        if(paid){ html += '<td style="color:#2e7d32;text-align:center;font-size:10px;">Rs' + Number(mAmt).toLocaleString() + '</td>'; }
+        else { html += '<td style="color:#d32f2f;text-align:center;font-size:10px;font-weight:600;">Rs' + Number(mAmt).toLocaleString() + '</td>'; dueMonths++; }
       });
       html += '<td>—</td><td style="font-weight:600;color:' + (dueMonths > 0 ? '#d32f2f' : '#2e7d32') + ';">' + (dueMonths > 0 ? dueMonths + ' month(s) due' : 'All clear') + '</td>';
     } else {
@@ -7779,17 +7949,19 @@ function renderCollectionForm(){
   if(!student){ container.innerHTML = '<div class="empty">Student not found.</div>'; return; }
   var classId = student.classId;
 
-  /* Calculate discount */
-  var disc = getStudentDiscount(studentId);
+  /* Discount label — one line per discount row */
   var discLabel = '';
-  if(disc && (disc.discount_percent > 0 || disc.discount_amount > 0)){
-    var parts = [];
-    if(disc.discount_percent > 0) parts.push(disc.discount_percent + '% off');
-    if(disc.discount_amount > 0) parts.push('Rs ' + disc.discount_amount + ' off');
-    var target = (disc.applies_to||'all');
-    var targetLabel = target === 'all' ? 'all fees' : FEE_CATS.find(function(fc){ return fc.id === target; })?.name || target + ' fees';
-    discLabel = '<div style="font-size:12px;color:#2e7d32;font-weight:600;margin-bottom:8px;">Discount: ' + parts.join(' + ') + ' on ' + targetLabel + (disc.reason ? ' (' + esc(disc.reason) + ')' : '') + '</div>';
-  }
+  var sDisks = getStudentDiscounts(studentId);
+  var dParts = [];
+  sDisks.forEach(function(d){
+    var ps = [];
+    if(Number(d.discount_percent) > 0) ps.push(Number(d.discount_percent) + '% off');
+    if(Number(d.discount_amount) > 0) ps.push('Rs ' + Number(d.discount_amount) + ' off');
+    if(!ps.length) return;
+    var mTxt = discountMonthsArray(d) ? ' (' + discountMonthsLabel(d) + ')' : '';
+    dParts.push('· ' + ps.join(' + ') + ' on ' + discountTargetLabel(d) + mTxt + (d.reason ? ' (' + esc(d.reason) + ')' : ''));
+  });
+  if(dParts.length) discLabel = '<div style="font-size:12px;color:#2e7d32;font-weight:600;margin-bottom:8px;">Discount: ' + dParts.join('<br>Discount: ') + '</div>';
 
   var html = '<div style="margin-top:12px;">';
   html += discLabel;
@@ -7807,7 +7979,6 @@ function renderCollectionForm(){
     else if(f.frequency === 'yearly') yearlyFees.push({cat: f, baseAmt: baseAmt, netAmt: netAmt});
     else eventFees.push({cat: f, baseAmt: baseAmt, netAmt: netAmt});
   });
-
   if(!monthlyFees.length && !yearlyFees.length && !eventFees.length){
     container.innerHTML = '<div class="empty">No fees configured for this student. Set up school-wide, class, or per-student fee amounts first.</div>';
     return;
@@ -7815,13 +7986,16 @@ function renderCollectionForm(){
 
   monthlyFees.forEach(function(f){
     var h = '<div class="month-chk-group">';
+    var monthlyTotal = 0;
     BS_MONTHS.forEach(function(m, i){
-      h += '<label class="month-label" id="mcl-' + f.cat.id + '-' + i + '"><input type="checkbox" class="mcb" id="mcb-' + f.cat.id + '-' + i + '" data-amt="' + f.netAmt + '" value="' + (i+1) + '" onchange="toggleMonthLabel(\'' + f.cat.id + '\',' + i + ')">' + m + '</label>';
+      var mAmt = discAmt(f.baseAmt, f.cat, studentId, i + 1);
+      monthlyTotal += mAmt;
+      h += '<label class="month-label" id="mcl-' + f.cat.id + '-' + i + '"><input type="checkbox" class="mcb" id="mcb-' + f.cat.id + '-' + i + '" data-amt="' + mAmt + '" value="' + (i+1) + '" onchange="toggleMonthLabel(\'' + f.cat.id + '\',' + i + ')">' + m + '</label>';
     });
     h += '</div>';
     html += '<tr><td><strong>' + esc(f.cat.name) + '</strong></td>';
     html += '<td>' + (f.baseAmt !== f.netAmt ? '<span style="text-decoration:line-through;color:var(--ink-soft);">Rs ' + Number(f.baseAmt).toLocaleString() + '</span> <strong>Rs ' + Number(f.netAmt).toLocaleString() + '</strong>' : 'Rs ' + Number(f.baseAmt).toLocaleString()) + '</td>';
-    html += '<td>' + h + '</td></tr>';
+    html += '<td>' + h + '<div style="font-size:10px;color:var(--ink-soft);margin-top:2px;">Per month discounted (e.g. Baisakh Rs ' + Number(discAmt(f.baseAmt, f.cat, studentId, 1)).toLocaleString() + '). Annual total Rs ' + Number(monthlyTotal).toLocaleString() + '.</div></td></tr>';
   });
 
   yearlyFees.forEach(function(f){
@@ -7870,11 +8044,11 @@ function updateCollectionTotal(){
   document.querySelectorAll('#ac-col-table .evt-amt').forEach(function(inp){
     total += parseFloat(inp.value) || 0;
   });
-  /* Apply fixed discount to total */
+  /* Apply fixed discounts (summed across all rows) to total */
   var studentId = document.getElementById('ac-col-student')?.value;
   if(studentId){
-    var disc = getStudentDiscount(studentId);
-    if(disc && disc.discount_amount > 0) total = Math.max(0, total - disc.discount_amount);
+    var fxd = totalFixedDiscount(studentId);
+    if(fxd > 0) total = Math.max(0, total - fxd);
   }
   var el = document.getElementById('ac-total-amount');
   if(el) el.textContent = 'Rs ' + Number(total).toLocaleString();
@@ -7889,7 +8063,7 @@ async function processCollection(){
   var student = STRUCT.students.find(function(s){ return s.id === studentId; });
   var classId = student ? student.classId : null;
 
-  var disc = getStudentDiscount(studentId);
+  var discFixed = totalFixedDiscount(studentId);
 
   FEE_CATS.forEach(function(f){
     var amount = discAmt(getFeeAmount(f, studentId, classId), f, studentId);
@@ -7902,7 +8076,7 @@ async function processCollection(){
         if(cb && cb.checked) monthsSelected.push(mi + 1);
       });
       monthsSelected.forEach(function(month){
-        collected.push({catId: f.id, catName: f.name, amount: amount, month: month, billNo: billNo});
+        collected.push({catId: f.id, catName: f.name, amount: discAmt(getFeeAmount(f, studentId, classId), f, studentId, month), month: month, billNo: billNo});
       });
     } else if(f.frequency === 'yearly'){
       var cb = document.querySelector('#ac-col-table .ycb[data-cat="' + f.id + '"]');
@@ -7918,8 +8092,9 @@ async function processCollection(){
   if(!collected.length){ toast('Select at least one fee or month to collect'); return; }
 
   /* Add fixed discount as a line item */
-  if(disc && disc.discount_amount > 0){
-    collected.push({catName: 'Discount (' + (disc.reason||'waiver') + ')', amount: -Math.abs(disc.discount_amount), catId: null, month: null, billNo: billNo});
+  if(discFixed > 0){
+    var dReason = getStudentDiscounts(studentId).filter(function(d){ return (Number(d.discount_amount) || 0) > 0; }).map(function(d){ return d.reason || 'waiver'; }).filter(Boolean).join(', ');
+    collected.push({catName: 'Discount (' + (dReason || 'waiver') + ')', amount: -Math.abs(discFixed), catId: null, month: null, billNo: billNo});
   }
 
   showLoaderBar('coll-loader', 'Recording collection…');
