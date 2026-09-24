@@ -7990,7 +7990,7 @@ function renderCollectionForm(){
     BS_MONTHS.forEach(function(m, i){
       var mAmt = discAmt(f.baseAmt, f.cat, studentId, i + 1);
       monthlyTotal += mAmt;
-      h += '<label class="month-label" id="mcl-' + f.cat.id + '-' + i + '"><input type="checkbox" class="mcb" id="mcb-' + f.cat.id + '-' + i + '" data-amt="' + mAmt + '" value="' + (i+1) + '" onchange="toggleMonthLabel(\'' + f.cat.id + '\',' + i + ')">' + m + '</label>';
+      h += '<label class="month-label" id="mcl-' + f.cat.id + '-' + i + '"><input type="checkbox" class="mcb" id="mcb-' + f.cat.id + '-' + i + '" data-amt="' + mAmt + '" value="' + (i+1) + '" onchange="toggleMonthLabel(\'' + f.cat.id + '\',' + i + ')">' + m + ' <small style="color:var(--ink-soft);font-size:9px;">Rs' + Number(mAmt).toLocaleString() + '</small></label>';
     });
     h += '</div>';
     html += '<tr><td><strong>' + esc(f.cat.name) + '</strong></td>';
@@ -8012,7 +8012,12 @@ function renderCollectionForm(){
 
   html += '</tbody></table>';
   var nextBill = BILL_SEQ ? (BILL_SEQ.last_number + 1) : 1;
-  html += '<div class="fee-summary"><div><div class="total-label">Total to collect</div><div class="total-amount" id="ac-total-amount">Rs 0</div><div style="font-size:11px;color:var(--ink-soft);margin-top:4px;">Bill #' + nextBill + '</div></div>';
+  html += '<div class="fee-summary"><div>';
+  html += '<div class="total-label">Subtotal</div><div class="total-amount" id="ac-subtotal-amount" style="font-size:15px;">Rs 0</div>';
+  html += '<div style="font-size:11px;color:#2e7d32;font-weight:600;margin-top:2px;" id="ac-fixed-disc-line"></div>';
+  html += '<div style="font-size:12px;font-weight:600;color:var(--ink);margin-top:6px;border-top:1px dashed var(--line);padding-top:6px;">Total to collect (after discount)</div>';
+  html += '<div class="total-amount" id="ac-total-amount">Rs 0</div>';
+  html += '<div style="font-size:11px;color:var(--ink-soft);margin-top:4px;">Bill #' + nextBill + '</div></div>';
   html += '<button class="btn btn-gold" onclick="processCollection()">Collect & Print Bill</button>';
   html += '<div class="loader-slider" id="coll-loader"></div></div>';
   html += '</div>';
@@ -8046,10 +8051,16 @@ function updateCollectionTotal(){
   });
   /* Apply fixed discounts (summed across all rows) to total */
   var studentId = document.getElementById('ac-col-student')?.value;
-  if(studentId){
-    var fxd = totalFixedDiscount(studentId);
-    if(fxd > 0) total = Math.max(0, total - fxd);
+  var fxd = 0;
+  if(studentId) fxd = totalFixedDiscount(studentId);
+  var elSub = document.getElementById('ac-subtotal-amount');
+  if(elSub) elSub.textContent = 'Rs ' + Number(total).toLocaleString();
+  var fl = document.getElementById('ac-fixed-disc-line');
+  if(fl){
+    if(fxd > 0){ fl.textContent = '— Fixed discount Rs ' + Number(fxd).toLocaleString(); fl.style.display = 'block'; }
+    else fl.style.display = 'none';
   }
+  if(fxd > 0) total = Math.max(0, total - fxd);
   var el = document.getElementById('ac-total-amount');
   if(el) el.textContent = 'Rs ' + Number(total).toLocaleString();
 }
