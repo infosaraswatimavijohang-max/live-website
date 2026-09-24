@@ -7681,9 +7681,9 @@ function discountRowHtml(d){
   }
   h += '</select>';
   /* Percent */
-  h += '<input type="number" class="drow-pct"' + inp + ' value="' + (d ? (Number(d.discount_percent) || 0) : 0) + '" min="0" max="100" style="width:52px;" title="Percent off">';
-  h += '<input type="number" class="drow-amt"' + inp + ' value="' + (d ? (Number(d.discount_amount) || 0) : 0) + '" min="0" style="width:60px;" title="Fixed Rs off">';
-  h += '<input type="text" class="drow-rsn"' + inp + ' value="' + (d ? esc(d.reason || '') : '') + '" placeholder="reason" style="width:96px;">';
+  h += '<label style="font-size:11px;color:var(--ink-soft);">% off&nbsp;<input type="number" class="drow-pct"' + inp + ' value="' + (d ? (Number(d.discount_percent) || 0) : 0) + '" min="0" max="100" style="width:52px;" title="Discount percentage (percent off this fee)"></label>';
+  h += '<label style="font-size:11px;color:var(--ink-soft);">Fixed Rs&nbsp;<input type="number" class="drow-amt"' + inp + ' value="' + (d ? (Number(d.discount_amount) || 0) : 0) + '" min="0" style="width:60px;" title="Fixed amount off (waiver applied to bill total)"></label>';
+  h += '<label style="font-size:11px;color:var(--ink-soft);">Reason&nbsp;<input type="text" class="drow-rsn"' + inp + ' value="' + (d ? esc(d.reason || '') : '') + '" placeholder="reason" style="width:96px;"></label>';
   /* Months: whole year or specific BS months */
   var mArr = discountMonthsArray(d);
   h += '<div class="drow-mths-wrap" style="position:relative;">';
