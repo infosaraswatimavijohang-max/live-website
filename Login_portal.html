@@ -907,6 +907,8 @@ select#exam-select, select.big-select{padding:9px 12px;border:1.5px solid var(--
 .bill-print-area table{width:100%;border-collapse:collapse;font-size:11px;margin:10px 0;}
 .bill-print-area th{text-align:left;padding:5px 6px;background:var(--paper);font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5px solid var(--line);}
 .bill-print-area td{padding:5px 6px;border-bottom:1px solid var(--line);}
+.bill-print-area .bill-discount td{color:#2e7d32;font-size:10px;}
+.bill-print-area .bill-subtotal td{font-weight:700;border-bottom:1.5px solid var(--line);}
 .bill-print-area .total-row td{font-weight:700;border-top:2px solid var(--navy-deep);border-bottom:2px solid var(--navy-deep);}
 .bill-print-area .footer-note{text-align:center;font-size:9.5px;color:var(--ink-soft);margin-top:12px;border-top:1px dashed var(--line);padding-top:8px;}
 
@@ -8065,68 +8067,115 @@ function updateCollectionTotal(){
   if(el) el.textContent = 'Rs ' + Number(total).toLocaleString();
 }
 
+/* ---------- voucher lines ----------
+   A voucher row carries a `kind` so the receipt can show the undiscounted fee,
+   the discount taken off it, and the remaining payable. `subtotal` rows restate
+   charge+discount for one fee, so they are display-only and never summed —
+   that is what keeps the receipt total equal to the amount collected. */
+var VOUCHER_COUNTED = { charge:1, discount:1, waiver:1 };
+
+function voucherTotal(rows){
+  return rows.reduce(function(sum, r){
+    return VOUCHER_COUNTED[r.kind] ? sum + (Number(r.amount) || 0) : sum;
+  }, 0);
+}
+
+/* Split one collected fee into charge / discount / remaining rows.
+   `net` is always the amount actually charged. `base` is the undiscounted fee
+   and is what makes a discount split possible; event fees carry a cashier-typed
+   amount, so those are called with split off. A fee deleted from FEE_CATS still
+   prints — it just falls back to a plain charge of whatever was collected. */
+function voucherFeeRows(o){
+  var cat = o.cat || FEE_CATS.find(function(f){ return f.id === o.catId; });
+  var catId = o.catId || (cat ? cat.id : null);
+  var label = o.label || (cat ? cat.name : 'Fee');
+  if(o.month && BS_MONTHS[o.month - 1]) label += ' (' + BS_MONTHS[o.month - 1] + ')';
+  var month = o.month || null;
+  var net = Number(o.net) || 0;
+  var rows = [{ kind:'charge', catId: catId, month: month, label: label, amount: net }];
+  if(!o.split) return rows;
+  var base = Math.max(net, Number(o.base) || 0);
+  var disc = base - net;
+  if(disc <= 0) return rows;
+  rows[0].amount = base;
+  rows.push({ kind:'discount', catId: catId, month: month, label: 'Discount — ' + label, amount: -disc });
+  rows.push({ kind:'subtotal', catId: catId, month: month, label: 'Remaining — ' + label, amount: net });
+  return rows;
+}
+
+/* Bill-level fixed waivers. Charged once at the foot of the receipt and never
+   written to fee_collections, so it is rebuilt here for live bills and reprints
+   alike — that is what makes a reprinted bill total match the original. */
+function voucherWaiverRow(studentId){
+  var fixed = totalFixedDiscount(studentId);
+  if(!(fixed > 0)) return [];
+  var reasons = getStudentDiscounts(studentId).filter(function(d){
+    return (Number(d.discount_amount) || 0) > 0;
+  }).map(function(d){ return d.reason; }).filter(Boolean).join(', ');
+  return [{ kind:'waiver', catId: null, month: null, label: 'Discount (' + (reasons || 'waiver') + ')', amount: -Math.abs(fixed) }];
+}
+
 async function processCollection(){
   var studentId = document.getElementById('ac-col-student').value;
   if(!studentId){ toast('Select a student'); return; }
 
   var billNo = await getNextBillNo();
-  var collected = [];
   var student = STRUCT.students.find(function(s){ return s.id === studentId; });
   var classId = student ? student.classId : null;
 
-  var discFixed = totalFixedDiscount(studentId);
+  var dbRows = [];
+  var rows = [];
 
   FEE_CATS.forEach(function(f){
-    var amount = discAmt(getFeeAmount(f, studentId, classId), f, studentId);
-    if(!amount) return;
+    var base = getFeeAmount(f, studentId, classId);
+    if(!base) return;
 
     if(f.frequency === 'monthly'){
-      var monthsSelected = [];
+      var picked = [];
       BS_MONTHS.forEach(function(m, mi){
         var cb = document.getElementById('mcb-' + f.id + '-' + mi);
-        if(cb && cb.checked) monthsSelected.push(mi + 1);
+        if(cb && cb.checked) picked.push({ month: mi + 1, net: parseFloat(cb.getAttribute('data-amt')) || 0 });
       });
-      monthsSelected.forEach(function(month){
-        collected.push({catId: f.id, catName: f.name, amount: discAmt(getFeeAmount(f, studentId, classId), f, studentId, month), month: month, billNo: billNo});
+      picked.forEach(function(p){
+        dbRows.push({ studentId: studentId, catId: f.id, amount: p.net, month: p.month, billNo: billNo });
+        rows = rows.concat(voucherFeeRows({ cat:f, studentId:studentId, classId:classId, base:base, net:p.net, month:p.month, split:true }));
       });
     } else if(f.frequency === 'yearly'){
-      var cb = document.querySelector('#ac-col-table .ycb[data-cat="' + f.id + '"]');
-      if(cb && cb.checked) collected.push({catId: f.id, catName: f.name, amount: parseFloat(cb.getAttribute('data-amt')) || 0, month: null, billNo: billNo});
-    } else if(f.frequency === 'event'){
-      var amtInput = document.querySelector('#ac-col-table .evt-amt[data-cat="' + f.id + '"]');
-      var remark = document.querySelector('#ac-col-table .evt-remark[data-cat="' + f.id + '"]');
-      var evtAmt = amtInput ? parseFloat(amtInput.value) : 0;
-      if(evtAmt > 0) collected.push({catId: f.id, catName: f.name + (remark && remark.value ? ' (' + remark.value + ')' : ''), amount: evtAmt, month: null, billNo: billNo});
+      var ycb = document.querySelector('#ac-col-table .ycb[data-cat="' + f.id + '"]');
+      if(!ycb || !ycb.checked) return;
+      var yNet = parseFloat(ycb.getAttribute('data-amt')) || 0;
+      dbRows.push({ studentId: studentId, catId: f.id, amount: yNet, month: null, billNo: billNo });
+      rows = rows.concat(voucherFeeRows({ cat:f, studentId:studentId, classId:classId, base:base, net:yNet, month:null, split:true }));
+    } else {
+      var amtIn = document.querySelector('#ac-col-table .evt-amt[data-cat="' + f.id + '"]');
+      var evtNet = amtIn ? (parseFloat(amtIn.value) || 0) : 0;
+      if(evtNet <= 0) return;
+      var note = document.querySelector('#ac-col-table .evt-remark[data-cat="' + f.id + '"]');
+      var evtLabel = f.name + (note && note.value ? ' (' + note.value + ')' : '');
+      dbRows.push({ studentId: studentId, catId: f.id, amount: evtNet, month: null, billNo: billNo });
+      rows = rows.concat(voucherFeeRows({ cat:f, studentId:studentId, classId:classId, net:evtNet, month:null, label:evtLabel }));
     }
   });
 
-  if(!collected.length){ toast('Select at least one fee or month to collect'); return; }
+  if(!dbRows.length){ toast('Select at least one fee or month to collect'); return; }
 
-  /* Add fixed discount as a line item */
-  if(discFixed > 0){
-    var dReason = getStudentDiscounts(studentId).filter(function(d){ return (Number(d.discount_amount) || 0) > 0; }).map(function(d){ return d.reason || 'waiver'; }).filter(Boolean).join(', ');
-    collected.push({catName: 'Discount (' + (dReason || 'waiver') + ')', amount: -Math.abs(discFixed), catId: null, month: null, billNo: billNo});
-  }
+  rows = rows.concat(voucherWaiverRow(studentId));
 
   showLoaderBar('coll-loader', 'Recording collection…');
   try {
-    var dbRows = collected.filter(function(i){ return i.catId; }).map(function(i){
-      return {studentId: studentId, catId: i.catId, amount: i.amount, month: i.month, billNo: billNo};
-    });
-    if(dbRows.length) await collectFeeBatch(dbRows);
+    await collectFeeBatch(dbRows);
     toast('Collection recorded. Bill #' + billNo);
-    showBill(studentId, collected, billNo);
+    showBill(studentId, rows, billNo);
     renderAccount();
   } finally { hideLoaderBar('coll-loader'); }
 }
 
-function showBill(studentId, items, billNo){
+function showBill(studentId, rows, billNo){
   var student = STRUCT.students.find(function(s){ return s.id === studentId; });
   if(!student) return;
   var cl = className(student.classId);
   var fy = currentFiscalYear();
-  var total = 0;
-  items.forEach(function(i){ total += i.amount; });
+  var total = voucherTotal(rows);
 
   var html = '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
   html += '<div class="modal" style="max-width:460px;">';
@@ -8138,10 +8187,11 @@ function showBill(studentId, items, billNo){
   html += '<div class="bill-meta"><span>Student: <strong>' + esc(student.name) + '</strong></span><span>Class: ' + esc(cl) + '</span></div>';
   if(student.roll) html += '<div class="bill-meta"><span>Roll No: ' + esc(student.roll) + '</span></div>';
   html += '<table><thead><tr><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead><tbody>';
-  items.forEach(function(i){
-    var detail = i.catName;
-    if(i.month) detail += ' (' + BS_MONTHS[i.month - 1] + ')';
-    html += '<tr><td>' + esc(detail) + '</td><td style="text-align:right;">Rs ' + Number(i.amount).toLocaleString() + '</td></tr>';
+  rows.forEach(function(r){
+    var cls = r.kind === 'subtotal' ? ' class="bill-subtotal"' : ((r.kind === 'discount' || r.kind === 'waiver') ? ' class="bill-discount"' : '');
+    var amt = 'Rs ' + Number(r.amount).toLocaleString();
+    if(r.kind === 'subtotal') amt = '<strong>' + amt + '</strong>';
+    html += '<tr' + cls + '><td>' + esc(r.label) + '</td><td style="text-align:right;">' + amt + '</td></tr>';
   });
   html += '<tr class="total-row"><td><strong>Total</strong></td><td style="text-align:right;"><strong>Rs ' + Number(total).toLocaleString() + '</strong></td></tr>';
   html += '</tbody></table>';
@@ -8408,14 +8458,30 @@ function deleteSelectedCollections(){
 function printBill(collId){
   var coll = FEE_COLLS.find(function(c){ return c.id === collId; });
   if(!coll){ toast('Record not found'); return; }
-  // Find all collections with same bill_no and fiscal_year
-  var siblings = FEE_COLLS.filter(function(c){ return c.bill_no === coll.bill_no && c.fiscal_year === coll.fiscal_year; });
-  var items = siblings.map(function(c){
-    return {catId: c.fee_category_id, catName: feeCatName(c.fee_category_id), amount: c.amount, month: c.bs_month, billNo: c.bill_no};
+  /* Bill numbers run per fiscal year, not per student, so match the student too
+     or a shared number pulls another student's lines onto this receipt. */
+  var siblings = FEE_COLLS.filter(function(c){
+    return c.bill_no === coll.bill_no && c.fiscal_year === coll.fiscal_year && c.student_id === coll.student_id;
   });
-  showBill(coll.student_id, items, coll.bill_no);
-}
+  var student = STRUCT.students.find(function(s){ return s.id === coll.student_id; });
+  var classId = student ? student.classId : null;
 
+  var rows = [];
+  siblings.forEach(function(c){
+    var cat = FEE_CATS.find(function(f){ return f.id === c.fee_category_id; });
+    /* fee_collections stores only the net amount, so the base is re-derived from
+       the fee tables to show the discount that produced it. */
+    rows = rows.concat(voucherFeeRows({
+      cat: cat, catId: c.fee_category_id, studentId: coll.student_id, classId: classId,
+      base: cat ? getFeeAmount(cat, coll.student_id, classId) : 0,
+      net: Number(c.amount) || 0, month: c.bs_month,
+      split: !!cat && cat.frequency !== 'event'
+    }));
+  });
+  rows = rows.concat(voucherWaiverRow(coll.student_id));
+
+  showBill(coll.student_id, rows, coll.bill_no);
+}
 /* ---------------- admit cards ---------------- */
 async function renderAdmitCards(){
   var c = document.getElementById('content-area');
